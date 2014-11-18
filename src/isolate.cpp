@@ -33,4 +33,16 @@ Isolate* Isolate::New() {
 }
 
 
+/*
+ * Isolate::Dispose should be a no-op. In V8, this is an opportunity to perform housekeeping relating to the threads
+ * associated with the given Isolate. Spidermonkey has a fundamentally different model, allowing many threads per
+ * runtime, provided the API conventions regarding JS_Requests are followed.
+ *
+ */
+void Isolate::Dispose() {
+  // An isolate's destructor is private
+  delete this;
+}
+
+
 } // namespace v8

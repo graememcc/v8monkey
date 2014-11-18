@@ -7,16 +7,20 @@
 #define APIEXPORT __attribute__ ((visibility("default")))
 
 
+// V8 API Compatibility
+#define V8COMPAT "3.14.5.9"
+
+
 namespace v8 {
   class APIEXPORT Isolate {
     public:
       // XXX Isolate::Scope
       static Isolate* New();
+      void Dispose();
       /* Other public methods that need implemented
       static Isolate* GetCurrent();
       void Enter();
       void Exit();
-      void Dispose();
       inline void SetData(void* data);
       inline void* GetData();
      private:
