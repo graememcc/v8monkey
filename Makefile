@@ -76,7 +76,7 @@ vpath %.so $(OUTDIR) $(deplib)
 
 
 # The files that compose libv8monkey
-files := isolate init
+files := isolate init version
 sources := $(addsuffix .cpp, $(files))
 objects := $(addprefix $(OUTDIR)/, $(addsuffix .o, $(files)))
 
@@ -89,11 +89,15 @@ $(OUTDIR)/isolate.o $(OUTDIR)/init.o: src/init.h
 $(OUTDIR)/isolate.o $(OUTDIR)/init.o: $(depheaders)/jsapi.h
 
 
+# version.cpp needs SMVERSION defined
+$(OUTDIR)/version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
+
+
 # Originally, I declared a vpath for %.o to be dist, however, it is my understanding that this messes up implicit
 # rules: i.e it would take the stem as-for example-dist/isolate rather than isolate and look for a prereq of
 # dist/isolate.cpp rather than using the vpath for cpp files above (or rather it would look for src/dist/isolate.cpp)
 # TODO Find a make guru and check if that is correct
-$(OUTDIR)/%.o: %.cpp
+$(OUTDIR)/%.o: %.cpp include/v8.h
 	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
 
 

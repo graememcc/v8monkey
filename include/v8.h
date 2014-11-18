@@ -44,6 +44,7 @@ namespace v8 {
       static bool Initialize();
       static bool Dispose();
       static bool IsDead();
+      static const char* GetVersion() {return version_string;};
       /* TO IMPLEMENT:
     static void SetFatalErrorHandler(FatalErrorCallback that);
     static void SetAllowCodeGenerationFromStringsCallback(
@@ -63,7 +64,6 @@ namespace v8 {
     static void SetFlagsFromCommandLine(int* argc,
                                         char** argv,
                                         bool remove_flags);
-    static const char* GetVersion();
     static void SetCounterFunction(CounterLookupCallback);
     static void SetCreateHistogramFunction(CreateHistogramCallback);
     static void SetAddHistogramSampleFunction(AddHistogramSampleCallback);
@@ -131,7 +131,9 @@ namespace v8 {
     friend class Context;
     */
     private:
+      // This is just a utility class, so should not be constructible
       V8();
+      static const char* version_string;
   };
 }
 
