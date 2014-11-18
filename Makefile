@@ -40,7 +40,7 @@ smlinklib = mozjs-$(smmajorversion)
 smlibrary = lib$(smlinklib).so
 
 
-# Name of our v8monkey library
+# TODO: Fix soname of library
 v8monkeylibrary = libv8monkey-$(smfullversion).so
 
 
@@ -63,7 +63,7 @@ all: $(OUTDIR)/$(v8monkeylibrary)
 # Enable all warnings, position-independent code and C++11 when compiling the individual object files
 # Note the use of -i system to treat the JS headers as "system" headers, which turns off warning spew from those files
 # XXX See if that is still required once we have broken the JSAPI dependence noted below
-CXXFLAGS +=-Wall -Wextra -fPIC -isystem $(depheaders) -std=c++11 -c
+CXXFLAGS +=-Wall -Wextra -fPIC -isystem $(depheaders) -std=c++11
 
 
 # Look for cpp files in src/
