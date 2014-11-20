@@ -13,7 +13,7 @@
 # node's V8 embedding requirements or do we want it to be fully general for any V8 embedder?
 
 
-.PHONY: all echoname clean clobber
+.PHONY: all echoname clean clobber check
 
 
 # Directory containing upstream code
@@ -56,18 +56,10 @@ depheaders = $(depsout)/dist/include
 deplib = $(depsout)/dist/lib
 
 
-# Naturally, our default goal is to build the v8monkey shared library
-all: $(OUTDIR)/$(v8monkeylibrary)
-
-
 # Enable all warnings, position-independent code and C++11 when compiling the individual object files
 # Note the use of -i system to treat the JS headers as "system" headers, which turns off warning spew from those files
 # XXX See if that is still required once we have broken the JSAPI dependence noted below
-CXXFLAGS +=-Wall -Wextra -fPIC -isystem $(depheaders) -std=c++11
-
-
-# Look for cpp files in src/
-vpath %.cpp src
+CXXFLAGS +=-Wall -Wextra -Wmissing-include-dirs -fPIC -isystem $(depheaders) -std=c++11
 
 
 # Look for shared libraries in dist
@@ -75,22 +67,36 @@ vpath %.cpp src
 vpath %.so $(OUTDIR) $(deplib)
 
 
+# Our default goal is to build the v8monkey shared library and the infrastructure for running tests
+all: $(OUTDIR)/$(v8monkeylibrary) $(OUTDIR)/test/run_v8monkey_tests
+
+
 # The files that compose libv8monkey
-files := isolate init version
-sources := $(addsuffix .cpp, $(files))
-objects := $(addprefix $(OUTDIR)/, $(addsuffix .o, $(files)))
+filestems = isolate init version
+files = $(addprefix src/, $(filestems))
+sources = $(addsuffix .cpp, $(files))
+objects = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(files)))
 
 
 # isolate.o and init.o additionally depend on init.h
-$(OUTDIR)/isolate.o $(OUTDIR)/init.o: src/init.h
+$(OUTDIR)/src/isolate.o $(OUTDIR)/src/init.o: src/init.h
 
 
 # isolate.o and init.o depend on the JSAPI header
-$(OUTDIR)/isolate.o $(OUTDIR)/init.o: $(depheaders)/jsapi.h
+$(OUTDIR)/src/isolate.o $(OUTDIR)/src/init.o: $(depheaders)/jsapi.h
 
 
 # version.cpp needs SMVERSION defined
-$(OUTDIR)/version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
+$(OUTDIR)/src/version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
+
+
+# The individual object files depend on the existence of their output directory
+$(objects): | $(OUTDIR)/src
+
+
+# Create object file output directory if required
+$(OUTDIR)/src:
+	mkdir -p $(OUTDIR)/src
 
 
 # Originally, I declared a vpath for %.o to be dist, however, it is my understanding that this messes up implicit
@@ -104,17 +110,44 @@ $(OUTDIR)/%.o: %.cpp include/v8.h
 # Our default target is the shared library
 $(OUTDIR)/$(v8monkeylibrary): $(objects) $(OUTDIR)/include/v8.h $(smlibrary)
 	$(CXX) -shared -Wl,-soname,$(v8monkeylibrary) -Wl,-L$(deplib) -Wl,-R$(deplib) -o \
-			$(OUTDIR)/$(v8monkeylibrary) $(OUTDIR)/*.o -l$(smlinklib)
+			$(OUTDIR)/$(v8monkeylibrary) $(objects) -l$(smlinklib)
 
 
 # XXX Need to break the dependence of the include header with JSAPI.h
-$(OUTDIR)/include/v8.h: include/v8.h
-	mkdir -p $(OUTDIR)/include
+$(OUTDIR)/include/v8.h: include/v8.h | $(OUTDIR)/include
 	cp include/v8.h $(OUTDIR)/include
 
 
 # XXX Need to break the dependence of the include header with JSAPI.h
 include/v8.h: $(depsout)/dist/include/jsapi.h
+
+
+# Ensure the include directory exists
+$(OUTDIR)/include:
+	mkdir -p $(OUTDIR)/include
+
+
+# The files that compose the test harness
+teststems = V8MonkeyTest
+testfiles = $(addprefix test/, $(teststems))
+testsources = $(addsuffix .cpp, $(testfiles))
+testobjects = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(testfiles)))
+
+
+# V8MonkeyTest and the test harness depend on the V8MonkeyTest header
+$(OUTDIR)/test/V8MonkeyTest.o $(OUTDIR)/test/run_v8monkey_tests: test/V8MonkeyTest.h
+
+
+# Ensure the directory is created for test files
+$(testobjects): | $(OUTDIR)/test
+$(OUTDIR)/test:
+	mkdir -p $(OUTDIR)/test
+
+
+# Build the test harness
+$(OUTDIR)/test/run_v8monkey_tests: CXXFLAGS += -I test
+$(OUTDIR)/test/run_v8monkey_tests: test/run_v8monkey_tests.cpp $(testobjects)
+	$(CXX) $(CXXFLAGS) -o $(OUTDIR)/test/run_v8monkey_tests test/run_v8monkey_tests.cpp $(testobjects)
 
 
 # Code from here on down is concerned with building the SpiderMonkey shared library
@@ -137,14 +170,24 @@ $(depsout)/Makefile: $(depsout)/config.status
 
 
 # A config.status script is created by running configure
-$(depsout)/config.status: $(mozillaroot)/js/src/configure
-	mkdir -p $(depsout)
+$(depsout)/config.status: $(mozillaroot)/js/src/configure | $(depsout)
 	cd $(depsout) && ../../$(mozillaroot)/js/src/configure
 
 
 # To run configure we must first invoke autoconf
 $(mozillaroot)/js/src/configure:
 	cd $(mozillaroot)/js/src && autoconf
+
+
+# Ensure deps output directory exists
+$(depsout):
+	mkdir -p $(depsout)
+
+
+# Run the testsuite
+check: $(OUTDIR)/test/run_v8monkey_tests
+	@echo
+	@$(OUTDIR)/test/run_v8monkey_tests
 
 
 clean:
