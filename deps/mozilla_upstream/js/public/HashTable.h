@@ -785,7 +785,9 @@ class HashTable : private AllocPolicy
         }
 
         bool found() const {
+#ifdef JS_DEBUG
             MOZ_ASSERT(generation == table_->generation());
+#endif
             return entry_->isLive();
         }
 
@@ -794,22 +796,30 @@ class HashTable : private AllocPolicy
         }
 
         bool operator==(const Ptr &rhs) const {
+#ifdef JS_DEBUG
             MOZ_ASSERT(found() && rhs.found());
+#endif
             return entry_ == rhs.entry_;
         }
 
         bool operator!=(const Ptr &rhs) const {
+#ifdef JS_DEBUG
             MOZ_ASSERT(generation == table_->generation());
+#endif
             return !(*this == rhs);
         }
 
         T &operator*() const {
+#ifdef JS_DEBUG
             MOZ_ASSERT(generation == table_->generation());
+#endif
             return entry_->get();
         }
 
         T *operator->() const {
+#ifdef JS_DEBUG
             MOZ_ASSERT(generation == table_->generation());
+#endif
             return &entry_->get();
         }
     };
@@ -1002,8 +1012,8 @@ class HashTable : private AllocPolicy
     uint32_t    hashShift:8;            // multiplicative hash shift
 
 #ifdef JS_DEBUG
-    mozilla::DebugOnly<uint64_t>     mutationCount;
-    mutable mozilla::DebugOnly<bool> mEntered;
+    uint64_t     mutationCount;
+    mutable bool mEntered;
     mutable struct Stats
     {
         uint32_t        searches;       // total number of table searches
@@ -1467,7 +1477,9 @@ class HashTable : private AllocPolicy
 
     void finish()
     {
+#ifdef JS_DEBUG
         MOZ_ASSERT(!mEntered);
+#endif
 
         if (!table)
             return;
