@@ -13,11 +13,15 @@
 # node's V8 embedding requirements or do we want it to be fully general for any V8 embedder?
 
 
+# XXX Debug doesn't seem to be working. Certainly the compiled libraries don't have, for example, the JS_SetGCZeal symbol
+#     which should be present in debug builds. (v8monkey bits get compiled correctly, and js/src/configure does get called
+#     with --enable-debug --disable-optimize, but we still seem to end up with a standard SpiderMonkey build)
+
 .PHONY: all echoname clean clobber check
 
 
 # Directory containing upstream code
-mozillaroot = deps/mozilla_upstream
+mozillaroot = $(CURDIR)/deps/mozilla_upstream
 
 
 # Command to invoke to discover Gecko/SpiderMonkey version
@@ -40,13 +44,36 @@ smlinklib = mozjs-$(smmajorversion)
 smlibrary = lib$(smlinklib).so
 
 
+# Link name of the library we will build
+v8lib = v8monkey-$(smfullversion)
+
+
+# Link name of the internal testing version of the library which exports additional symbols useful for testing
+v8testlib = v8monkey-test-$(smfullversion)
+
+
+# Define the debug macro and rename the library in debug builds
+ifdef DEBUG
+v8lib = v8monkey-debug-$(smfullversion)
+CXXFLAGS += -DDEBUG -g -DJS_DEBUG
+endif
+
+
 # TODO: Fix soname of library
-v8monkeylibrary = libv8monkey-$(smfullversion).so
+v8monkeylibrary = lib$(v8lib).so
+v8monkeytestlibrary = lib$(v8testlib).so
 
 
 # Where shall we place our artifacts?
 # XXX Is there an idiomatic name for this in make?
 OUTDIR ?= dist
+
+
+# Build in another directory in the case of debug builds
+# XXX This overrides anything user-specified: how do I handle that case?
+ifdef DEBUG
+OUTDIR = dist/debug
+endif
 
 
 # Where should we build SpiderMonkey in the output dir?
@@ -59,7 +86,7 @@ deplib = $(depsout)/dist/lib
 # Enable all warnings, position-independent code and C++11 when compiling the individual object files
 # Note the use of -i system to treat the JS headers as "system" headers, which turns off warning spew from those files
 # XXX See if that is still required once we have broken the JSAPI dependence noted below
-CXXFLAGS +=-Wall -Wextra -Wmissing-include-dirs -fPIC -isystem $(depheaders) -std=c++11
+CXXFLAGS +=-Wall -Wextra -Wmissing-include-dirs -fPIC -isystem $(depheaders) -I include -std=c++11
 
 
 # Look for shared libraries in dist
@@ -68,7 +95,7 @@ vpath %.so $(OUTDIR) $(deplib)
 
 
 # Our default goal is to build the v8monkey shared library and the infrastructure for running tests
-all: $(OUTDIR)/$(v8monkeylibrary) $(OUTDIR)/test/run_v8monkey_tests
+all: $(OUTDIR)/$(v8monkeylibrary) $(OUTDIR)/test/run_v8monkey_tests $(OUTDIR)/test/run_v8monkey_internal_tests
 
 
 # The files that compose libv8monkey
@@ -86,8 +113,8 @@ $(OUTDIR)/src/isolate.o $(OUTDIR)/src/init.o: src/init.h
 $(OUTDIR)/src/isolate.o $(OUTDIR)/src/init.o: $(depheaders)/jsapi.h
 
 
-# version.cpp needs SMVERSION defined
-$(OUTDIR)/src/version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
+# version.cpp and test/test_version.cpp needs SMVERSION defined
+$(OUTDIR)/src/version.o $(OUTDIR)/test/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
 
 
 # The individual object files depend on the existence of their output directory
@@ -109,7 +136,7 @@ $(OUTDIR)/%.o: %.cpp include/v8.h
 
 # Our default target is the shared library
 $(OUTDIR)/$(v8monkeylibrary): $(objects) $(OUTDIR)/include/v8.h $(smlibrary)
-	$(CXX) -shared -Wl,-soname,$(v8monkeylibrary) -Wl,-L$(deplib) -Wl,-R$(deplib) -o \
+	$(CXX) -shared -Wl,-soname,$(v8monkeylibrary) -Wl,-L$(deplib) -Wl,-rpath=$(CURDIR)/$(deplib) -o \
 			$(OUTDIR)/$(v8monkeylibrary) $(objects) -l$(smlinklib)
 
 
@@ -128,26 +155,57 @@ $(OUTDIR)/include:
 
 
 # The files that compose the test harness
-teststems = V8MonkeyTest
+teststems = V8MonkeyTest test_version
 testfiles = $(addprefix test/, $(teststems))
 testsources = $(addsuffix .cpp, $(testfiles))
 testobjects = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(testfiles)))
 
 
-# V8MonkeyTest and the test harness depend on the V8MonkeyTest header
-$(OUTDIR)/test/V8MonkeyTest.o $(OUTDIR)/test/run_v8monkey_tests: test/V8MonkeyTest.h
+# The files that compose the "internal" test harness
+internalteststems = V8MonkeyTest test_internal
+internaltestfiles = $(addprefix test/, $(internalteststems))
+internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
+internaltestobjects = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(internaltestfiles)))
+$(internaltestobjects): CXXFLAGS += -I src
+
+
+# V8MonkeyTest and the test harnesses depend on the V8MonkeyTest header
+$(OUTDIR)/test/V8MonkeyTest.o $(OUTDIR)/test/run_v8monkey_tests $(OUTDIR)/test/run_v8monkey_internal_tests: test/V8MonkeyTest.h
 
 
 # Ensure the directory is created for test files
-$(testobjects): | $(OUTDIR)/test
+$(testobjects) $(internaltestobjects): | $(OUTDIR)/test
 $(OUTDIR)/test:
 	mkdir -p $(OUTDIR)/test
 
 
 # Build the test harness
-$(OUTDIR)/test/run_v8monkey_tests: CXXFLAGS += -I test
-$(OUTDIR)/test/run_v8monkey_tests: test/run_v8monkey_tests.cpp $(testobjects)
-	$(CXX) $(CXXFLAGS) -o $(OUTDIR)/test/run_v8monkey_tests test/run_v8monkey_tests.cpp $(testobjects)
+$(OUTDIR)/test/run_v8monkey_tests $(OUTDIR)/test/run_v8monkey_internal_tests: CXXFLAGS += -I test
+$(OUTDIR)/test/run_v8monkey_tests: test/run_v8monkey_tests.cpp $(testobjects) $(OUTDIR)/$(v8monkeylibrary)
+	$(CXX) $(CXXFLAGS) -o $(OUTDIR)/test/run_v8monkey_tests test/run_v8monkey_tests.cpp $(testobjects)  -Wl,-L$(OUTDIR) -Wl,-rpath=$(CURDIR)/$(OUTDIR) -l$(v8lib)
+
+
+# Extra files for the internal test version of the library
+testlibsources = $(sources) src/testAPI.cpp
+testlibobjects = $(objects) $(OUTDIR)/src/testAPI.o
+
+
+# testAPI.o and internal tests need the testAPI header
+testAPI.o $(internaltestobjects): src/testAPI.h
+
+
+# Build a version of the shared library for internal tests
+$(OUTDIR)/test/$(v8monkeytestlibrary): $(testlibobjects) $(OUTDIR)/include/v8.h $(smlibrary)
+	$(CXX) -shared -Wl,-soname,$(v8monkeytestlibrary) -Wl,-L$(deplib) -Wl,-rpath=$(CURDIR)/$(deplib) -o \
+			$(OUTDIR)/test/$(v8monkeytestlibrary) $(testlibobjects) -l$(smlinklib)
+
+
+# Build the internal test harness
+# Note: we reuse the driver file run_v8monkey_tests.cpp. That isn't a copy/paste error
+$(OUTDIR)/test/run_v8monkey_internal_tests: test/run_v8monkey_tests.cpp $(internaltestobjects) $(OUTDIR)/test/$(v8monkeytestlibrary)
+	@echo $(internaltestobjects)
+	$(CXX) $(CXXFLAGS) -o $(OUTDIR)/test/run_v8monkey_internal_tests test/run_v8monkey_tests.cpp $(internaltestobjects)  \
+                       -Wl,-L$(OUTDIR)/test -Wl,-rpath=$(CURDIR)/$(OUTDIR)/test -l$(v8testlib)
 
 
 # Code from here on down is concerned with building the SpiderMonkey shared library
@@ -166,12 +224,20 @@ $(deplib)/libmozjs-33.so $(depheaders)/jsapi.h: $(depsout)/Makefile
 
 # To create the Makefile, we must have a config.status script
 $(depsout)/Makefile: $(depsout)/config.status
-	cd $(depsout) && ../../$(mozillaroot)/js/src/configure
+	cd $(depsout) && $(mozillaroot)/js/src/configure
+
+
+# Ensure appropriate options are passed for debug builds
+configureopts =
+ifdef DEBUG
+configureopts := --enable-debug --disable-optimize
+endif
 
 
 # A config.status script is created by running configure
 $(depsout)/config.status: $(mozillaroot)/js/src/configure | $(depsout)
-	cd $(depsout) && ../../$(mozillaroot)/js/src/configure
+	echo CONFIGURING WITH $(configureopts)
+	cd $(depsout) && $(mozillaroot)/js/src/configure $(configureopts)
 
 
 # To run configure we must first invoke autoconf
@@ -187,7 +253,11 @@ $(depsout):
 # Run the testsuite
 check: $(OUTDIR)/test/run_v8monkey_tests
 	@echo
+	@echo Running API tests
 	@$(OUTDIR)/test/run_v8monkey_tests
+	@echo
+	@echo Running internal tests
+	@$(OUTDIR)/test/run_v8monkey_internal_tests
 
 
 clean:

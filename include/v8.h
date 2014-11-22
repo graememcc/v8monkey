@@ -44,7 +44,7 @@ namespace v8 {
       static bool Initialize();
       static bool Dispose();
       static bool IsDead();
-      static const char* GetVersion() {return version_string;};
+      static const char* GetVersion() { return  version_string; };
       /* TO IMPLEMENT:
     static void SetFatalErrorHandler(FatalErrorCallback that);
     static void SetAllowCodeGenerationFromStringsCallback(

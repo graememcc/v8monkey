@@ -1,7 +1,10 @@
-#include "../include/v8.h"
+#include "v8.h"
 
 
-#define VERSION_STRING "V8Monkey (SpiderMonkey " SMVERSION ") V8 API: " V8COMPAT
+// We could get the SpiderMonkey version from the JS_GetImplementationVersion call, however this would require some
+// string manipulation. It's easier to simply bake it in at build time.
+
+#define VERSION_STRING V8COMPAT " V8 API provided by V8Monkey (SpiderMonkey " SMVERSION ")"
 
 
 namespace v8 {
