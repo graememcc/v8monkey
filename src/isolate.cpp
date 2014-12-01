@@ -27,7 +27,7 @@ Isolate::~Isolate()
 
 
 Isolate* Isolate::New() {
-  ENSURE_ENGINE_INIT_OR_RETURN_NULL
+  ATTEMPT_ENGINE_INIT
 
   return new Isolate();
 }

@@ -20,31 +20,7 @@
  *
  */
 
-// Uh-oh. Global variable klaxon!
-
-// Have we (or the user) made a call to JS_Init in SpiderMonkey?
-extern bool gEngineHasBeenInitialized;
-
-// Did our attempt to init SpiderMonkey succeed (note: this is meaningless when gEngineHasBeenInitialized is false)
-extern bool gEngineInitSucceeded;
-
-// Has the engine been destroyed?
-extern bool gEngineHasBeenDestroyed;
-
-
-// Macro definition to handle sloppy engine initialization
-#define ATTEMPT_ENGINE_INIT \
-  if (!gEngineHasBeenInitialized) {\
-    V8::Initialize(); \
-  }
-
-
-// Macro for functions returning pointers: return a null pointer in the face of engine init failure
-#define ENSURE_ENGINE_INIT_OR_RETURN_NULL \
-  ATTEMPT_ENGINE_INIT \
-  if (!gEngineInitSucceeded) {\
-    return nullptr; \
-  }
+#define ATTEMPT_ENGINE_INIT V8::Initialize();
 
 
 #endif
