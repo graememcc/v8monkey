@@ -95,7 +95,12 @@ vpath %.so $(OUTDIR) $(deplib)
 
 
 # Our default goal is to build the v8monkey shared library and the infrastructure for running tests
-all: $(OUTDIR)/$(v8monkeylibrary) $(OUTDIR)/test/run_v8monkey_tests $(OUTDIR)/test/run_v8monkey_internal_tests
+all: $(OUTDIR)/$(v8monkeylibrary) $(OUTDIR)/test/run_v8monkey_tests $(OUTDIR)/test/run_v8monkey_internal_tests temp
+
+
+# XXX Remove me!
+temp: $(OUTDIR)/$(v8monkeylibrary) temp.cpp
+	$(CXX) -o temp temp.cpp -std=c++0x -I $(OUTDIR)/deps/dist/include -Wl,-L$(CURDIR)/$(OUTDIR) -Wl,-rpath=$(CURDIR)/$(OUTDIR) -l$(v8lib)
 
 
 # The files that compose libv8monkey
@@ -137,7 +142,7 @@ $(OUTDIR)/%.o: %.cpp include/v8.h
 # Our default target is the shared library
 $(OUTDIR)/$(v8monkeylibrary): $(objects) $(OUTDIR)/include/v8.h $(smlibrary)
 	$(CXX) -shared -Wl,-soname,$(v8monkeylibrary) -Wl,-L$(deplib) -Wl,-rpath=$(CURDIR)/$(deplib) -o \
-			$(OUTDIR)/$(v8monkeylibrary) $(objects) -l$(smlinklib)
+			$(OUTDIR)/$(v8monkeylibrary) $(objects) -l$(smlinklib) -lpthread
 
 
 # XXX Need to break the dependence of the include header with JSAPI.h
