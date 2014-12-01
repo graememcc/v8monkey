@@ -100,7 +100,7 @@ class V8MonkeyTest {
 #define V8MONKEY_CHECK(condition, description) \
   do { \
     if (!(condition)) { \
-      throw logic_error("Check at " __FILE__ " line " V8MONKEY_STRINGIFY_EXPANSION(__LINE__) " (" description ") failed "); \
+      throw std::logic_error("Check at " __FILE__ " line " V8MONKEY_STRINGIFY_EXPANSION(__LINE__) " (" description ") failed "); \
     } \
   } while (0);
 #endif
