@@ -28,12 +28,17 @@ namespace {
 
 
       ~AutoSpiderMonkeyShutdown() {
-        /* XXX DELETE */ fprintf(stdout, "AutoSpiderMonkeyShutdown deleted\n");
+        /* XXX DELETE */ fprintf(stdout, "AutoSpiderMonkeyShutdown %p deleted (is shutdown %d) \n", this, isShutdown);
+        /* XXX DELETE */ isShutdown = true;
         JS_ShutDown();
+        /* XXX DELETE */ fprintf(stdout, "AutoSpiderMonkeyShutdown %p is done deleted (is shutdown %d) \n", this, isShutdown);
       }
+
+      /* XXX DELETE */ static bool isShutdown;
   } autoFreeEngine;
 
 
+  /* XXX DELETE */ bool AutoSpiderMonkeyShutdown::isShutdown = false;
   // Ensure SpiderMonkey is initialized at most once
   // XXX Abstract out platform-specific thread related details
   pthread_once_t gSpiderMonkeyInitControl = PTHREAD_ONCE_INIT;
