@@ -45,6 +45,7 @@ namespace v8 {
       static bool Dispose();
       static bool IsDead();
       static const char* GetVersion() { return  version_string; };
+      static int GetCurrentThreadId();
       /* TO IMPLEMENT:
     static void SetFatalErrorHandler(FatalErrorCallback that);
     static void SetAllowCodeGenerationFromStringsCallback(
@@ -99,7 +100,6 @@ namespace v8 {
     static void PauseProfiler();
     static void ResumeProfiler();
     static bool IsProfilerPaused();
-    static int GetCurrentThreadId();
     static void TerminateExecution(int thread_id);
     static void TerminateExecution(Isolate* isolate = NULL);
     static bool IsExecutionTerminating(Isolate* isolate = NULL);

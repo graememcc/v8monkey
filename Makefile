@@ -86,7 +86,7 @@ deplib = $(depsout)/dist/lib
 # Enable all warnings, position-independent code and C++11 when compiling the individual object files
 # Note the use of -i system to treat the JS headers as "system" headers, which turns off warning spew from those files
 # XXX See if that is still required once we have broken the JSAPI dependence noted below
-CXXFLAGS +=-Wall -Wextra -Wmissing-include-dirs -fPIC -isystem $(depheaders) -I include -std=c++11
+CXXFLAGS +=-Wall -Wextra -Wmissing-include-dirs -fPIC -isystem $(depheaders) -I include -I $(CURDIR)/src -std=c++11
 
 
 # Look for shared libraries in dist
@@ -104,7 +104,7 @@ temp: $(OUTDIR)/$(v8monkeylibrary) temp.cpp
 
 
 # The files that compose libv8monkey
-filestems = isolate init version platform
+filestems = isolate init version platform thread_id
 files = $(addprefix src/, $(filestems))
 sources = $(addsuffix .cpp, $(files))
 objects = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(files)))
@@ -113,7 +113,7 @@ objects = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(files)))
 # Individual header file dependencies below
 
 
-# isolate.cpp and init.cpp additionally depend on init.h
+# Several files additionally depend on init.h
 src/isolate.cpp src/init.cpp: src/init.h
 
 
@@ -126,11 +126,15 @@ $(OUTDIR)/src/version.o $(OUTDIR)/testlib/version.o $(OUTDIR)/test/test_version.
 
 
 # Several files depend on platform capabilities
-src/init.cpp test/test_platform.cpp src/autolock.h: src/platform.h
+src/init.cpp src/autolock.h test/test_platform.cpp test/test_threadid.cpp: src/platform.h
 
 
 # Several files depend on the autolock RAII class
-src/init.cpp: src/autolock.h
+src/init.cpp src/thread_id.cpp: src/autolock.h
+
+
+# Several files depend on the V8MonkeyCommon class
+src/thread_id.cpp: src/v8monkey_common.h
 
 
 # The individual object files depend on the existence of their output directory
@@ -172,7 +176,7 @@ $(OUTDIR)/include:
 
 
 # The files that compose the test harness
-teststems = V8MonkeyTest test_version
+teststems = V8MonkeyTest test_version test_threadid
 testfiles = $(addprefix test/, $(teststems))
 testsources = $(addsuffix .cpp, $(testfiles))
 testobjects = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(testfiles)))
