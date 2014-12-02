@@ -1,6 +1,7 @@
 // V8
 #include "../include/v8.h"
 #include "init.h"
+#include "platform.h"
 
 // Spidermonkey
 #include "jsapi.h"
@@ -24,24 +25,13 @@ namespace {
   //     guarantees with regards to static destructor ordering
   class AutoSpiderMonkeyShutdown {
     public:
-      AutoSpiderMonkeyShutdown() {/* XXX DELETE */fprintf(stdout, "AutoSpiderMonkeyShutdown inited\n");}
+      AutoSpiderMonkeyShutdown() {}
 
 
       ~AutoSpiderMonkeyShutdown() {
-        /* XXX DELETE */ fprintf(stdout, "AutoSpiderMonkeyShutdown %p deleted (is shutdown %d) \n", this, isShutdown);
-        /* XXX DELETE */ isShutdown = true;
         JS_ShutDown();
-        /* XXX DELETE */ fprintf(stdout, "AutoSpiderMonkeyShutdown %p is done deleted (is shutdown %d) \n", this, isShutdown);
       }
-
-      /* XXX DELETE */ static bool isShutdown;
   } autoFreeEngine;
-
-
-  /* XXX DELETE */ bool AutoSpiderMonkeyShutdown::isShutdown = false;
-  // Ensure SpiderMonkey is initialized at most once
-  // XXX Abstract out platform-specific thread related details
-  pthread_once_t gSpiderMonkeyInitControl = PTHREAD_ONCE_INIT;
 
 
   // Was SpiderMonkey initted succesfully? This will be set by InitializeSpiderMonkey. This must not be read prior to a
@@ -57,7 +47,11 @@ namespace {
 
 
   // Mutex for checking/modifying engine disposal state
-  pthread_mutex_t gEngineDisposalMutex = PTHREAD_MUTEX_INITIALIZER;
+  v8::V8Monkey::Mutex* gEngineDisposalMutex = v8::V8Monkey::Platform::CreateMutex();
+
+
+  // Ensure SpiderMonkey is initialized at most once
+  v8::V8Monkey::OneTimeFunctionControl* gSpiderMonkeyInitControl = v8::V8Monkey::Platform::CreateOneShotFunction(InitializeSpiderMonkey);
 
 
   // Has V8 been 'disposed'?
@@ -70,7 +64,7 @@ namespace v8 {
 
 bool V8::Initialize()
 {
-  pthread_once(&gSpiderMonkeyInitControl, InitializeSpiderMonkey);
+  gSpiderMonkeyInitControl->Run();
 
   // gEngineInitSucceeded will now be in a stable state
   if (!gEngineInitSucceeded) {
@@ -87,9 +81,9 @@ bool V8::Dispose()
 {
   // XXX V8::Dispose has some semantics around stopping of utility threads that we haven't tackled
   //     For now, this is a no-op: our static object above will really shutdown SpiderMonkey
-  pthread_mutex_lock(&gEngineDisposalMutex);
+  gEngineDisposalMutex->Lock();
   gV8IsDisposed = true;
-  pthread_mutex_unlock(&gEngineDisposalMutex);
+  gEngineDisposalMutex->Unlock();
 
   return true;
 }
@@ -98,9 +92,9 @@ bool V8::Dispose()
 // XXX We likely need to extend this to handle OOM and other such error situations
 bool V8::IsDead()
 {
-  pthread_mutex_lock(&gEngineDisposalMutex);
+  gEngineDisposalMutex->Lock();
   bool result = gV8IsDisposed;
-  pthread_mutex_unlock(&gEngineDisposalMutex);
+  gEngineDisposalMutex->Unlock();
 
   return result;
 }

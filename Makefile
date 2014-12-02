@@ -104,7 +104,7 @@ temp: $(OUTDIR)/$(v8monkeylibrary) temp.cpp
 
 
 # The files that compose libv8monkey
-filestems = isolate init version
+filestems = isolate init version platform
 files = $(addprefix src/, $(filestems))
 sources = $(addsuffix .cpp, $(files))
 objects = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(files)))
@@ -125,6 +125,10 @@ src/isolate.cpp src/init.cpp: $(depheaders)/jsapi.h
 $(OUTDIR)/src/version.o $(OUTDIR)/testlib/version.o $(OUTDIR)/test/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
 
 
+# Several files depend on platform capabilities
+src/init.cpp test/test_platform.cpp: src/platform.h
+
+
 # The individual object files depend on the existence of their output directory
 $(objects): | $(OUTDIR)/src
 
@@ -143,6 +147,7 @@ $(OUTDIR)/%.o: %.cpp include/v8.h
 
 
 # Our default target is the shared library
+# XXX Move the pthread link, factor out platform-specific bits
 $(OUTDIR)/$(v8monkeylibrary): $(objects) $(OUTDIR)/include/v8.h $(smlibrary)
 	$(CXX) -shared -Wl,-soname,$(v8monkeylibrary) -Wl,-L$(deplib) -Wl,-rpath=$(CURDIR)/$(deplib) -o \
 			$(OUTDIR)/$(v8monkeylibrary) $(objects) -l$(smlinklib) -lpthread
@@ -170,7 +175,7 @@ testobjects = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(testfiles)))
 
 
 # The files that compose the "internal" test harness
-internalteststems = V8MonkeyTest test_internal
+internalteststems = V8MonkeyTest test_internal test_platform
 internaltestfiles = $(addprefix test/, $(internalteststems))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(internaltestfiles)))
@@ -210,7 +215,7 @@ $(OUTDIR)/testlib:
 
 
 # Add an additional define when compiling object files for the test lib
-testlibobjects $(internaltestobjects): CXXFLAGS += -DV8MONKEY_INTERNAL_TEST=1
+$(testlibobjects) $(internaltestobjects): CXXFLAGS += -DV8MONKEY_INTERNAL_TEST=1
 
 
 # testAPI.cpp and internal tests need the testAPI header
