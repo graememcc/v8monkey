@@ -8,14 +8,8 @@
 #include "jsapi.h"
 
 
-// pthreads, for pthread_once and co.
-#include <pthread.h>
-
-
 // exit
 #include <stdlib.h>
-// XXX Temp
-#include <stdio.h>
 
 
 namespace {

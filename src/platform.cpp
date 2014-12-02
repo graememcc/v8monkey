@@ -2,7 +2,6 @@
 #include "platform.h"
 
 
-#include <stdio.h>
 namespace v8 {
 namespace V8Monkey {
 
@@ -22,13 +21,11 @@ class POSIXMutex: public Mutex {
 
 
     int Lock() {
-      fprintf(stdout, "POSIX LOCK!\n");
       return pthread_mutex_lock(&platformMutex);
     }
 
 
     int Unlock() {
-      fprintf(stdout, "POSIX UNLOCK!\n");
       return pthread_mutex_unlock(&platformMutex);
     }
 
