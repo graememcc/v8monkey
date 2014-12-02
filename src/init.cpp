@@ -2,6 +2,7 @@
 #include "../include/v8.h"
 #include "init.h"
 #include "platform.h"
+#include "autolock.h"
 
 // Spidermonkey
 #include "jsapi.h"
@@ -81,10 +82,9 @@ bool V8::Dispose()
 {
   // XXX V8::Dispose has some semantics around stopping of utility threads that we haven't tackled
   //     For now, this is a no-op: our static object above will really shutdown SpiderMonkey
-  gEngineDisposalMutex->Lock();
-  gV8IsDisposed = true;
-  gEngineDisposalMutex->Unlock();
+  V8Monkey::AutoLock mutex(gEngineDisposalMutex);
 
+  gV8IsDisposed = true;
   return true;
 }
 
@@ -92,10 +92,9 @@ bool V8::Dispose()
 // XXX We likely need to extend this to handle OOM and other such error situations
 bool V8::IsDead()
 {
-  gEngineDisposalMutex->Lock();
-  bool result = gV8IsDisposed;
-  gEngineDisposalMutex->Unlock();
+  V8Monkey::AutoLock mutex(gEngineDisposalMutex);
 
+  bool result = gV8IsDisposed;
   return result;
 }
 

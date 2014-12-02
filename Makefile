@@ -126,7 +126,11 @@ $(OUTDIR)/src/version.o $(OUTDIR)/testlib/version.o $(OUTDIR)/test/test_version.
 
 
 # Several files depend on platform capabilities
-src/init.cpp test/test_platform.cpp: src/platform.h
+src/init.cpp test/test_platform.cpp src/autolock.h: src/platform.h
+
+
+# Several files depend on the autolock RAII class
+src/init.cpp: src/autolock.h
 
 
 # The individual object files depend on the existence of their output directory

@@ -16,3 +16,8 @@ V8MONKEY_TEST(Inte002, "Internal dummy test 2") {
 V8MONKEY_TEST(Inte003, "Internal dummy test 3") {
   v8::V8::Initialize();
 }
+
+
+V8MONKEY_TEST(Inte004, "Internal dummy test 3") {
+  v8::V8::IsDead();
+}
