@@ -1,9 +1,8 @@
-#include "../include/v8.h"
+#include "v8.h"
 #include "platform.h"
 #include "V8MonkeyTest.h"
 
 
-#include <stdio.h>
 using namespace v8;
 
 

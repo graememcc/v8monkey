@@ -4,7 +4,6 @@
 #include "autolock.h"
 
 
-#include <stdio.h>
 namespace {
 
 using namespace v8::V8Monkey;

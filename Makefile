@@ -66,13 +66,13 @@ v8monkeytestlibrary = lib$(v8testlib).so
 
 # Where shall we place our artifacts?
 # XXX Is there an idiomatic name for this in make?
-OUTDIR ?= dist
+OUTDIR ?= $(CURDIR)/dist
 
 
 # Build in another directory in the case of debug builds
 # XXX This overrides anything user-specified: how do I handle that case?
 ifdef DEBUG
-OUTDIR = dist/debug
+OUTDIR = $(CURDIR)/dist/debug
 endif
 
 
@@ -86,7 +86,7 @@ deplib = $(depsout)/dist/lib
 # Enable all warnings, position-independent code and C++11 when compiling the individual object files
 # Note the use of -i system to treat the JS headers as "system" headers, which turns off warning spew from those files
 # XXX See if that is still required once we have broken the JSAPI dependence noted below
-CXXFLAGS +=-Wall -Wextra -Wmissing-include-dirs -fPIC -isystem $(depheaders) -I include -I $(CURDIR)/src -std=c++11
+CXXFLAGS +=-Wall -Wextra -Wmissing-include-dirs -fPIC -isystem $(depheaders) -I $(OUTDIR)/include -I $(CURDIR)/src -std=c++0x
 
 
 # Look for shared libraries in dist
@@ -100,7 +100,7 @@ all: $(OUTDIR)/$(v8monkeylibrary) $(OUTDIR)/test/run_v8monkey_tests $(OUTDIR)/te
 
 # XXX Remove me!
 temp: $(OUTDIR)/$(v8monkeylibrary) temp.cpp
-	$(CXX) -o temp temp.cpp -std=c++0x -I $(OUTDIR)/deps/dist/include -Wl,-L$(CURDIR)/$(OUTDIR) -Wl,-rpath=$(CURDIR)/$(OUTDIR) -l$(v8lib)
+	$(CXX) -o temp temp.cpp -std=c++0x -I $(depheaders) -Wl,-L$(OUTDIR) -Wl,-rpath=$(OUTDIR) -l$(v8lib)
 
 
 # The files that compose libv8monkey
@@ -150,14 +150,14 @@ $(OUTDIR)/src:
 # rules: i.e it would take the stem as-for example-dist/isolate rather than isolate and look for a prereq of
 # dist/isolate.cpp rather than using the vpath for cpp files above (or rather it would look for src/dist/isolate.cpp)
 # TODO Find a make guru and check if that is correct
-$(OUTDIR)/%.o: %.cpp include/v8.h
+$(OUTDIR)/%.o: %.cpp $(OUTDIR)/include/v8.h
 	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
 
 
 # Our default target is the shared library
 # XXX Move the pthread link, factor out platform-specific bits
 $(OUTDIR)/$(v8monkeylibrary): $(objects) $(OUTDIR)/include/v8.h $(smlibrary)
-	$(CXX) -shared -Wl,-soname,$(v8monkeylibrary) -Wl,-L$(deplib) -Wl,-rpath=$(CURDIR)/$(deplib) -o \
+	$(CXX) -shared -Wl,-soname,$(v8monkeylibrary) -Wl,-L$(deplib) -Wl,-rpath=$(deplib) -o \
 			$(OUTDIR)/$(v8monkeylibrary) $(objects) -l$(smlinklib) -lpthread
 
 
@@ -187,7 +187,6 @@ internalteststems = V8MonkeyTest test_internal test_platform
 internaltestfiles = $(addprefix test/, $(internalteststems))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(internaltestfiles)))
-$(internaltestobjects): CXXFLAGS += -I src
 
 
 # V8MonkeyTest and the test harnesses depend on the V8MonkeyTest header
@@ -203,7 +202,7 @@ $(OUTDIR)/test:
 # Build the test harness
 $(OUTDIR)/test/run_v8monkey_tests $(OUTDIR)/test/run_v8monkey_internal_tests: CXXFLAGS += -I test
 $(OUTDIR)/test/run_v8monkey_tests: test/run_v8monkey_tests.cpp $(testobjects) $(OUTDIR)/$(v8monkeylibrary)
-	$(CXX) $(CXXFLAGS) -o $(OUTDIR)/test/run_v8monkey_tests test/run_v8monkey_tests.cpp $(testobjects)  -Wl,-L$(OUTDIR) -Wl,-rpath=$(CURDIR)/$(OUTDIR) -l$(v8lib)
+	$(CXX) $(CXXFLAGS) -o $(OUTDIR)/test/run_v8monkey_tests test/run_v8monkey_tests.cpp $(testobjects)  -Wl,-L$(OUTDIR) -Wl,-rpath=$(OUTDIR) -l$(v8lib)
 
 
 # Extra files for the internal test version of the library
@@ -232,7 +231,7 @@ testAPI.cpp $(internaltestsources): src/testAPI.h
 
 # Build a version of the shared library for internal tests
 $(OUTDIR)/test/$(v8monkeytestlibrary): $(testlibobjects) $(OUTDIR)/include/v8.h $(smlibrary)
-	$(CXX) -shared -Wl,-soname,$(v8monkeytestlibrary) -Wl,-L$(deplib) -Wl,-rpath=$(CURDIR)/$(deplib) -o \
+	$(CXX) -shared -Wl,-soname,$(v8monkeytestlibrary) -Wl,-L$(deplib) -Wl,-rpath=$(deplib) -o \
 			$(OUTDIR)/test/$(v8monkeytestlibrary) $(testlibobjects) -l$(smlinklib)
 
 
@@ -241,7 +240,7 @@ $(OUTDIR)/test/$(v8monkeytestlibrary): $(testlibobjects) $(OUTDIR)/include/v8.h 
 $(OUTDIR)/test/run_v8monkey_internal_tests: test/run_v8monkey_tests.cpp $(internaltestobjects) $(OUTDIR)/test/$(v8monkeytestlibrary)
 	@echo $(internaltestobjects)
 	$(CXX) $(CXXFLAGS) -o $(OUTDIR)/test/run_v8monkey_internal_tests test/run_v8monkey_tests.cpp $(internaltestobjects)  \
-                       -Wl,-L$(OUTDIR)/test -Wl,-rpath=$(CURDIR)/$(OUTDIR)/test -l$(v8testlib)
+                       -Wl,-L$(OUTDIR)/test -Wl,-rpath=$(OUTDIR)/test -l$(v8testlib)
 
 
 # Code from here on down is concerned with building the SpiderMonkey shared library
@@ -298,8 +297,9 @@ check: $(OUTDIR)/test/run_v8monkey_tests
 
 clean:
 	rm -rf $(OUTDIR)/include
-	rm -f $(OUTDIR)/*.o
-	rm -f $(OUTDIR)/*.so
+	rm -rf $(OUTDIR)/src
+	rm -rf $(OUTDIR)/test
+	rm -rf $(OUTDIR)/testlib
 
 
 clobber:

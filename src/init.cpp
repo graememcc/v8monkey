@@ -1,8 +1,9 @@
 // V8
-#include "../include/v8.h"
+#include "v8.h"
 #include "init.h"
 #include "platform.h"
 #include "autolock.h"
+
 
 // Spidermonkey
 #include "jsapi.h"
@@ -34,10 +35,18 @@ namespace {
   bool gEngineInitSucceeded = false;
 
 
-  // Initialize SpiderMonkey at most once
+  // Initialize SpiderMonkey
   void InitializeSpiderMonkey()
   {
     gEngineInitSucceeded = JS_Init();
+  }
+
+
+  // Function to initialize SpiderMonkey and common TLS keys. This function is intended to only be called once
+  void InitializeOnce()
+  {
+    // TODO: If we only need to init SM here, we can get rid of this, and just once InitializeSpiderMonkey directly
+    InitializeSpiderMonkey();
   }
 
 
@@ -46,7 +55,7 @@ namespace {
 
 
   // Ensure SpiderMonkey is initialized at most once
-  v8::V8Monkey::OneTimeFunctionControl* gSpiderMonkeyInitControl = v8::V8Monkey::Platform::CreateOneShotFunction(InitializeSpiderMonkey);
+  v8::V8Monkey::OneTimeFunctionControl* gSpiderMonkeyInitControl = v8::V8Monkey::Platform::CreateOneShotFunction(InitializeOnce);
 
 
   // Has V8 been 'disposed'?
