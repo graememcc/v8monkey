@@ -54,6 +54,30 @@ class POSIXOneTimeFunction: public OneTimeFunctionControl {
 };
 
 
+class POSIXThread: public Thread {
+  public:
+    POSIXThread(ThreadFunction tf) : Thread(tf) {}
+
+
+    void Run(void* arg) {
+      // XXX We should exit or abort if we try to run a thread that has already ran. Which?
+      hasRan = true;
+      pthread_create(&identifier, NULL, fn, arg);
+    }
+
+
+    void* Join() {
+      void* resultPtr;
+      pthread_join(identifier, &resultPtr);
+      return resultPtr;
+    }
+
+
+  private:
+    pthread_t identifier;
+};
+
+
 Mutex*
 Platform::CreateMutex()
 {
@@ -122,6 +146,13 @@ Platform::GetTLSKeySize()
   return sizeof(pthread_key_t);
 }
 #endif
+
+
+Thread*
+Platform::CreateThread(ThreadFunction tf)
+{
+  return new POSIXThread(tf);
+}
 
 
 }

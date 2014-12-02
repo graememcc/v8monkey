@@ -28,3 +28,37 @@ V8MONKEY_TEST(Plat003, "TLS Key get returns correct value") {
   V8MONKEY_CHECK(reinterpret_cast<intptr_t>(Platform::GetTLSData(key)) == value, "Retrieved key is correct");
   Platform::DeleteTLSKey(key);
 }
+
+
+// Support function for thread result test
+#define THREAD_RESULT 100
+void*
+thread_join_main(void* arg)
+{
+  return reinterpret_cast<void*>(THREAD_RESULT);
+}
+
+
+V8MONKEY_TEST(Plat004, "Thread joining returns correct value") {
+  Thread* t = Platform::CreateThread(thread_join_main);
+  t->Run(NULL);
+  void* result = t->Join();
+  V8MONKEY_CHECK(reinterpret_cast<intptr_t>(result) == THREAD_RESULT, "Value returned by thread join is correct");
+}
+
+
+// Support function for thread result test
+#define THREAD_ARG 7
+void*
+thread_arg_main(void* arg)
+{
+  return arg;
+}
+
+
+V8MONKEY_TEST(Plat005, "Thread argument passing works correctly") {
+  Thread* t = Platform::CreateThread(thread_arg_main);
+  t->Run(reinterpret_cast<void*>(THREAD_ARG));
+  void* result = t->Join();
+  V8MONKEY_CHECK(reinterpret_cast<intptr_t>(result) == THREAD_ARG, "Value returned shows arg was passed correctly");
+}

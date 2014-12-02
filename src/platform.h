@@ -42,6 +42,28 @@ namespace V8Monkey {
   };
 
 
+  // Platform-agnostic wrapper around a thread
+  typedef void* (*ThreadFunction)(void*);
+  class Thread {
+    public:
+      Thread(ThreadFunction tf) : fn(tf), hasRan(false) {}
+
+      virtual ~Thread() {}
+
+      // Start the given thread. Undefined if the thread is already running or has already completed.
+      virtual void Run(void* arg) = 0;
+
+      // Has this thread ever started?
+      bool HasRan() { return hasRan; }
+
+      virtual void* Join() = 0;
+
+    protected:
+      ThreadFunction fn;
+      bool hasRan;
+  };
+
+
   class Platform {
     public:
       // Create and initialize a platform-specific mutex
@@ -65,6 +87,9 @@ namespace V8Monkey {
       #ifdef V8MONKEY_INTERNAL_TEST
       static size_t GetTLSKeySize();
       #endif
+
+      // Create and initialize a Thread
+      static Thread* CreateThread(ThreadFunction tf);
   };
 
 
