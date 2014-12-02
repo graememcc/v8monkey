@@ -110,16 +110,19 @@ sources = $(addsuffix .cpp, $(files))
 objects = $(addprefix $(OUTDIR)/, $(addsuffix .o, $(files)))
 
 
-# isolate.o and init.o additionally depend on init.h
-$(OUTDIR)/src/isolate.o $(OUTDIR)/src/init.o: src/init.h
+# Individual header file dependencies below
 
 
-# isolate.o and init.o depend on the JSAPI header
-$(OUTDIR)/src/isolate.o $(OUTDIR)/src/init.o: $(depheaders)/jsapi.h
+# isolate.cpp and init.cpp additionally depend on init.h
+src/isolate.cpp src/init.cpp: src/init.h
+
+
+# isolate.cpp and init.cpp additionally depend on the JSAPI header
+src/isolate.cpp src/init.cpp: $(depheaders)/jsapi.h
 
 
 # version.cpp and test/test_version.cpp needs SMVERSION defined
-$(OUTDIR)/src/version.o $(OUTDIR)/test/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
+$(OUTDIR)/src/version.o $(OUTDIR)/testlib/version.o $(OUTDIR)/test/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
 
 
 # The individual object files depend on the existence of their output directory
@@ -191,12 +194,27 @@ $(OUTDIR)/test/run_v8monkey_tests: test/run_v8monkey_tests.cpp $(testobjects) $(
 
 
 # Extra files for the internal test version of the library
-testlibsources = $(sources) src/testAPI.cpp
-testlibobjects = $(objects) $(OUTDIR)/src/testAPI.o
+testlibstems = $(filestems) testAPI
+testlibfiles = $(addprefix src/, $(testlibstems))
+testlibsources = $(addsuffix .cpp, $(testlibfiles))
+testlibobjects = $(addprefix $(OUTDIR)/testlib/, $(addsuffix .o, $(testlibstems)))
 
 
-# testAPI.o and internal tests need the testAPI header
-testAPI.o $(internaltestobjects): src/testAPI.h
+$(OUTDIR)/testlib/%.o: src/%.cpp include/v8.h | $(OUTDIR)/testlib
+	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
+
+
+# Ensure the testlib directory exists
+$(OUTDIR)/testlib:
+	mkdir -p $(OUTDIR)/testlib
+
+
+# Add an additional define when compiling object files for the test lib
+testlibobjects $(internaltestobjects): CXXFLAGS += -DV8MONKEY_INTERNAL_TEST=1
+
+
+# testAPI.cpp and internal tests need the testAPI header
+testAPI.cpp $(internaltestsources): src/testAPI.h
 
 
 # Build a version of the shared library for internal tests
