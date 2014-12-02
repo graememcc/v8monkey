@@ -62,3 +62,19 @@ V8MONKEY_TEST(Plat005, "Thread argument passing works correctly") {
   void* result = t->Join();
   V8MONKEY_CHECK(reinterpret_cast<intptr_t>(result) == THREAD_ARG, "Value returned shows arg was passed correctly");
 }
+
+
+// Support function for thread noparam test
+void*
+thread_noarg_main(void* arg)
+{
+  return arg;
+}
+
+
+V8MONKEY_TEST(Plat006, "Run called with no arguments calls thread function with NULL") {
+  Thread* t = Platform::CreateThread(thread_noarg_main);
+  t->Run();
+  void* result = t->Join();
+  V8MONKEY_CHECK(result == NULL, "Run was called with null pointer");
+}
