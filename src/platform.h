@@ -51,8 +51,7 @@ namespace V8Monkey {
       virtual ~Thread() {}
 
       // Start the given thread. Undefined if the thread is already running or has already completed.
-      virtual void Run(void* arg) = 0;
-      void Run() {Run(NULL); }
+      virtual void Run(void* arg = NULL) = 0;
       
       // Has this thread ever started?
       bool HasRan() { return hasRan; }
