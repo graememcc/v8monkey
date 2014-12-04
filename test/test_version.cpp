@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "../include/v8.h"
 #include "V8MonkeyTest.h"
 
