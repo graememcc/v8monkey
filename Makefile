@@ -112,9 +112,11 @@ v8monkeytesttarget = $(outdir)/test/internalLib/$(v8testlibraryfile)
 #  - We will often need the JSAPI header
 #  - We will often need the V8 header
 #  - some files in src/ may depend on additional headers in src
+# Note: we use -isystem to prevent warning spew from JSAPI
 # TODO: Is there a idiomatic name for this in makefiles?
-includedirs = $(smheadersdir) $(v8monkeyheadersdir) $(CURDIR)/src
+includedirs = $(v8monkeyheadersdir) $(CURDIR)/src
 includeopt = $(addprefix -I, $(includedirs))
+includeopt += -isystem $(smheadersdir)
 
 
 # What warnings do we want to enable?
@@ -144,7 +146,7 @@ all: $(v8monkeytarget) $(testsuites)
 
 
 # The V8Monkey library is composed of the following files
-v8filestems = version
+v8filestems = init version
 #v8filestems = init isolate platform thread_id version
 v8files = $(addprefix src/, $(v8filestems))
 v8sources = $(addsuffix .cpp, $(v8files))
@@ -226,8 +228,20 @@ $(v8monkeyheadersdir)/v8.h: include/v8.h | $(v8monkeyheadersdir)
 $(outdir)/src/version.o $(outdir)/test/internalLib/src/version.o $(outdir)/testlib/version.o $(outdir)/test/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
 
 
-# version.cpp depends on v8.h
-$(outdir)/src/version.o: $(v8monkeyheadersdir)/v8.h
+# init.cpp and version.cpp depends on v8.h
+$(outdir)/src/init.o $(outdir)/src/version.o: $(v8monkeyheadersdir)/v8.h
+
+
+# init depends on the jsapi header
+$(outdir)/src/init.o: $(smheadersdir)/jsapi.h
+
+
+# init depends on the RAII autolock class
+$(outdir)/src/init.o: src/autolock.h
+
+
+# Several files depend on platform capabilities
+$(outdir)/src/init.o $(outdir)/src/autolock.h: $(v8monkeyheadersdir)/platform.h
 
 
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
@@ -304,6 +318,14 @@ $(outdir)/test/run_v8monkey_internal_tests: test/run_v8monkey_tests.cpp $(intern
 	@echo Building internal testsuite...
 	@echo
 	$(CXX) $(CXXFLAGS) -o $@ test/run_v8monkey_tests.cpp $(internaltestobjects) $(call linkcommand, $(outdir)/test/internalLib, $(v8testlib)) $(call linkcommand, $(outdir), $(platformlib))
+
+
+# *********************************************************************************************************************
+#  Specific test file dependencies below
+
+
+# Virtually all test files use threads
+$(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 
 
 # *********************************************************************************************************************

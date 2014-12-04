@@ -55,11 +55,9 @@ namespace v8 {
 
   class APIEXPORT V8 {
     public:
-/*
       static bool Initialize();
       static bool Dispose();
       static bool IsDead();
-*/
       static const char* GetVersion() { return  version_string; };
 /*
       static int GetCurrentThreadId();
