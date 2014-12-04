@@ -146,6 +146,11 @@ testharnesses = run_v8monkey_tests run_v8monkey_internal_tests
 testsuites = $(addprefix $(outdir)/test/, $(testharnesses))
 
 
+# A useful general rule for building files
+$(outdir)/%.o: %.cpp $(outdir)/include/v8.h
+	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
+
+
 # Our default goal is to build the v8monkey shared library, and the testsuites
 all: $(v8monkeytarget) $(testsuites)
 
@@ -157,12 +162,7 @@ v8sources = $(addsuffix .cpp, $(v8files))
 v8objects = $(addprefix $(outdir)/, $(addsuffix .o, $(v8files)))
 
 
-# A useful general rule for building files
-$(outdir)/%.o: %.cpp $(outdir)/include/v8.h
-	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
-
-
-# Our default target is the shared library
+# The main task is building the shared library
 $(v8monkeytarget): $(v8objects) $(v8monkeyheadersdir)/v8.h $(smtarget) $(v8platformtarget)
 	@echo
 	@echo Building V8Monkey...
@@ -175,7 +175,29 @@ $(v8monkeytarget): $(v8objects) $(v8monkeyheadersdir)/v8.h $(smtarget) $(v8platf
 
 
 # Here we list all the output directories that will be created in dist
-outputdirs = $(outdir) $(outdir)/platform $(outdir)/src $(v8monkeyheadersdir) $(outdir)/test $(outdir)/test/internalLib $(depsdir) $(outdir)/test/internalLib/src
+
+
+# Where are object files placed when we build them in their various guises?
+objectdirs = src
+objecthierarchy = $(objectdirs) $(addprefix test/internalLib/, $(objectdirs))
+
+
+# Directories needed for building tests
+testdirs = internalLib internal api harness
+testhierarchy = $(addprefix test/, $(testdirs))
+
+
+unprefixeddirs = platform test $(testhierarchy) $(objecthierarchy)
+outputdirs = $(addprefix $(outdir)/, $(unprefixeddirs))
+outputdirs += $(outdir) $(v8monkeyheadersdir) $(depsdir)
+
+
+# The test hierarchy dirs depend on the existence of the test dir
+$(addprefix $(outdir)/, $(testhierarchy)): | $(outdir)/test
+
+
+# And the test output dir depends on the output dir
+$(outdir)/test: | $(outdir)
 
 
 # Ensure they exist when necessary
@@ -229,7 +251,7 @@ $(v8monkeyheadersdir)/v8.h: include/v8.h | $(v8monkeyheadersdir)
 
 
 # version.cpp and test/test_version.cpp need SMVERSION defined
-$(call variants, src/version) $(outdir)/test/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
+$(call variants, src/version) $(outdir)/test/api/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
 
 
 # init depends on the jsapi header
@@ -261,37 +283,35 @@ visibility_changes: src/test.h
 # Testsuites
 
 # The test harness is composed from the following
-teststems = V8MonkeyTest test_isolate test_threadID test_version
-testfiles = $(addprefix test/, $(teststems))
+teststems = test_isolate test_threadID test_version
+testfiles = $(addprefix test/api/, $(teststems))
 testsources = $(addsuffix .cpp, $(testfiles))
 testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))
 
 
+# TODO Our little trick with building the linked list of functions is neat, but is sensitive to compilation order. It will
+#      segfault if the test files are specified before the V8MonkeyTest file
+
+
 # Build the "standard" test harness
-$(outdir)/test/run_v8monkey_tests: test/run_v8monkey_tests.cpp $(testobjects) $(v8monkeytarget) $(platformtarget)
+$(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobjects) $(outdir)/test/harness/V8MonkeyTest.o $(v8monkeytarget) $(platformtarget)
 	@echo
 	@echo Building API testsuite...
 	@echo
-	$(CXX) $(CXXFLAGS) -o $@ test/run_v8monkey_tests.cpp $(testobjects) $(call linkcommand, $(outdir), $(v8lib)) $(call linkcommand, $(outdir), $(platformlib))
-
-
-# The individual object files depend on the existence of their output directory
-$(testobjects): | $(outdir)/test
+	$(CXX) $(CXXFLAGS) -o $@ test/harness/run_v8monkey_tests.cpp $(outdir)/test/harness/V8MonkeyTest.o $(testobjects) \
+                        $(call linkcommand, $(outdir), $(v8lib))\
+                        $(call linkcommand, $(outdir), $(platformlib))
 
 
 # The "internals" test harness is composed from the following
-internalteststems = V8MonkeyTest test_isolate_internal test_platform
-internaltestfiles = $(addprefix test/, $(internalteststems))
+internalteststems = test_isolate_internal test_platform
+internaltestfiles = $(addprefix test/internal/, $(internalteststems))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
 
 
 # Extra files for the internal test version of the library
 testlibobjects = $(addprefix $(outdir)/test/internalLib/, $(addsuffix .o, $(v8files)))
-
-
-# Modify compilation of internal library versions
-$(testlibobjects) $(internaltestobjects): CXXFLAGS += -DV8MONKEY_INTERNAL_TEST=1
 
 
 # TODO The directory prereq here isn't quite right
@@ -310,31 +330,53 @@ $(v8monkeytesttarget): $(testlibobjects) $(outdir)/include/v8.h $(smtarget)
 
 # Build the internal test harness
 # Note: we reuse the driver file run_v8monkey_tests.cpp. That isn't a copy/paste error
-$(outdir)/test/run_v8monkey_internal_tests: test/run_v8monkey_tests.cpp $(internaltestobjects) $(v8monkeytesttarget) $(v8platformtarget)
+$(outdir)/test/run_v8monkey_internal_tests: test/harness/run_v8monkey_tests.cpp $(internaltestobjects) test/harness/V8MonkeyTest.cpp $(v8monkeytesttarget) $(v8platformtarget)
 	@echo
 	@echo Building internal testsuite...
 	@echo
-	$(CXX) $(CXXFLAGS) -o $@ test/run_v8monkey_tests.cpp $(internaltestobjects) $(call linkcommand, $(outdir)/test/internalLib, $(v8testlib)) $(call linkcommand, $(outdir), $(platformlib))
+	$(CXX) $(CXXFLAGS) -o $@ test/harness/run_v8monkey_tests.cpp $(outdir)/test/harness/V8MonkeyTest.o $(internaltestobjects) \
+                        $(call linkcommand, $(outdir)/test/internalLib, $(v8testlib)) \
+                        $(call linkcommand, $(outdir), $(platformlib))
 
 
 # *********************************************************************************************************************
 #  Specific test file dependencies below
 
 
+# Modify compilation of internal library versions
+$(testlibobjects) $(internaltestobjects): CXXFLAGS += -DV8MONKEY_INTERNAL_TEST=1
+
+
+# Test objects need to locate the V8MonkeyTest test header
+$(testobjects) $(internaltestobjects) $(testsuites) $(outdir)/test/harness/V8MonkeyTest.o: CXXFLAGS += -I$(CURDIR)/test/harness
+
+
 # All test files depend on the V8MonkeyTest header
-$(testobjects) $(internaltestobjects) $(testharnesses): test/V8MonkeyTest.h
+$(testobjects) $(internaltestobjects) $(testsuites): test/harness/V8MonkeyTest.h
+
+
+# The testsuites depend on the additional machinery supplied by V8MonkeyTest
+$(testsuites): $(outdir)/test/harness/V8MonkeyTest.o
 
 
 # Virtually all test files use threads
 $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 
 
-# Test objects depend on the test header
-$(testobjects) $(internaltestobjects): CXXFLAGS += -I$(CURDIR)/test
-
-
 # test/test_isolate.cpp depends on isolate.h
-$(outdir)/test/test_isolate.o $(outdir)/test/test_isolate_internal.o: src/isolate.h
+$(outdir)/test/api/test_isolate.o $(outdir)/test/internal/test_isolate_internal.o: src/isolate.h
+
+
+# The individual object files depend on the existence of their output directory
+$(testobjects): | $(outdir)/test/api
+
+
+# ... as do the internal object files
+$(internaltestobjects): | $(outdir)/test/internal
+
+
+# V8MonkeyTest also depends on its output directory
+$(outdir)/test/harness/V8MonkeyTest.o: $(outdir)/test/harness
 
 
 # *********************************************************************************************************************
@@ -371,7 +413,7 @@ $(mozillaroot)/js/src/configure:
 
 
 # Run the testsuite
-check: $(outdir)/test/run_v8monkey_tests
+check: $(testsuites)
 	@echo
 	@echo Running API tests
 	@$(outdir)/test/run_v8monkey_tests
@@ -387,7 +429,6 @@ clean:
 	rm -rf $(outdir)/src
 	rm -rf $(outdir)/platform
 	rm -rf $(outdir)/test
-	rm -rf $(outdir)/test/internalLib
 
 
 clobber:
