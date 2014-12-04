@@ -280,6 +280,7 @@ testlibobjects = $(addprefix $(outdir)/test/internalLib/, $(addsuffix .o, $(v8fi
 
 
 # TODO The directory prereq here isn't quite right
+# XXX Really need to fix this. It's annoying me. Prereq for code reorg
 $(outdir)/test/internalLib/%.o: %.cpp $(v8monkeyheadersdir)/v8.h | $(outdir)/test/internalLib/src
 	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
 
@@ -339,13 +340,13 @@ $(mozillaroot)/js/src/configure:
 
 
 # Run the testsuite
-#check: $(outdir)/test/run_v8monkey_tests
-	#@echo
-	#@echo Running API tests
-	#@$(outdir)/test/run_v8monkey_tests
-	#@echo
-	#@echo Running internal tests
-	#@$(outdir)/test/run_v8monkey_internal_tests
+check: $(outdir)/test/run_v8monkey_tests
+	@echo
+	@echo Running API tests
+	@$(outdir)/test/run_v8monkey_tests
+	@echo
+	@echo Running internal tests
+	@$(outdir)/test/run_v8monkey_internal_tests
 
 
 clean:
