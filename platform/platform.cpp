@@ -3,7 +3,7 @@
 
 
 namespace v8 {
-  namespace Platform {
+  namespace V8Platform {
     class POSIXMutex: public Mutex {
       public:
         POSIXMutex() {

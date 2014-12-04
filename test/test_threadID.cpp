@@ -4,6 +4,8 @@
 
 
 using namespace v8;
+using namespace v8::V8Platform;
+
 
 
 V8MONKEY_TEST(ThreadID001, "Main thread gets thread id of 1 (no explicit engine initialization)") {
@@ -29,20 +31,25 @@ ReturnOwnThreadID(void* arg)
 
 
 V8MONKEY_TEST(ThreadID003, "Child threads are assigned thread ids greater than 1") {
-  V8Monkey::Thread* child = V8Monkey::Platform::CreateThread(ReturnOwnThreadID);
+  Thread* child = Platform::Platform::CreateThread(ReturnOwnThreadID);
   child->Run();
+
   intptr_t threadID = reinterpret_cast<intptr_t>(child->Join());
+
   V8MONKEY_CHECK(threadID > 1, "Child thread assigned correct ID");
 }
 
 
 V8MONKEY_TEST(ThreadID004, "Child threads are assigned distinct ids") {
-  V8Monkey::Thread* child1 = V8Monkey::Platform::CreateThread(ReturnOwnThreadID);
-  V8Monkey::Thread* child2 = V8Monkey::Platform::CreateThread(ReturnOwnThreadID);
+  Thread* child1 = Platform::CreateThread(ReturnOwnThreadID);
+  Thread* child2 = Platform::CreateThread(ReturnOwnThreadID);
+
   child1->Run();
   child2->Run();
+
   intptr_t threadID1 = reinterpret_cast<intptr_t>(child1->Join());
   intptr_t threadID2 = reinterpret_cast<intptr_t>(child2->Join());
+
   V8MONKEY_CHECK(threadID1 > 1, "Child thread 1 assigned valid ID");
   V8MONKEY_CHECK(threadID2 > 1, "Child thread 2 assigned valid ID");
   V8MONKEY_CHECK(threadID1 != threadID2, "Child threads assigned distinct IDs");

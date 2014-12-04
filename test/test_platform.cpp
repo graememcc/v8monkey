@@ -4,7 +4,7 @@
 #include "platform.h"
 
 
-using namespace v8::Platform;
+using namespace v8::V8Platform;
 
 
 // XXX This should probably be checked at configuration time, rather than getting this far

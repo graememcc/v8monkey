@@ -59,9 +59,7 @@ namespace v8 {
       static bool Dispose();
       static bool IsDead();
       static const char* GetVersion() { return  version_string; };
-/*
       static int GetCurrentThreadId();
-*/
       /* TO IMPLEMENT:
     static void SetFatalErrorHandler(FatalErrorCallback that);
     static void SetAllowCodeGenerationFromStringsCallback(

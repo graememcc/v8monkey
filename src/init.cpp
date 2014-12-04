@@ -36,15 +36,13 @@ namespace {
 
 
   // Initialize SpiderMonkey
-  void InitializeSpiderMonkey()
-  {
+  void InitializeSpiderMonkey() {
     gEngineInitSucceeded = JS_Init();
   }
 
 
   // Function to initialize SpiderMonkey and common TLS keys. This function is intended to only be called once
-  void InitializeOnce()
-  {
+  void InitializeOnce() {
     // TODO: If we only need to init SM here, we can get rid of this, and just once InitializeSpiderMonkey directly
     InitializeSpiderMonkey();
   }
@@ -64,42 +62,35 @@ namespace {
 
   
 namespace v8 {
+  bool V8::Initialize() {
+    gSpiderMonkeyInitControl->Run();
 
+    // gEngineInitSucceeded will now be in a stable state
+    if (!gEngineInitSucceeded) {
+      // The V8 API appears to present engine init as infallible. In SpiderMonkey, failure—though unlikely—is possible.
+      // If init failed, I doubt we'll be able to sensibly proceed.
+      exit(1);
+    }
 
-bool V8::Initialize()
-{
-  gSpiderMonkeyInitControl->Run();
-
-  // gEngineInitSucceeded will now be in a stable state
-  if (!gEngineInitSucceeded) {
-    // The V8 API appears to present engine init as infallible. In SpiderMonkey, failure—though unlikely—is possible.
-    // If init failed, I doubt we'll be able to sensibly proceed.
-    exit(1);
+    return true;
   }
 
-  return true;
+
+  bool V8::Dispose() {
+    // XXX V8::Dispose has some semantics around stopping of utility threads that we haven't tackled
+    //     For now, this is a no-op: our static object above will really shutdown SpiderMonkey
+    V8Monkey::AutoLock mutex(gEngineDisposalMutex);
+
+    gV8IsDisposed = true;
+    return true;
+  }
+
+
+  // XXX We likely need to extend this to handle OOM and other such error situations
+  bool V8::IsDead() {
+    V8Monkey::AutoLock mutex(gEngineDisposalMutex);
+
+    bool result = gV8IsDisposed;
+    return result;
+  }
 }
-
-
-bool V8::Dispose()
-{
-  // XXX V8::Dispose has some semantics around stopping of utility threads that we haven't tackled
-  //     For now, this is a no-op: our static object above will really shutdown SpiderMonkey
-  V8Monkey::AutoLock mutex(gEngineDisposalMutex);
-
-  gV8IsDisposed = true;
-  return true;
-}
-
-
-// XXX We likely need to extend this to handle OOM and other such error situations
-bool V8::IsDead()
-{
-  V8Monkey::AutoLock mutex(gEngineDisposalMutex);
-
-  bool result = gV8IsDisposed;
-  return result;
-}
-
-
-} // namespace v8

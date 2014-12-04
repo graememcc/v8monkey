@@ -13,7 +13,7 @@ namespace v8 {
      */
 
 
-    using namespace v8::Platform;
+    using namespace v8::V8Platform;
 
 
     class AutoLock {

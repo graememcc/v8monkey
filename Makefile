@@ -136,6 +136,11 @@ CXXFLAGS += $(warnings) $(includeopt) -fPIC -fvisibility=hidden -std=c++0x
 linkcommand = -Wl,-L$(strip $(1)) -Wl,-rpath=$(strip $(1)) -l$(strip $(2))
 
 
+# Because we build normal and "internal" versions of the object files, expressing dependencies could become
+# a bit of a chore
+variants = $(outdir)/$(strip $(1)).o $(outdir)/test/internalLib/$(strip $(1)).o
+
+
 # Names of the test harness executables: we need these for the all target
 testharnesses = run_v8monkey_tests run_v8monkey_internal_tests
 testsuites = $(addprefix $(outdir)/test/, $(testharnesses))
@@ -146,7 +151,7 @@ all: $(v8monkeytarget) $(testsuites)
 
 
 # The V8Monkey library is composed of the following files
-v8filestems = init version
+v8filestems = init threadID version
 #v8filestems = init isolate platform thread_id version
 v8files = $(addprefix src/, $(v8filestems))
 v8sources = $(addsuffix .cpp, $(v8files))
@@ -225,23 +230,19 @@ $(v8monkeyheadersdir)/v8.h: include/v8.h | $(v8monkeyheadersdir)
 
 
 # version.cpp and test/test_version.cpp need SMVERSION defined
-$(outdir)/src/version.o $(outdir)/test/internalLib/src/version.o $(outdir)/testlib/version.o $(outdir)/test/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
-
-
-# init.cpp and version.cpp depends on v8.h
-$(outdir)/src/init.o $(outdir)/src/version.o: $(v8monkeyheadersdir)/v8.h
+$(call variants, src/version) $(outdir)/test/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
 
 
 # init depends on the jsapi header
-$(outdir)/src/init.o: $(smheadersdir)/jsapi.h
+$(call variants, src/init): $(smheadersdir)/jsapi.h
 
 
 # init depends on the RAII autolock class
-$(outdir)/src/init.o: src/autolock.h
+$(call variants, src/init) $(call variants, src/threadID): src/autolock.h
 
 
 # Several files depend on platform capabilities
-$(outdir)/src/init.o $(outdir)/src/autolock.h: $(v8monkeyheadersdir)/platform.h
+src/autolock.h src/v8monkey_common.h $(call variants, src/init) $(call variants, src/threadID): $(v8monkeyheadersdir)/platform.h
 
 
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
@@ -261,7 +262,7 @@ $(outdir)/src/init.o $(outdir)/src/autolock.h: $(v8monkeyheadersdir)/platform.h
 # Testsuites
 
 # The test harness is composed from the following
-teststems = V8MonkeyTest test_version
+teststems = V8MonkeyTest test_threadID test_version
 #teststems = V8MonkeyTest test_version test_threadid test_isolate
 testfiles = $(addprefix test/, $(teststems))
 testsources = $(addsuffix .cpp, $(testfiles))
@@ -270,11 +271,11 @@ testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))
 
 # Build the "standard" test harness
 #$(testsuites)outdir)/test/run_v8monkey_tests $(outdir)/test/run_v8monkey_internal_tests: CXXFLAGS += -I test
-$(outdir)/test/run_v8monkey_tests: test/run_v8monkey_tests.cpp $(testobjects) $(v8monkeytarget)
+$(outdir)/test/run_v8monkey_tests: test/run_v8monkey_tests.cpp $(testobjects) $(v8monkeytarget) $(platformtarget)
 	@echo
 	@echo Building API testsuite...
 	@echo
-	$(CXX) $(CXXFLAGS) -o $@ test/run_v8monkey_tests.cpp $(testobjects) $(call linkcommand, $(outdir), $(v8lib))
+	$(CXX) $(CXXFLAGS) -o $@ test/run_v8monkey_tests.cpp $(testobjects) $(call linkcommand, $(outdir), $(v8lib)) $(call linkcommand, $(outdir), $(platformlib))
 
 
 # The individual object files depend on the existence of their output directory

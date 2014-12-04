@@ -14,7 +14,7 @@
 
 
 namespace v8 {
-  namespace Platform {
+  namespace V8Platform {
     // Class representing a simple mutex
     class APIEXPORT Mutex {
       public:
@@ -26,7 +26,7 @@ namespace v8 {
 
     // Platform-agnostic one-shot functions (e.g. pthread_once on POSIX, InitOnceExecuteOnce on Windows)
     typedef void (*OneTimeFunction)();
-    class OneTimeFunctionControl {
+    class APIEXPORT OneTimeFunctionControl {
       public:
         OneTimeFunctionControl(OneTimeFunction f) : fn(f) {}
 

@@ -5,20 +5,21 @@
 
 
 namespace v8 {
-namespace V8Monkey {
+  namespace V8Monkey {
+    using namespace v8::V8Platform;
 
 
-typedef struct V8Monkey_TLSKeys {
-  TLSKey* threadIDKey;
-} V8Monkey_TLSKeys;
+    typedef struct V8Monkey_TLSKeys {
+      TLSKey* threadIDKey;
+    } V8Monkey_TLSKeys;
 
 
-class V8MonkeyCommon {
-  public:
-    static V8Monkey_TLSKeys TLSKeys;
-};
-
-
+    class V8MonkeyCommon {
+      public:
+        static V8Monkey_TLSKeys TLSKeys;
+    };
+  }
 }
-}
+
+
 #endif
