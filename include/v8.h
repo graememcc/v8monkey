@@ -1,51 +1,69 @@
 #ifndef V8MONKEY_V8_H
 #define V8MONKEY_V8_H
 
-#include "jsapi.h"
+
+#include <stddef.h>
 
 
-#define APIEXPORT __attribute__ ((visibility("default")))
+#ifndef APIEXPORT
+  #define APIEXPORT __attribute__ ((visibility("default")))
+#endif
+
 
 
 // V8 API Compatibility
 #define V8COMPAT "3.14.5.9"
 
 
+// XXX Make order correct 
 namespace v8 {
+/*
   class APIEXPORT Isolate {
-    public:
-      // XXX Isolate::Scope
-      static Isolate* New();
-      void Dispose();
-      /* Other public methods that need implemented
-      static Isolate* GetCurrent();
-      void Enter();
-      void Exit();
-      inline void SetData(void* data);
-      inline void* GetData();
+   public:
+    class APIEXPORT Scope {
+     public:
+      explicit Scope(Isolate* isolate) : isolate(isolate) {
+        isolate->Enter();
+      }
+
+      ~Scope() { isolate->Exit(); }
+
      private:
-      Isolate(const Isolate&);
-      Isolate& operator=(const Isolate&);
-      void* operator new(size_t size);
-      void operator delete(void*, size_t);
-      */
-    private:
-      Isolate();
-      ~Isolate();
-      static int runtime_count;
+      Isolate* const isolate;
+      Scope(const Scope&);
+      Scope& operator=(const Scope&);
+    };
 
-      // The Isolate owns a JSRuntime
-      JSRuntime* mRuntime;
+    static Isolate* New();
+    static Isolate* GetCurrent();
+
+    void Enter();
+    void Exit();
+    void Dispose();
+    //inline void SetData(void* data);
+    //inline void* GetData();
+
+   private:
+    Isolate();
+    Isolate(const Isolate&);
+    ~Isolate();
+    Isolate& operator=(const Isolate&);
+    void* operator new(size_t);
+    void operator delete(void*, size_t);
   };
-
+*/
 
   class APIEXPORT V8 {
     public:
+/*
       static bool Initialize();
       static bool Dispose();
       static bool IsDead();
+*/
       static const char* GetVersion() { return  version_string; };
+/*
       static int GetCurrentThreadId();
+*/
       /* TO IMPLEMENT:
     static void SetFatalErrorHandler(FatalErrorCallback that);
     static void SetAllowCodeGenerationFromStringsCallback(
