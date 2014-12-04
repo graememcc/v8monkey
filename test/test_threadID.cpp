@@ -22,11 +22,9 @@ V8MONKEY_TEST(ThreadID002, "Main thread gets thread id of 1 (explicit engine ini
 
 
 namespace {
-void*
-ReturnOwnThreadID(void* arg)
-{
-  return reinterpret_cast<void*>(V8::GetCurrentThreadId());
-}
+  V8MONKEY_TEST_HELPER(ReturnOwnThreadID) {
+    return reinterpret_cast<void*>(V8::GetCurrentThreadId());
+  }
 }
 
 

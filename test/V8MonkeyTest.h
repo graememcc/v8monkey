@@ -66,6 +66,20 @@ class V8MonkeyTest {
 
 
 /*
+ * Many tests define an auxillary function which performs the bulk of the test's work and returns a single value
+ * cast to void*, allowing the function to be both called from the main thread and supplied as the start procedure
+ * when creating a child thread. This macro can be used to define such procedures, giving them the correct signature,
+ * and setting up default arguments, so that one doesn't need to explicitly supply a NULL value.
+ *
+ */
+
+#ifndef V8MONKEY_TEST_HELPER
+#define V8MONKEY_TEST_HELPER(name) void* name(void* arg = NULL); \
+void* name(void* arg)
+#endif
+
+
+/*
  * The macro for registering tests with the test harness. This macro:
  *   1) Declares the test function name, to allocate a pointer to it
  *   2) Creates a V8MonkeyTest object wrapping the function (construction of which adds the function to the list
@@ -95,6 +109,13 @@ class V8MonkeyTest {
 #define V8MONKEY_STRINGIFY_EXPANSION(x) V8MONKEY_STRINGIFY_MACRO(x)
 #endif
 
+
+/*
+ * A simple assertion macro. Condition is assumed to evaluate to a truthy value, and if it fails, a std::logic_error is
+ * thrown. The test harness catches such errors to report test failures. Be mindful of stack unwinding behaviour: this
+ * macro should only be used in the main thread, not child threads!
+ *
+ */
 
 #ifndef V8MONKEY_CHECK
 #define V8MONKEY_CHECK(condition, description) \

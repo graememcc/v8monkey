@@ -22,7 +22,7 @@ namespace {
 
   // Function designed to be run either by main or a thread, which will initialize V8, and return a bool (cast to
   // void* for the threading API) denoting whether it entered the default isolate
-  void* InitializingEnteredDefault(void* arg) {
+  V8MONKEY_TEST_HELPER(InitializingEnteredDefault) {
     V8::Initialize();
     return reinterpret_cast<void*>(InternalIsolate::IsEntered(InternalIsolate::GetDefaultIsolate()));
   }
@@ -30,7 +30,7 @@ namespace {
 
   // Function designed to be run either by main or a thread, which will initialize V8, and return a bool (cast to
   // void* for the threading API) denoting whether it successfully exited the default isolate after V8 Init
-  void* CanExitDefaultAfterInit(void* arg) {
+  V8MONKEY_TEST_HELPER(CanExitDefaultAfterInit) {
     V8::Initialize();
     Isolate::GetCurrent()->Exit();
     return reinterpret_cast<void*>(InternalIsolate::IsEntered(InternalIsolate::GetDefaultIsolate()) == false);
@@ -49,7 +49,7 @@ namespace {
 
   // Thread function which implicitly enters the default isolate via an API call, but explicitly exits, and afterwards
   // returns internal version of current isolate (cast to void* for threading API)
-  void* ImplicitEnterExplicitExit(void* arg) {
+  V8MONKEY_TEST_HELPER(ImplicitEnterExplicitExit) {
     V8::Initialize();
     Isolate::GetCurrent()->Exit();
     return CurrentAsInternal();
@@ -58,7 +58,7 @@ namespace {
 
   // Return a bool (cast to void* for threading API) denoting whether V8 Initialization left the entered isolate
   // unchanged when the entered isolate is not the default
-  void* InitAfterEnterStaysInIsolate(void* arg) {
+  V8MONKEY_TEST_HELPER(InitAfterEnterStaysInIsolate) {
     Isolate* i = Isolate::New();
     i->Enter();
     V8::Initialize();
@@ -69,7 +69,7 @@ namespace {
 
 
   // Returns a bool (cast to void*) denoting whether scopes enter the given isolate
-  void* CheckScopesEnter(void* arg) {
+  V8MONKEY_TEST_HELPER(CheckScopesEnter) {
     Isolate* i = Isolate::New();
     bool result;
     {
@@ -135,7 +135,7 @@ V8MONKEY_TEST(IntIsolate006, "IsDefaultIsolate works correctly for non-default i
 
 
 V8MONKEY_TEST(IntIsolate007, "Initializing V8 implicitly enters default isolate (main thread)") {
-  V8MONKEY_CHECK(InitializingEnteredDefault(NULL), "Default isolate was entered on main thread as consequence of V8 init");
+  V8MONKEY_CHECK(InitializingEnteredDefault(), "Default isolate was entered on main thread as consequence of V8 init");
 }
 
 
@@ -147,7 +147,7 @@ V8MONKEY_TEST(IntIsolate008, "Initializing V8 implicitly enters default isolate 
 
 
 V8MONKEY_TEST(IntIsolate009, "Main thread can exit default isolate after initialization implicitly enters") {
-  V8MONKEY_CHECK(CanExitDefaultAfterInit(NULL), "Default isolate was exited successfully from main thread after consequence of V8 init");
+  V8MONKEY_CHECK(CanExitDefaultAfterInit(), "Default isolate was exited successfully from main thread after consequence of V8 init");
 }
 
 
@@ -191,7 +191,7 @@ V8MONKEY_TEST(IntIsolate014, "Isolate::GetCurrent() doesn't report default for t
 
 
 V8MONKEY_TEST(IntIsolate015, "V8 Initialization doesn't change entered isolate for main thread if entered isolate isn't default") {
-  V8MONKEY_CHECK(InitAfterEnterStaysInIsolate(NULL), "Entered isolate didn't change across V8 initialization");
+  V8MONKEY_CHECK(InitAfterEnterStaysInIsolate(), "Entered isolate didn't change across V8 initialization");
 }
 
 
@@ -203,7 +203,7 @@ V8MONKEY_TEST(IntIsolate016, "V8 Initialization doesn't change entered isolate f
 
 
 V8MONKEY_TEST(IntScope001, "Scopes enter isolates on main thread") {
-  V8MONKEY_CHECK(CheckScopesEnter(NULL), "Isolate was entered");
+  V8MONKEY_CHECK(CheckScopesEnter(), "Isolate was entered");
 }
 
 

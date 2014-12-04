@@ -7,7 +7,7 @@
 using namespace v8;
 
 namespace {
-  void* ReturnCurrentIsolate(void* arg) {
+  V8MONKEY_TEST_HELPER(ReturnCurrentIsolate) {
     return Isolate::GetCurrent();
   }
 
@@ -36,7 +36,7 @@ namespace {
   }
 
 
-  void* CheckIsolateStacking(void* arg) {
+  V8MONKEY_TEST_HELPER(CheckIsolateStacking) {
     Isolate* original = Isolate::GetCurrent();
     Isolate* first = Isolate::New();
     first->Enter();
@@ -59,7 +59,7 @@ namespace {
 
   // Returns a bool (cast to void*) denoting whether the current isolate equals the one prior to Scope creation when a
   // single Scope is entered and destroyed
-  void* CheckSingleScopeRestoresInitialState(void* arg) {
+  V8MONKEY_TEST_HELPER(CheckSingleScopeRestoresInitialState) {
     Isolate* initial = Isolate::GetCurrent();
     {
       Isolate::Scope scope(initial);
@@ -70,7 +70,7 @@ namespace {
 
 
   // Returns a bool (cast to void*) denoting whether GetCurrent is correct after constructing a Scope
-  void* GetCurrentCorrectAfterScopeConstruction(void* arg) {
+  V8MONKEY_TEST_HELPER(GetCurrentCorrectAfterScopeConstruction) {
     Isolate* i = Isolate::New();
     bool result;
     {
@@ -83,7 +83,7 @@ namespace {
 
 
   // Returns a bool (cast to void*) denoting whether scopes stack correctly when the first isolate is explicitly entered
-  void* CheckScopesStackAfterExplicitEntry(void* arg) {
+  V8MONKEY_TEST_HELPER(CheckScopesStackAfterExplicitEntry) {
     Isolate* first = Isolate::New();
     first->Enter();
     Isolate* second = Isolate::New();
@@ -97,7 +97,7 @@ namespace {
 
 
   // Returns a bool (cast to void*) denoting whether scopes stack correctly
-  void* CheckScopesStack(void* arg) {
+  V8MONKEY_TEST_HELPER(CheckScopesStack) {
     Isolate* first = Isolate::New();
     bool firstOK, secondOK;
     
@@ -121,7 +121,7 @@ namespace {
 
 
 V8MONKEY_TEST(Isolate001, "Main thread reports Isolate::GetCurrent non-null even when API not used") {
-  Isolate* mainThreadIsolate = static_cast<Isolate*>(ReturnCurrentIsolate(NULL));
+  Isolate* mainThreadIsolate = static_cast<Isolate*>(ReturnCurrentIsolate());
   V8MONKEY_CHECK(mainThreadIsolate != NULL, "Main thread Isolate::GetCurrent was non-null");
 }
 
@@ -180,7 +180,7 @@ V8MONKEY_TEST(Isolate006, "Non-main thread exits to null after sufficient exits 
 
 
 V8MONKEY_TEST(Isolate007, "Isolate entries stack for main thread") {
-  void* result = CheckIsolateStacking(NULL);
+  void* result = CheckIsolateStacking();
   V8MONKEY_CHECK(result, "Isolates returned to in correct sequence");
 }
 
@@ -193,7 +193,7 @@ V8MONKEY_TEST(Isolate008, "Isolate entries stack for off-main thread") {
 
 
 V8MONKEY_TEST(Scope001, "Creating and destroying a single scope leaves main in its initial state") {
-  V8MONKEY_CHECK(CheckSingleScopeRestoresInitialState(NULL), "main thread returned to initial isolate after scope destruction");
+  V8MONKEY_CHECK(CheckSingleScopeRestoresInitialState(), "main thread returned to initial isolate after scope destruction");
 }
 
 
@@ -205,7 +205,7 @@ V8MONKEY_TEST(Scope002, "Creating and destroying a single scope leaves thread in
 
 
 V8MONKEY_TEST(Scope003, "GetCurrent() reports correct isolate after Scope construction (within Scope lifetime)") {
-  V8MONKEY_CHECK(GetCurrentCorrectAfterScopeConstruction(NULL), "GetCurrent() was correct");
+  V8MONKEY_CHECK(GetCurrentCorrectAfterScopeConstruction(), "GetCurrent() was correct");
 }
 
 
@@ -217,7 +217,7 @@ V8MONKEY_TEST(Scope004, "GetCurrent() reports correct isolate after Scope constr
 
 
 V8MONKEY_TEST(Scope005, "Scopes stack correctly for main with explicitly entered Isolates") {
-  V8MONKEY_CHECK(CheckScopesStackAfterExplicitEntry(NULL), "Scope stacked correctly");
+  V8MONKEY_CHECK(CheckScopesStackAfterExplicitEntry(), "Scope stacked correctly");
 }
 
 
@@ -229,7 +229,7 @@ V8MONKEY_TEST(Scope006, "Scopes stack correctly for thread with explicitly enter
 
 
 V8MONKEY_TEST(Scope007, "Multiple Scopes stack correctly for main thread") {
-  V8MONKEY_CHECK(CheckScopesStack(NULL), "Scopes stacked correctly");
+  V8MONKEY_CHECK(CheckScopesStack(), "Scopes stacked correctly");
 }
 
 

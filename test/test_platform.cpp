@@ -32,9 +32,7 @@ V8MONKEY_TEST(Plat003, "TLS Key get returns correct value") {
 
 // Support function for thread result test
 #define THREAD_RESULT 100
-void*
-thread_join_main(void* arg)
-{
+void* thread_join_main(void* arg) {
   return reinterpret_cast<void*>(THREAD_RESULT);
 }
 
@@ -49,9 +47,7 @@ V8MONKEY_TEST(Plat004, "Thread joining returns correct value") {
 
 // Support function for thread result test
 #define THREAD_ARG 7
-void*
-thread_arg_main(void* arg)
-{
+void* thread_arg_main(void* arg) {
   return arg;
 }
 
@@ -65,9 +61,7 @@ V8MONKEY_TEST(Plat005, "Thread argument passing works correctly") {
 
 
 // Support function for thread noparam test
-void*
-thread_noarg_main(void* arg)
-{
+void* thread_noarg_main(void* arg) {
   return arg;
 }
 
