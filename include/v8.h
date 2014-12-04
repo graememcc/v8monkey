@@ -17,7 +17,6 @@
 
 // XXX Make order correct 
 namespace v8 {
-/*
   class APIEXPORT Isolate {
    public:
     class APIEXPORT Scope {
@@ -51,7 +50,7 @@ namespace v8 {
     void* operator new(size_t);
     void operator delete(void*, size_t);
   };
-*/
+
 
   class APIEXPORT V8 {
     public:

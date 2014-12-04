@@ -151,8 +151,7 @@ all: $(v8monkeytarget) $(testsuites)
 
 
 # The V8Monkey library is composed of the following files
-v8filestems = init threadID version
-#v8filestems = init isolate platform thread_id version
+v8filestems = init isolate threadID version
 v8files = $(addprefix src/, $(v8filestems))
 v8sources = $(addsuffix .cpp, $(v8files))
 v8objects = $(addprefix $(outdir)/, $(addsuffix .o, $(v8files)))
@@ -241,36 +240,34 @@ $(call variants, src/init): $(smheadersdir)/jsapi.h
 $(call variants, src/init) $(call variants, src/threadID): src/autolock.h
 
 
+# isolate.cpp depends on isolate.h
+$(call variants, src/isolate): src/isolate.h
+
+
 # Several files depend on platform capabilities
 src/autolock.h src/v8monkey_common.h $(call variants, src/init) $(call variants, src/threadID): $(v8monkeyheadersdir)/platform.h
 
 
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
 # internal test lib or not
-#visibility_changes = platform
-#visibility_change_stems = $(addsuffix .o, $(addprefix src/, $(visibility_changes)))
-# Note: both the "standard" and internal versions are affected!
-#visibility_change_files = $(addprefix $(outdir)/, $(visibility_change_stems))
-#visibility_change_files += $(addprefix $(outdir)/test/internalLib/, $(visibility_change_stems))
+visibility_changes = $(call variants, src/isolate)
 
 
 # We can now declare the visibility changers dependent on a test header file
-#visibility_change_files: src/test.h
+visibility_changes: src/test.h
 
 
 # *********************************************************************************************************************
 # Testsuites
 
 # The test harness is composed from the following
-teststems = V8MonkeyTest test_threadID test_version
-#teststems = V8MonkeyTest test_version test_threadid test_isolate
+teststems = V8MonkeyTest test_isolate test_threadID test_version
 testfiles = $(addprefix test/, $(teststems))
 testsources = $(addsuffix .cpp, $(testfiles))
 testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))
 
 
 # Build the "standard" test harness
-#$(testsuites)outdir)/test/run_v8monkey_tests $(outdir)/test/run_v8monkey_internal_tests: CXXFLAGS += -I test
 $(outdir)/test/run_v8monkey_tests: test/run_v8monkey_tests.cpp $(testobjects) $(v8monkeytarget) $(platformtarget)
 	@echo
 	@echo Building API testsuite...
@@ -283,8 +280,7 @@ $(testobjects): | $(outdir)/test
 
 
 # The "internals" test harness is composed from the following
-internalteststems = V8MonkeyTest test_platform
-#internalteststems = V8MonkeyTest test_internal test_platform test_isolate_internal
+internalteststems = V8MonkeyTest test_isolate_internal test_platform
 internaltestfiles = $(addprefix test/, $(internalteststems))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
@@ -294,14 +290,14 @@ internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfile
 testlibobjects = $(addprefix $(outdir)/test/internalLib/, $(addsuffix .o, $(v8files)))
 
 
+# Modify compilation of internal library versions
+$(testlibobjects) $(internaltestobjects): CXXFLAGS += -DV8MONKEY_INTERNAL_TEST=1
+
+
 # TODO The directory prereq here isn't quite right
 # XXX Really need to fix this. It's annoying me. Prereq for code reorg
 $(outdir)/test/internalLib/%.o: %.cpp $(v8monkeyheadersdir)/v8.h | $(outdir)/test/internalLib/src
 	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
-
-
-# Add an additional define when compiling object files for the test lib
-#$(testlibobjects) $(internaltestobjects): CXXFLAGS += -DV8MONKEY_INTERNAL_TEST=1
 
 
 # Build a version of the shared library for internal tests
@@ -325,8 +321,20 @@ $(outdir)/test/run_v8monkey_internal_tests: test/run_v8monkey_tests.cpp $(intern
 #  Specific test file dependencies below
 
 
+# All test files depend on the V8MonkeyTest header
+$(testobjects) $(internaltestobjects) $(testharnesses): test/V8MonkeyTest.h
+
+
 # Virtually all test files use threads
 $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
+
+
+# Test objects depend on the test header
+$(testobjects) $(internaltestobjects): CXXFLAGS += -I$(CURDIR)/test
+
+
+# test/test_isolate.cpp depends on isolate.h
+$(outdir)/test/test_isolate.o $(outdir)/test/test_isolate_internal.o: src/isolate.h
 
 
 # *********************************************************************************************************************

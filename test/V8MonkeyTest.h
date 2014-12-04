@@ -1,5 +1,5 @@
-#ifndef V8MONKEY_TEST_H
-#define V8MONKEY_TEST_H 
+#ifndef V8MONKEY_V8MONKEYTEST_H
+#define V8MONKEY_V8MONKEYTEST_H 
 
 #include <stdlib.h>
 #include <stdexcept>
