@@ -345,7 +345,7 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 
 
 # The "internals" test harness is composed from the following
-internalteststems = test_death_internal test_isolate_internal test_platform test_threadID_internal
+internalteststems = test_death_internal test_fatalerror_internal test_isolate_internal test_platform test_threadID_internal
 internaltestfiles = $(addprefix test/internal/, $(internalteststems))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
@@ -400,8 +400,8 @@ $(testsuites): $(outdir)/test/harness/V8MonkeyTest.o
 $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 
 
-# test/test_isolate.cpp depends on isolate.h
-$(outdir)/test/api/test_isolate.o $(outdir)/test/internal/test_isolate_internal.o: src/runtime/isolate.h
+# Various files depend on isolate.h
+$(outdir)/test/api/test_isolate.o $(outdir)/test/internal/test_fatalerror_internal.o $(outdir)/test/internal/test_isolate_internal.o: src/runtime/isolate.h
 
 
 # Most internal test files require the TestUtils class
@@ -409,7 +409,7 @@ $(internaltestobjects): src/test.h
 
 
 # Some test files depend on the V8MonkeyCommon class
-$(outdir)/test/internal/test_death_internal.o: src/v8monkey_common.h
+$(outdir)/test/internal/test_death_internal.o $(outdir)/test/internal/test_fatalerror_internal.o: src/v8monkey_common.h
 
 
 # The individual object files depend on the existence of their output directory
@@ -468,7 +468,7 @@ check: $(testsuites)
 	@$(outdir)/test/run_v8monkey_internal_tests
 	@echo
 	@echo Summary:
-	@echo API: Registered Tests Ran: $(shell $(outdir)/test/run_v8monkey_tests -c)
+	@echo API: Registered Tests: $(shell $(outdir)/test/run_v8monkey_tests -c)
 	@echo Internal: Registered Tests: $(shell $(outdir)/test/run_v8monkey_internal_tests -c)
 
 

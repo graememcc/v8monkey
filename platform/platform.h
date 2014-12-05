@@ -94,6 +94,9 @@ namespace v8 {
 
         // Create and initialize a Thread
         static Thread* CreateThread(ThreadFunction tf);
+
+        // Print to stderr
+        static void PrintError(const char* message);
     };
   }
 }

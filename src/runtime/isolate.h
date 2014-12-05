@@ -10,6 +10,9 @@ namespace v8 {
     // An internal variant of the public facing Isolate class
     class EXPORT_FOR_TESTING_ONLY InternalIsolate {
       public:
+        InternalIsolate() : fatalErrorHandler(NULL), threadData(NULL) {}
+        ~InternalIsolate() {}
+
         // Enter the given isolate
         void Enter();
 
@@ -34,13 +37,20 @@ namespace v8 {
         // Reports whether any threads are active in this isolate
         bool ContainsThreads() { return threadData != NULL; }
 
-        // Checks to see if the current thread is in an isolate. If not, the default isolate is entered
-        static void EnsureInIsolate();
+        // Many API functions will implicitly enter the default isolate if required. To that end, this function returns
+        // the current internal isolate if non-null, otherwise enters the default isolate and returns that
+        static InternalIsolate* EnsureInIsolate();
 
         #ifdef V8MONKEY_INTERNAL_TEST
           // Has the current thread entered the given isolate?
           static bool IsEntered(InternalIsolate* i);
         #endif
+
+        // Set the fatal error handler for this isolate
+        void SetFatalErrorHandler(FatalErrorCallback fn) { fatalErrorHandler = fn; }
+
+        // Get the fatal error handler for this isolate
+        FatalErrorCallback GetFatalErrorHandler() { return fatalErrorHandler; }
 
         // Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
         // "unlock" themselves to yield the isolate, we can't even be sure that threads will enter and exit in a LIFO
@@ -62,6 +72,9 @@ namespace v8 {
         };
 
       private:
+        // Fatal error handler for this isolate
+        FatalErrorCallback fatalErrorHandler;
+
         // Each thread has a reference to its current isolate stored within the thread
         static InternalIsolate* GetIsolateFromTLS();
         static void SetIsolateInTLS(InternalIsolate* i);

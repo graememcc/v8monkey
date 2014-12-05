@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include <stdio.h>
 #include "platform.h"
 
 
@@ -132,6 +133,11 @@ namespace v8 {
 
     Thread* Platform::CreateThread(ThreadFunction tf) {
       return new POSIXThread(tf);
+    }
+
+
+    void Platform::PrintError(const char* message) {
+      fprintf(stderr, "%s", message);
     }
   }
 }

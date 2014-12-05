@@ -12,6 +12,10 @@ namespace {
   }
 
 
+  // Some tests trigger fatal errors: suppress the error spew and the abort
+  void dummyFatalErrorHandler(const char* location, const char* message) {return;}
+
+
   // Returns a bool (cast to void*) denoting whether the caller remains in an isolate if it is exited fewer
   // times than it is entered
   V8MONKEY_TEST_HELPER(EnterTwiceReturnOnce) {
@@ -81,6 +85,7 @@ namespace {
   V8MONKEY_TEST_HELPER(CheckBadDisposeIsFatal) {
     Isolate* i = Isolate::New();
     i->Enter();
+    V8::SetFatalErrorHandler(dummyFatalErrorHandler);
     i->Dispose();
 
     bool result = V8::IsDead();
@@ -93,6 +98,9 @@ namespace {
   // Assumes arg is a (non-default) isolate that the main thread is currently in, and attempts to dispose of it.
   // Reports back a bool denoting whether this was fatal.
   void* CrossThreadBadDispose(void* arg) {
+    // Suppress errors first
+    V8::SetFatalErrorHandler(dummyFatalErrorHandler);
+
     Isolate* i = reinterpret_cast<Isolate*>(arg);
     i->Dispose();
     return reinterpret_cast<void*>(V8::IsDead());
@@ -273,6 +281,7 @@ V8MONKEY_TEST(Isolate010, "Dispose refuses to delete default isolate") {
 V8MONKEY_TEST(Isolate011, "Isolate not deleted on Dispose if still in use") {
   Isolate* i = Isolate::New();
   i->Enter();
+  V8::SetFatalErrorHandler(dummyFatalErrorHandler);
   i->Dispose();
 
   // If the implementation is broken, we'll dereference a dangling pointer here

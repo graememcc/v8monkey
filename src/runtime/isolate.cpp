@@ -119,6 +119,12 @@ namespace v8 {
   }
 
 
+  void V8::SetFatalErrorHandler(FatalErrorCallback fn) {
+    V8Monkey::InternalIsolate* i = V8Monkey::InternalIsolate::EnsureInIsolate();
+    i->SetFatalErrorHandler(fn);
+  }
+
+
   Isolate* Isolate::New() {
     V8Monkey::InternalIsolate* internal = new V8Monkey::InternalIsolate();
     return reinterpret_cast<Isolate*>(internal);
@@ -137,7 +143,8 @@ namespace v8 {
     // a V8 API requirement that it is entered when V8 is disposed (which in turn disposes the default
     // isolate)
     if (internal->ContainsThreads()) {
-      V8Monkey::V8MonkeyCommon::TriggerFatalError();
+      V8Monkey::V8MonkeyCommon::TriggerFatalError("v8::Isolate::Dispose",
+                                                  "Attempt to dispose isolate in which threads are active");
       return;
     }
 
@@ -303,13 +310,14 @@ namespace v8 {
     }
 
 
-    void InternalIsolate::EnsureInIsolate() {
+    InternalIsolate* InternalIsolate::EnsureInIsolate() {
       InternalIsolate* current = GetCurrent();
       int threadID = FetchOrAssignThreadId();
       if (current && current->FindThreadData(threadID) != NULL) {
-        return;
+        return current;
       }
       defaultIsolate->Enter();
+      return defaultIsolate;
     }
 
 

@@ -67,8 +67,35 @@ namespace {
   // Has V8 been 'disposed'?
   bool V8IsDisposed = false;
 
+
   // Does the engine have a fatal error?
   bool hasFatalError = false;
+
+
+  // The default fatal error handler
+  void DefaultFatalErrorHandler(const char* location, const char* message) {
+    using namespace v8::V8Platform;
+
+    Platform::PrintError("Error at ");
+    Platform::PrintError(location);
+    Platform::PrintError(": ");
+    Platform::PrintError(message);
+    Platform::PrintError("\n");
+    exit(1);
+  }
+
+
+  v8::FatalErrorCallback GetFatalErrorHandlerOrDefault() {
+    using namespace v8::V8Monkey;
+
+    InternalIsolate* i = InternalIsolate::GetCurrent();
+    if (i == NULL) {
+      i = InternalIsolate::GetDefaultIsolate();
+    }
+
+    v8::FatalErrorCallback fn = i->GetFatalErrorHandler();
+    return fn ? fn : DefaultFatalErrorHandler;
+  }
 }
 
   
@@ -113,8 +140,9 @@ namespace v8 {
 
 
   namespace V8Monkey {
-    void V8MonkeyCommon::TriggerFatalError() {
+    void V8MonkeyCommon::TriggerFatalError(const char* location, const char* message) {
       hasFatalError = true;
+      GetFatalErrorHandlerOrDefault()(location, message);
     }
 
 

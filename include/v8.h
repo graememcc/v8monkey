@@ -52,6 +52,9 @@ namespace v8 {
   };
 
 
+  typedef void (*FatalErrorCallback)(const char* location, const char* message);
+
+
   class APIEXPORT V8 {
     public:
       static bool Initialize();
@@ -59,8 +62,8 @@ namespace v8 {
       static bool IsDead();
       static const char* GetVersion() { return  version_string; };
       static int GetCurrentThreadId();
+      static void SetFatalErrorHandler(FatalErrorCallback that);
       /* TO IMPLEMENT:
-    static void SetFatalErrorHandler(FatalErrorCallback that);
     static void SetAllowCodeGenerationFromStringsCallback(
     static void IgnoreOutOfMemoryException();
     static StartupData::CompressionAlgorithm GetCompressedStartupDataAlgorithm();
