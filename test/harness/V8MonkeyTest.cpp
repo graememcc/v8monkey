@@ -146,6 +146,16 @@ V8MonkeyTest::ListAllTests()
 
 
 /*
+ * This simply prints the number of registered tests to stdout. It is designed to be used by Makefiles rather than humans
+ *
+ */
+void
+V8MonkeyTest::CountTests()
+{
+  cout << sTestsByName.size();
+}
+
+/*
  * Run the test with a given name, or print an error to standard error if there is no such test. If the test fails, a
  * description of the test will be added to the given set aFailures.
  *

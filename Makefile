@@ -458,6 +458,7 @@ $(mozillaroot)/js/src/configure:
 
 
 # Run the testsuite
+# XXX If we can't find a way to capture the number of tests ran, remove the summary lines
 check: $(testsuites)
 	@echo
 	@echo Running API tests
@@ -465,6 +466,10 @@ check: $(testsuites)
 	@echo
 	@echo Running internal tests
 	@$(outdir)/test/run_v8monkey_internal_tests
+	@echo
+	@echo Summary:
+	@echo API: Registered Tests Ran: $(shell $(outdir)/test/run_v8monkey_tests -c)
+	@echo Internal: Registered Tests: $(shell $(outdir)/test/run_v8monkey_internal_tests -c)
 
 
 clean:

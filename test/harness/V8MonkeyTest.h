@@ -37,6 +37,9 @@ class V8MonkeyTest {
     // Prints to stdout the names of all registered tests
     static void ListAllTests();
 
+    // Prints a count of the number of registered tests to stdout
+    static void CountTests();
+
     // Run all the tests for a given filename, warning on error to standard error if there are no such registered tests.
     // Fills the given set aFileName with the codenames of the tests ran, and the set aFailures with messages describing
     // any tests that failed.

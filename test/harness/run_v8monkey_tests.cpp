@@ -11,11 +11,12 @@
 // Used to create the bitmask denoting the result of command-line parsing
 #define USAGE_REQUESTED 1
 #define LIST_REQUESTED 2
-#define FILE_REQUEST 4
-#define TEST_REQUEST 8
-#define FILE_ERROR 16
-#define NAME_ERROR 32
-#define UNEXPECTED_VALUE 64
+#define COUNT_REQUESTED 4
+#define FILE_REQUEST 8
+#define TEST_REQUEST 16
+#define FILE_ERROR 32
+#define NAME_ERROR 64
+#define UNEXPECTED_VALUE 128
 
 
 using namespace std;
@@ -53,11 +54,12 @@ stripLeadingTrailingSquareBrackets(char* aOriginal)
  *   If bit 1 set: the user requested a listing of all registered tests
  *   If bit 2 set: the user requested all the tests in one or more files be executed (the given filenames set will
  *                 contain all such files)
- *   If bit 3 set: the user requested one or more specific tests be executed (the given testnames set will contain
+ *   If bit 3 set: the user requested a count of the number of registered tests
+ *   If bit 4 set: the user requested one or more specific tests be executed (the given testnames set will contain
  *                 the codenames of the specified tests)
- *   If bit 4 set: the user supplied the switch for a specific file, but failed to supply the file
- *   If bit 5 set: the user supplied the switch for a specific test, but failed to supply the name of the test
- *   If bit 6 set: an unexpected value was supplied (eg a filename without the preceding -f switch)
+ *   If bit 5 set: the user supplied the switch for a specific file, but failed to supply the file
+ *   If bit 6 set: the user supplied the switch for a specific test, but failed to supply the name of the test
+ *   If bit 7 set: an unexpected value was supplied (eg a filename without the preceding -f switch)
  *
  * Thus a value of 0 represents the default action: all registered tests should be executed
  *
@@ -66,8 +68,11 @@ stripLeadingTrailingSquareBrackets(char* aOriginal)
  * A help request overrides all other options: if it is found, no more arguments will be parsed, and we return
  * immediately.
  *
- * If help is not requested, but a test listing is requested, then the value returned will ignore any file and test
- * options that were supplied (although the sets may have been modified).
+ * If help is not requested, but a test listing is requested, then the value returned will ignore any file, test and
+ * count options that were supplied (although the sets may have been modified).
+ *
+ * If neither of the above are requested, but a test count is supplied, then that will be returned, again ignoring
+ * any file or test options.
  *
  * Specific file and specific test requests are NOT considered mutually exclusive. Thus a user can request all the
  * tests from some files, and additional tests from other files.
@@ -96,6 +101,13 @@ parseArgs(int argc, char** argv, set<string> &aFilenames, set<string> &aTestName
     // precedence) are ignored
     if (strcmp(arg, "-l") == 0 || strcmp(arg, "--list") == 0) {
       bitmask |= LIST_REQUESTED;
+      continue;
+    }
+
+    // If we find a count request, all other command line arguments (except help and list requests, which take
+    // precedence) are ignored
+    if (strcmp(arg, "-c") == 0 || strcmp(arg, "--count") == 0) {
+      bitmask |= COUNT_REQUESTED;
       continue;
     }
 
@@ -151,6 +163,7 @@ usage(const char* progName, const char* errorMessage = nullptr)
 
   cout << progName << ": run V8Monkey testsuite" << endl;
   cout << "OPTIONS" << endl;
+  cout << "-c or --count: Print the number of registered tests" << endl;
   cout << "-f [FILE] or --file [FILE]: Run all the tests from the given file" << endl;
   cout << "-h or --help: Print this help and exit" << endl;
   cout << "-l or --list: List all registered tests" << endl;
@@ -279,6 +292,9 @@ main(int argc, char** argv)
   } else if (result & LIST_REQUESTED) {
     V8MonkeyTest::ListAllTests();
     exit(0);
+  } else if (result & COUNT_REQUESTED) {
+    V8MonkeyTest::CountTests();
+    exit(0);
   } else if (result & FILE_ERROR) {
     exit(usage(progName, "Missing argument for -f/--file option"));
   } else if (result & NAME_ERROR) {
@@ -310,5 +326,5 @@ main(int argc, char** argv)
     reportFailures(testFailures);
   }
 
-  return 0;
+  return testFailures.size();
 }
