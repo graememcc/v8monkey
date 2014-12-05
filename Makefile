@@ -310,7 +310,7 @@ src/autolock.h src/v8monkey_common.h $(call variants, src/engine/init) $(call va
 
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
 # internal test lib or not
-visibility_changes = $(call variants, src/runtime/isolate)
+visibility_changes = $(call variants, src/runtime/isolate) $(call variants, src/engine/init)
 
 
 # We can now declare the visibility changers dependent on a test header file
@@ -321,7 +321,7 @@ visibility_changes: src/test.h
 # Testsuites
 
 # The test harness is composed from the following
-teststems = test_isolate test_threadID test_version
+teststems = test_death test_isolate test_threadID test_version
 testfiles = $(addprefix test/api/, $(teststems))
 testsources = $(addsuffix .cpp, $(testfiles))
 testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))
@@ -342,7 +342,7 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 
 
 # The "internals" test harness is composed from the following
-internalteststems = test_isolate_internal test_platform
+internalteststems = test_death_internal test_isolate_internal test_platform
 internaltestfiles = $(addprefix test/internal/, $(internalteststems))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
@@ -399,6 +399,10 @@ $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 
 # test/test_isolate.cpp depends on isolate.h
 $(outdir)/test/api/test_isolate.o $(outdir)/test/internal/test_isolate_internal.o: src/runtime/isolate.h
+
+
+# Some test files require the TestUtils class
+$(outdir)/test/internal/test_internal_death.o: src/test.h
 
 
 # The individual object files depend on the existence of their output directory

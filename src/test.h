@@ -9,4 +9,21 @@
 #endif
 
 
+// Define a utility class with a grabbag of methods handy for internal testing
+#ifdef V8MONKEY_INTERNAL_TEST
+namespace v8 {
+  namespace V8Monkey {
+    class EXPORT_FOR_TESTING_ONLY TestUtils {
+      public:
+        // Fool V8 into thinking it's had a meltdown
+        static void TriggerFatalError();
+      private:
+        // This is just a utility class, so should not be constructible
+        TestUtils();
+    };
+  }
+}
+#endif
+
+
 #endif
