@@ -167,6 +167,34 @@ namespace {
 
     return reinterpret_cast<void*>(firstOK && secondOK);
   }
+
+
+  // Returns a bool (cast to void*) denoting whether attempts to dispose from a non-default isolate prove fatal
+  V8MONKEY_TEST_HELPER(CheckV8DisposeFromNonDefaultIsFatal) {
+    V8::Initialize();
+    Isolate* i = Isolate::New();
+    i->Enter();
+
+    V8::Dispose();
+    bool result = V8::IsDead();
+    i->Exit();
+    i->Dispose();
+
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool (cast to void*) denoting whether attempts to dispose from outside any isolate proves fatal
+  V8MONKEY_TEST_HELPER(CheckV8DisposeOutsideIsolateIsFatal) {
+    V8::Initialize();
+    // Initialization implicitly enters the default isolate
+    Isolate::GetCurrent()->Exit();
+
+    V8::Dispose();
+    bool result = V8::IsDead();
+
+    return reinterpret_cast<void*>(result);
+  }
 }
 
 
@@ -324,4 +352,30 @@ V8MONKEY_TEST(Scope008, "Multiple Scopes stack correctly for thread") {
   V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckScopesStack);
   child->Run();
   V8MONKEY_CHECK(child->Join(), "Scopes stacked correctly");
+}
+
+
+V8MONKEY_TEST(Dispose001, "Attempt to dispose V8 when in non-default isolate (main thread) triggers fatal error") {
+  void* result = CheckV8DisposeFromNonDefaultIsFatal();
+  V8MONKEY_CHECK(result, "Disposing V8 from a non-default isolate is fatal");
+}
+
+
+V8MONKEY_TEST(Dispose002, "Attempt to dispose V8 when in non-default isolate (thread) triggers fatal error") {
+  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckV8DisposeFromNonDefaultIsFatal);
+  child->Run();
+  V8MONKEY_CHECK(child->Join(), "Disposing V8 from a non-default isolate is fatal");
+}
+
+
+V8MONKEY_TEST(Dispose003, "Attempt to dispose V8 outside any isolate (main thread) triggers fatal error") {
+  void* result = CheckV8DisposeOutsideIsolateIsFatal();
+  V8MONKEY_CHECK(result, "Disposing V8 from outside an isolate is fatal");
+}
+
+
+V8MONKEY_TEST(Dispose004, "Attempt to dispose V8 outside any isolate (thread) triggers fatal error") {
+  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckV8DisposeOutsideIsolateIsFatal);
+  child->Run();
+  V8MONKEY_CHECK(child->Join(), "Disposing V8 from outside an isolate is fatal");
 }

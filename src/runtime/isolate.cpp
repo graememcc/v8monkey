@@ -130,17 +130,12 @@ namespace v8 {
   }
 
 
-  /*
-   * XXX This comment might now be a lie.
-   * Isolate::Dispose should be a no-op. In V8, this is an opportunity to perform housekeeping relating to the threads
-   * associated with the given Isolate. Spidermonkey has a fundamentally different model, allowing many threads per
-   * runtime, provided the API conventions regarding JS_Requests are followed.
-   *
-   */
-
   void Isolate::Dispose() {
     V8Monkey::InternalIsolate* internal = reinterpret_cast<InternalIsolate*>(this);
 
+    // Note that we check this here: the default isolate can be disposed of while entered. In fact, it is
+    // a V8 API requirement that it is entered when V8 is disposed (which in turn disposes the default
+    // isolate)
     if (internal->ContainsThreads()) {
       V8Monkey::V8MonkeyCommon::TriggerFatalError();
       return;
