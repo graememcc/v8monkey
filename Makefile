@@ -16,6 +16,8 @@
 # node's V8 embedding requirements or do we want it to be fully general for any V8 embedder?
 
 
+.DEFAULT_GOAL = all
+
 .PHONY: all clean clobber check
 
 # TODO Provide a target or flag for debug builds. We need to ensure this builds a debug SpiderMonkey library too
@@ -104,8 +106,11 @@ v8monkeytarget = $(outdir)/$(v8libraryfile)
 v8platformtarget = $(outdir)/$(platformlibfile)
 
 
+# Directory where the "internal" library object files will be built
+v8monkeyinternaldir = $(outdir)/test/internalLib
+
 # Absolute filename of the internal test variant of the V8Monkey library
-v8monkeytesttarget = $(outdir)/test/internalLib/$(v8testlibraryfile)
+v8monkeytesttarget = $(v8monkeyinternaldir)/$(v8testlibraryfile)
 
 
 # We will generally need headers from 3 places:
@@ -114,7 +119,7 @@ v8monkeytesttarget = $(outdir)/test/internalLib/$(v8testlibraryfile)
 #  - some files in src/ may depend on additional headers in src
 # Note: we use -isystem to prevent warning spew from JSAPI
 # TODO: Is there a idiomatic name for this in makefiles?
-includedirs = $(v8monkeyheadersdir) $(CURDIR)/src
+includedirs = $(v8monkeyheadersdir) $(CURDIR)/src/threads $(CURDIR)/src/engine $(CURDIR)/src/runtime $(CURDIR)/src
 includeopt = $(addprefix -I, $(includedirs))
 includeopt += -isystem $(smheadersdir)
 
@@ -138,36 +143,47 @@ linkcommand = -Wl,-L$(strip $(1)) -Wl,-rpath=$(strip $(1)) -l$(strip $(2))
 
 # Because we build normal and "internal" versions of the object files, expressing dependencies could become
 # a bit of a chore
-variants = $(outdir)/$(strip $(1)).o $(outdir)/test/internalLib/$(strip $(1)).o
+variants = $(outdir)/$(strip $(1)).o $(v8monkeyinternaldir)/$(strip $(1)).o
+
+
+# A useful general rule for building files
+$(outdir)/%.o: %.cpp $(v8monkeyheadersdir)/v8.h
+	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
+
+
+#**********************************************************************************************************************
+# Sources
+
+
+# The V8Monkey library is composed of the following files
+enginestems = $(addprefix src/engine/, init version)
+engineobjects = $(addsuffix .o, $(enginestems))
+
+runtimestems = $(addprefix src/runtime/, isolate)
+runtimeobjects = $(addsuffix .o, $(runtimestems))
+
+threadstems = $(addprefix src/threads/, threadID)
+threadobjects = $(addsuffix .o, $(threadstems))
+
+allstems = $(enginestems) $(runtimestems) $(threadstems)
+allobjects = $(engineobjects) $(runtimeobjects) $(threadobjects)
+
+v8sources = $(addsuffix .cpp, $(allstems))
+v8objects = $(addprefix $(outdir)/, $(allobjects))
+
+# Extra files for the internal test version of the library
+testlibobjects = $(addprefix $(v8monkeyinternaldir)/, $(allobjects))
+
+# The platform abstraction library contains the following:
+platformstems = platform
+platformfiles = $(addprefix platform/, $(platformstems))
+platformsources = $(addsuffix .cpp, $(platformfiles))
+platformobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(platformfiles)))
 
 
 # Names of the test harness executables: we need these for the all target
 testharnesses = run_v8monkey_tests run_v8monkey_internal_tests
 testsuites = $(addprefix $(outdir)/test/, $(testharnesses))
-
-
-# A useful general rule for building files
-$(outdir)/%.o: %.cpp $(outdir)/include/v8.h
-	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
-
-
-# Our default goal is to build the v8monkey shared library, and the testsuites
-all: $(v8monkeytarget) $(testsuites)
-
-
-# The V8Monkey library is composed of the following files
-v8filestems = init isolate threadID version
-v8files = $(addprefix src/, $(v8filestems))
-v8sources = $(addsuffix .cpp, $(v8files))
-v8objects = $(addprefix $(outdir)/, $(addsuffix .o, $(v8files)))
-
-
-# The main task is building the shared library
-$(v8monkeytarget): $(v8objects) $(v8monkeyheadersdir)/v8.h $(smtarget) $(v8platformtarget)
-	@echo
-	@echo Building V8Monkey...
-	@echo
-	$(CXX) -shared -o $@ $(v8objects) $(call linkcommand, $(smlibdir), $(smlib)) $(v8platformtarget)
 
 
 #**********************************************************************************************************************
@@ -178,26 +194,24 @@ $(v8monkeytarget): $(v8objects) $(v8monkeyheadersdir)/v8.h $(smtarget) $(v8platf
 
 
 # Where are object files placed when we build them in their various guises?
-objectdirs = src
-objecthierarchy = $(objectdirs) $(addprefix test/internalLib/, $(objectdirs))
+srctree = engine runtime threads
+srcdirs = $(addprefix src/, $(srctree))
+objecthierarchy = $(addprefix $(outdir)/, $(srcdirs))
+internalobjecthierarchy = $(addprefix $(v8monkeyinternaldir)/, $(srcdirs))
 
 
 # Directories needed for building tests
 testdirs = internalLib internal api harness
-testhierarchy = $(addprefix test/, $(testdirs))
+testhierarchy = $(addprefix $(outdir)/test/, $(testdirs))
 
 
-unprefixeddirs = platform test $(testhierarchy) $(objecthierarchy)
-outputdirs = $(addprefix $(outdir)/, $(unprefixeddirs))
-outputdirs += $(outdir) $(v8monkeyheadersdir) $(depsdir)
+# What are the toplevel directories in the output directory?
+topleveldirs = platform test src include deps
+toplevelhierarchy = $(addprefix $(outdir)/, $(topleveldirs))
 
 
-# The test hierarchy dirs depend on the existence of the test dir
-$(addprefix $(outdir)/, $(testhierarchy)): | $(outdir)/test
-
-
-# And the test output dir depends on the output dir
-$(outdir)/test: | $(outdir)
+# All required directories
+outputdirs = $(objecthierarchy) $(internalobjecthierarchy) $(testhierarchy) $(toplevelhierarchy) $(v8monkeyinternaldir)/src $(outdir)
 
 
 # Ensure they exist when necessary
@@ -205,14 +219,27 @@ $(outputdirs):
 	mkdir -p $@
 
 
+# Directory dependencies
+# TODO There is likely a smarter way to do this
+$(internalobjecthierarchy): | $(v8monkeyinternaldir)/src
+$(v8monkeyinternaldir)/src: | $(v8monkeyinternaldir)
+$(testhierarchy): | $(outdir)/test
+$(objecthierarchy): | $(outdir)/src
+$(toplevelhierarchy): | $(outdir)
+
+
+# This doesn't contain all directory dependencies. They are spread through the file
+# TODO Again, there must be a better way. Paging Makefile gurus.
+$(addprefix $(outdir)/, $(engineobjects)): | $(outdir)/src/engine
+$(addprefix $(outdir)/, $(runtimeobjects)): | $(outdir)/src/runtime
+$(addprefix $(outdir)/, $(threadobjects)): | $(outdir)/src/threads
+$(addprefix $(v8monkeyinternaldir)/, $(engineobjects)): | $(v8monkeyinternaldir)/src/engine
+$(addprefix $(v8monkeyinternaldir)/, $(runtimeobjects)): | $(v8monkeyinternaldir)/src/runtime
+$(addprefix $(v8monkeyinternaldir)/, $(threadobjects)): | $(v8monkeyinternaldir)/src/threads
+
+
 #**********************************************************************************************************************
 # Platform abstraction library
-
-# The platform abstraction library contains the following:
-platformstems = platform
-platformfiles = $(addprefix platform/, $(platformstems))
-platformsources = $(addsuffix .cpp, $(platformfiles))
-platformobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(platformfiles)))
 
 
 # To build the shared library, we need to build the platform
@@ -237,8 +264,16 @@ $(v8monkeyheadersdir)/platform.h: platform/platform.h | $(v8monkeyheadersdir)
 # V8Monkey
 
 
-# The individual object files depend on the existence of their output directory
-$(v8objects): | $(outdir)/src
+# Our default goal is to build the v8monkey shared library, and the testsuites
+all: $(v8monkeytarget) $(testsuites)
+
+
+# The main task is building the shared library
+$(v8monkeytarget): $(v8objects) $(v8monkeyheadersdir)/v8.h $(smtarget) $(v8platformtarget)
+	@echo
+	@echo Building V8Monkey...
+	@echo
+	$(CXX) -shared -o $@ $(v8objects) $(call linkcommand, $(smlibdir), $(smlib)) $(v8platformtarget)
 
 
 # We need to copy the V8 header to dist
@@ -250,29 +285,32 @@ $(v8monkeyheadersdir)/v8.h: include/v8.h | $(v8monkeyheadersdir)
 # Individual file dependencies below
 
 
+# Virtually all files will depend on the v8 header
+$(v8objects) $(testlibobjects): $(v8monkeyheadersdir)/v8.h
+
 # version.cpp and test/test_version.cpp need SMVERSION defined
-$(call variants, src/version) $(outdir)/test/api/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
+$(call variants, src/engine/version) $(outdir)/test/api/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
 
 
 # init depends on the jsapi header
-$(call variants, src/init): $(smheadersdir)/jsapi.h
+$(call variants, src/engine/init): $(smheadersdir)/jsapi.h
 
 
 # init depends on the RAII autolock class
-$(call variants, src/init) $(call variants, src/threadID): src/autolock.h
+$(call variants, src/engine/init) $(call variants, src/threads/threadID): src/threads/autolock.h
 
 
 # isolate.cpp depends on isolate.h
-$(call variants, src/isolate): src/isolate.h
+$(call variants, src/runtime/isolate): src/runtime/isolate.h
 
 
 # Several files depend on platform capabilities
-src/autolock.h src/v8monkey_common.h $(call variants, src/init) $(call variants, src/threadID): $(v8monkeyheadersdir)/platform.h
+src/autolock.h src/v8monkey_common.h $(call variants, src/engine/init) $(call variants, src/threads/threadID): $(v8monkeyheadersdir)/platform.h
 
 
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
 # internal test lib or not
-visibility_changes = $(call variants, src/isolate)
+visibility_changes = $(call variants, src/runtime/isolate)
 
 
 # We can now declare the visibility changers dependent on a test header file
@@ -308,10 +346,6 @@ internalteststems = test_isolate_internal test_platform
 internaltestfiles = $(addprefix test/internal/, $(internalteststems))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
-
-
-# Extra files for the internal test version of the library
-testlibobjects = $(addprefix $(outdir)/test/internalLib/, $(addsuffix .o, $(v8files)))
 
 
 # TODO The directory prereq here isn't quite right
@@ -364,7 +398,7 @@ $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 
 
 # test/test_isolate.cpp depends on isolate.h
-$(outdir)/test/api/test_isolate.o $(outdir)/test/internal/test_isolate_internal.o: src/isolate.h
+$(outdir)/test/api/test_isolate.o $(outdir)/test/internal/test_isolate_internal.o: src/runtime/isolate.h
 
 
 # The individual object files depend on the existence of their output directory
