@@ -11,6 +11,7 @@ using namespace v8::V8Platform;
 V8MONKEY_TEST(ThreadID001, "Main thread gets thread id of 1 (no explicit engine initialization)") {
   int threadID = V8::GetCurrentThreadId();
   V8MONKEY_CHECK(threadID == 1, "First thread is assigned correct ID");
+  V8::Dispose();
 }
 
 
@@ -18,6 +19,7 @@ V8MONKEY_TEST(ThreadID002, "Main thread gets thread id of 1 (explicit engine ini
   V8::Initialize();
   int threadID = V8::GetCurrentThreadId();
   V8MONKEY_CHECK(threadID == 1, "First thread is assigned correct ID");
+  V8::Dispose();
 }
 
 

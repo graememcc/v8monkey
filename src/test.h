@@ -15,8 +15,8 @@ namespace v8 {
   namespace V8Monkey {
     class EXPORT_FOR_TESTING_ONLY TestUtils {
       public:
-        // Fool V8 into thinking it's had a meltdown
-        static void TriggerFatalError();
+        // Returns true if an attempt (not necessarily succesful) has been made to initialize the engine
+        static bool IsV8Initialized();
       private:
         // This is just a utility class, so should not be constructible
         TestUtils();

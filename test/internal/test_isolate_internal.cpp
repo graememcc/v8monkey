@@ -145,7 +145,6 @@ V8MONKEY_TEST(IntIsolate003, "Isolate::GetCurrent is default for main thread wit
 
 V8MONKEY_TEST(IntIsolate004, "IsEntered works correctly") {
   Isolate* mainThreadIsolate = Isolate::GetCurrent();
-  // XXX Confirm Isolates can be entered without V8 Init
   mainThreadIsolate->Enter();
   V8MONKEY_CHECK(InternalIsolate::IsEntered(AsInternal(mainThreadIsolate)),
                  "IsEntered reports true for entered isolate");
@@ -161,7 +160,7 @@ V8MONKEY_TEST(IntIsolate005, "Default isolate initially not entered by main thre
 
 
 V8MONKEY_TEST(IntIsolate006, "IsDefaultIsolate works correctly for non-default isolate") {
-  V8MONKEY_CHECK(InternalIsolate::IsDefaultIsolate(AsInternal(Isolate::New())),
+  V8MONKEY_CHECK(!InternalIsolate::IsDefaultIsolate(AsInternal(Isolate::New())),
                  "IsDefaultIsolate reports false for non-default");
 }
 
@@ -232,6 +231,19 @@ V8MONKEY_TEST(IntIsolate016, "V8 Initialization doesn't change entered isolate f
   V8Platform::Thread* child = V8Platform::Platform::CreateThread(InitAfterEnterStaysInIsolate);
   child->Run();
   V8MONKEY_CHECK(child->Join(), "Entered isolate didn't change across V8 initialization");
+}
+
+
+V8MONKEY_TEST(IntIsolate017, "Isolate reports empty when not entered") {
+  Isolate* i = Isolate::New();
+  V8MONKEY_CHECK(!AsInternal(i)->ContainsThreads(), "Empty isolate reports no threads active");
+}
+
+
+V8MONKEY_TEST(IntIsolate018, "Isolate reports non-empty when entered") {
+  Isolate* i = Isolate::New();
+  i->Enter();
+  V8MONKEY_CHECK(AsInternal(i)->ContainsThreads(), "Entered isolate reports threads active");
 }
 
 

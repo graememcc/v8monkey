@@ -103,8 +103,9 @@ namespace {
   // single Scope is entered and destroyed
   V8MONKEY_TEST_HELPER(CheckSingleScopeRestoresInitialState) {
     Isolate* initial = Isolate::GetCurrent();
+    Isolate* i = Isolate::New();
     {
-      Isolate::Scope scope(initial);
+      Isolate::Scope scope(i);
     }
 
     return reinterpret_cast<void*>(Isolate::GetCurrent() == initial);

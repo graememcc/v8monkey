@@ -134,7 +134,7 @@ warnings = -Wall -Wextra -Wmissing-include-dirs
 #   - std=c++0x SpiderMonkey uses some C++11 features in the header
 #   - fvisibility=hidden We want to minimize the number of symbols exported
 #   - fPIC shared libraries need position-independent code
-CXXFLAGS += $(warnings) $(includeopt) -fPIC -fvisibility=hidden -std=c++0x
+CXXFLAGS += -g $(warnings) $(includeopt) -fPIC -fvisibility=hidden -std=c++0x
 
 
 # Define a command that will produce a link command for the given library name
@@ -162,8 +162,8 @@ engineobjects = $(addsuffix .o, $(enginestems))
 runtimestems = $(addprefix src/runtime/, isolate)
 runtimeobjects = $(addsuffix .o, $(runtimestems))
 
-threadstems = $(addprefix src/threads/, threadID)
-threadobjects = $(addsuffix .o, $(threadstems))
+#threadstems = $(addprefix src/threads/, threadID)
+#threadobjects = $(addsuffix .o, $(threadstems))
 
 allstems = $(enginestems) $(runtimestems) $(threadstems)
 allobjects = $(engineobjects) $(runtimeobjects) $(threadobjects)
@@ -297,20 +297,23 @@ $(call variants, src/engine/init): $(smheadersdir)/jsapi.h
 
 
 # init depends on the RAII autolock class
-$(call variants, src/engine/init) $(call variants, src/threads/threadID): src/threads/autolock.h
+$(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/threads/autolock.h
 
 
-# isolate.cpp depends on isolate.h
-$(call variants, src/runtime/isolate): src/runtime/isolate.h
+# Several files depend on isolate.h
+$(call variants, src/init) $(call variants, src/runtime/isolate): src/runtime/isolate.h
 
 
 # Several files depend on platform capabilities
-src/autolock.h src/v8monkey_common.h $(call variants, src/engine/init) $(call variants, src/threads/threadID): $(v8monkeyheadersdir)/platform.h
+src/autolock.h $(call variants, src/engine/init) $(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
 
+
+# Several files depend on the miscellaneous functions in the V8MonkeyCommon class
+$(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/v8monkey_common.h
 
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
 # internal test lib or not
-visibility_changes = $(call variants, src/runtime/isolate) $(call variants, src/engine/init)
+visibility_changes = $(call variants, src/engine/init) $(call variants, src/runtime/isolate)
 
 
 # We can now declare the visibility changers dependent on a test header file
@@ -336,13 +339,13 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 	@echo
 	@echo Building API testsuite...
 	@echo
-	$(CXX) $(CXXFLAGS) -o $@ test/harness/run_v8monkey_tests.cpp $(outdir)/test/harness/V8MonkeyTest.o $(testobjects) \
+	$(CXX) $(CXXFLAGS) -g -o $@ test/harness/run_v8monkey_tests.cpp $(outdir)/test/harness/V8MonkeyTest.o $(testobjects) \
                         $(call linkcommand, $(outdir), $(v8lib))\
                         $(call linkcommand, $(outdir), $(platformlib))
 
 
 # The "internals" test harness is composed from the following
-internalteststems = test_death_internal test_isolate_internal test_platform
+internalteststems = test_death_internal test_isolate_internal test_platform test_threadID_internal
 internaltestfiles = $(addprefix test/internal/, $(internalteststems))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
@@ -401,8 +404,12 @@ $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 $(outdir)/test/api/test_isolate.o $(outdir)/test/internal/test_isolate_internal.o: src/runtime/isolate.h
 
 
-# Some test files require the TestUtils class
-$(outdir)/test/internal/test_internal_death.o: src/test.h
+# Most internal test files require the TestUtils class
+$(internaltestobjects): src/test.h
+
+
+# Some test files depend on the V8MonkeyCommon class
+$(outdir)/test/internal/test_death_internal.o: src/v8monkey_common.h
 
 
 # The individual object files depend on the existence of their output directory

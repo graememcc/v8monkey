@@ -1,22 +1,19 @@
 #ifndef V8MONKEY_COMMON_H
 #define V8MONKEY_COMMON_H
 
-#include "platform.h"
+#include "test.h"
 
 
 namespace v8 {
   namespace V8Monkey {
-    using namespace v8::V8Platform;
-
-
-    typedef struct V8Monkey_TLSKeys {
-      TLSKey* threadIDKey;
-    } V8Monkey_TLSKeys;
-
-
-    class V8MonkeyCommon {
+    class EXPORT_FOR_TESTING_ONLY V8MonkeyCommon {
       public:
-        static V8Monkey_TLSKeys TLSKeys;
+        // Uh-oh. Something's gone awry.
+        static void TriggerFatalError();
+
+      private:
+        // This is simply a collection of helper methods
+        V8MonkeyCommon();
     };
   }
 }

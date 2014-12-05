@@ -1,9 +1,13 @@
 // V8
 #include "v8.h"
-#include "init.h"
-#include "platform.h"
+
+
 #include "autolock.h"
+#include "init.h"
+#include "isolate.h"
+#include "platform.h"
 #include "test.h"
+#include "v8monkey_common.h"
 
 
 // Spidermonkey
@@ -34,7 +38,10 @@ namespace {
   // Was SpiderMonkey initted succesfully? This will be set by InitializeSpiderMonkey. This must not be read prior to a
   // pthread_once call for initialization
   bool engineInitSucceeded = false;
-
+  
+  #ifdef V8MONKEY_INTERNAL_TEST
+    bool engineInitAttempted = false;
+  #endif
 
   // Initialize SpiderMonkey
   void InitializeSpiderMonkey() {
@@ -69,12 +76,19 @@ namespace v8 {
   bool V8::Initialize() {
     SpiderMonkeyInitControl->Run();
 
+    #ifdef V8MONKEY_INTERNAL_TEST
+      engineInitAttempted = true;
+    #endif
+
     // engineInitSucceeded will now be in a stable state
     if (!engineInitSucceeded) {
       // The V8 API appears to present engine init as infallible. In SpiderMonkey, failure—though unlikely—is possible.
       // If init failed, I doubt we'll be able to sensibly proceed.
       exit(1);
     }
+
+    // It is a V8 API requirement that initialization leaves us in the default isolate if we were not already in an isolate
+    V8Monkey::InternalIsolate::EnsureInIsolate();
 
     return true;
   }
@@ -98,11 +112,16 @@ namespace v8 {
   }
 
 
-#ifdef V8MONKEY_INTERNAL_TEST
   namespace V8Monkey {
-    void TestUtils::TriggerFatalError() {
+    void V8MonkeyCommon::TriggerFatalError() {
       hasFatalError = true;
     }
+
+
+    #ifdef V8MONKEY_INTERNAL_TEST
+      bool TestUtils::IsV8Initialized() {
+        return engineInitAttempted;
+      }
+    #endif
   }
-#endif
 }
