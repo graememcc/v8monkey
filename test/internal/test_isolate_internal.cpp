@@ -24,7 +24,9 @@ namespace {
   // void* for the threading API) denoting whether it entered the default isolate
   V8MONKEY_TEST_HELPER(InitializingEnteredDefault) {
     V8::Initialize();
-    return reinterpret_cast<void*>(InternalIsolate::IsEntered(InternalIsolate::GetDefaultIsolate()));
+    bool result = InternalIsolate::IsEntered(InternalIsolate::GetDefaultIsolate());
+    V8::Dispose();
+    return reinterpret_cast<void*>(result);
   }
 
 
@@ -33,7 +35,9 @@ namespace {
   V8MONKEY_TEST_HELPER(CanExitDefaultAfterInit) {
     V8::Initialize();
     Isolate::GetCurrent()->Exit();
-    return reinterpret_cast<void*>(InternalIsolate::IsEntered(InternalIsolate::GetDefaultIsolate()) == false);
+    bool result = InternalIsolate::IsEntered(InternalIsolate::GetDefaultIsolate()) == false;
+    V8::Dispose();
+    return reinterpret_cast<void*>(result);
   }
 
 
@@ -64,6 +68,8 @@ namespace {
     V8::Initialize();
     bool result = Isolate::GetCurrent() == i && InternalIsolate::IsEntered(CurrentAsInternal());
     i->Exit();
+    i->Dispose();
+    V8::Dispose();
     return reinterpret_cast<void*>(result);
   }
 
@@ -86,7 +92,9 @@ namespace {
     {
       Isolate::Scope scope(i);
     }
-    return reinterpret_cast<void*>(!InternalIsolate::IsEntered(AsInternal(i)));
+    bool result = !InternalIsolate::IsEntered(AsInternal(i));
+    i->Dispose(); 
+    return reinterpret_cast<void*>(result);
   }
 
 
@@ -99,6 +107,7 @@ namespace {
     }
     bool result = InternalIsolate::IsEntered(AsInternal(i));
     i->Exit();
+    i->Dispose();
     return reinterpret_cast<void*>(result);
   }
 
@@ -194,6 +203,7 @@ V8MONKEY_TEST(IntIsolate012, "Isolate::GetCurrent() still reports default for ma
   Isolate* defaultIsolate = Isolate::GetCurrent();
   defaultIsolate->Exit();
   V8MONKEY_CHECK(InternalIsolate::IsDefaultIsolate(CurrentAsInternal()), "GetCurrent() still reports default");
+  V8::Dispose();
 }
 
 

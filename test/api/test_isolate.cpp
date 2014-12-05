@@ -12,17 +12,28 @@ namespace {
   }
 
 
-  void* EnterTwiceReturnOnce(void* arg) {
-    Isolate* i = static_cast<Isolate*>(arg);
+  // Returns a bool (cast to void*) denoting whether the caller remains in an isolate if it is exited fewer
+  // times than it is entered
+  V8MONKEY_TEST_HELPER(EnterTwiceReturnOnce) {
+    Isolate* i = Isolate::New();
+
     i->Enter();
     i->Enter();
     i->Exit();
-    return Isolate::GetCurrent();
+
+    bool result = Isolate::GetCurrent() == i;
+    i->Exit();
+    i->Dispose();
+
+    return reinterpret_cast<void*>(result);
   }
 
 
-  void* EnterThriceReturnThrice(void* arg) {
-    Isolate* i = static_cast<Isolate*>(arg);
+  // Returns a bool (cast to void*) denoting whether entering an isolate multiple times, and exiting the same number of
+  // times completetly exits the isolate
+  V8MONKEY_TEST_HELPER(EnterThriceReturnThrice) {
+    Isolate* original = Isolate::GetCurrent();
+    Isolate* i = Isolate::New();
 
     i->Enter();
     i->Enter();
@@ -32,10 +43,15 @@ namespace {
     i->Exit();
     i->Exit();
 
-    return Isolate::GetCurrent();
+    bool result = Isolate::GetCurrent() == original;
+    i->Dispose();
+
+    return reinterpret_cast<void*>(result);
   }
 
 
+  // Returns a bool (cast to void*) denoting whether isolates stack: i.e. exiting an isolate should return the
+  // thread to the isolate it was previously in
   V8MONKEY_TEST_HELPER(CheckIsolateStacking) {
     Isolate* original = Isolate::GetCurrent();
     Isolate* first = Isolate::New();
@@ -53,7 +69,33 @@ namespace {
     Isolate::GetCurrent()->Exit();
     bool returnedToOriginal = Isolate::GetCurrent() == original;
 
+    first->Dispose();
+    second->Dispose();
+    third->Dispose();
+
     return reinterpret_cast<void*>(allDistinct && returnedToSecond && returnedToFirst && returnedToOriginal);
+  }
+
+
+  // Returns a bool (cast to void*) denoting whether attempts to dispose an in-use isolate prove fatal
+  V8MONKEY_TEST_HELPER(CheckBadDisposeIsFatal) {
+    Isolate* i = Isolate::New();
+    i->Enter();
+    i->Dispose();
+
+    bool result = V8::IsDead();
+    i->Exit();
+    i->Dispose();
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Assumes arg is a (non-default) isolate that the main thread is currently in, and attempts to dispose of it.
+  // Reports back a bool denoting whether this was fatal.
+  void* CrossThreadBadDispose(void* arg) {
+    Isolate* i = reinterpret_cast<Isolate*>(arg);
+    i->Dispose();
+    return reinterpret_cast<void*>(V8::IsDead());
   }
 
 
@@ -77,6 +119,7 @@ namespace {
       Isolate::Scope scope(i);
       result = Isolate::GetCurrent() == i;
     }
+    i->Dispose();
 
     return reinterpret_cast<void*>(result);
   }
@@ -86,12 +129,16 @@ namespace {
   V8MONKEY_TEST_HELPER(CheckScopesStackAfterExplicitEntry) {
     Isolate* first = Isolate::New();
     first->Enter();
+
     Isolate* second = Isolate::New();
     {
       Isolate::Scope scope(second);
     }
+
     bool result = Isolate::GetCurrent() == first;
     first->Exit();
+    first->Dispose();
+
     return reinterpret_cast<void*>(result);
   }
 
@@ -100,7 +147,6 @@ namespace {
   V8MONKEY_TEST_HELPER(CheckScopesStack) {
     Isolate* first = Isolate::New();
     bool firstOK, secondOK;
-    
     {
       Isolate::Scope firstScope(first);
       Isolate* second = Isolate::New();
@@ -108,12 +154,15 @@ namespace {
         Isolate::Scope secondScope(second);
         Isolate* third = Isolate::New();
         {
-        Isolate::Scope thirdScope(third);
+          Isolate::Scope thirdScope(third);
         }
         secondOK = Isolate::GetCurrent() == second;
+        third->Dispose();
       }
       firstOK = Isolate::GetCurrent() == first;
+      second->Dispose();
     }
+    first->Dispose();
 
     return reinterpret_cast<void*>(firstOK && secondOK);
   }
@@ -135,47 +184,26 @@ V8MONKEY_TEST(Isolate002, "Non-main thread reports Isolate::GetCurrent null when
 
 
 V8MONKEY_TEST(Isolate003, "Main thread remains in isolate if exited fewer times than entered") {
-  Isolate* i = Isolate::New();
-
-  // Sanity check: this should be a fresh isolate
-  V8MONKEY_CHECK(i != Isolate::GetCurrent(), "Sanity check: we got a new isolate");
-  
-  Isolate* extant = static_cast<Isolate*>(EnterTwiceReturnOnce(i));
-  V8MONKEY_CHECK(i == extant, "Still in isolate after asymmetric exits");
-  i->Exit();
+  V8MONKEY_CHECK(EnterTwiceReturnOnce(), "Still in isolate after asymmetric exits");
 }
 
 
 V8MONKEY_TEST(Isolate004, "Non-main thread remains in isolate if exited fewer times than entered") {
-  Isolate* i = Isolate::New();
-
   V8Platform::Thread* child = V8Platform::Platform::CreateThread(EnterTwiceReturnOnce);
-  child->Run(i);
-  Isolate* extant = static_cast<Isolate*>(EnterTwiceReturnOnce(i));
-  V8MONKEY_CHECK(i == extant, "Still in isolate after asymmetric exits");
+  child->Run();
+  V8MONKEY_CHECK(child->Join(), "Still in isolate after asymmetric exits");
 }
 
 
 V8MONKEY_TEST(Isolate005, "Main thread exits to default after sufficient exits from multiply-entered isolate") {
-  Isolate* defaultIsolate = Isolate::GetCurrent();
-  Isolate* i = Isolate::New();
-
-  // Sanity check: this should be a fresh isolate
-  V8MONKEY_CHECK(i != defaultIsolate, "Sanity check: we got a new isolate");
-  
-  Isolate* extant = static_cast<Isolate*>(EnterThriceReturnThrice(i));
-  V8MONKEY_CHECK(defaultIsolate == extant, "Returned to default after symmetric exits");
+  V8MONKEY_CHECK(EnterThriceReturnThrice(), "Returned to default after symmetric exits");
 }
 
 
 V8MONKEY_TEST(Isolate006, "Non-main thread exits to null after sufficient exits from multiply-entered isolate") {
-  Isolate* current = Isolate::GetCurrent();
-  Isolate* i = Isolate::New();
-
   V8Platform::Thread* child = V8Platform::Platform::CreateThread(EnterThriceReturnThrice);
-  child->Run(i);
-  Isolate* extant = static_cast<Isolate*>(child->Join());
-  V8MONKEY_CHECK(current == extant, "Returned to null after symmetric exits");
+  child->Run();
+  V8MONKEY_CHECK(child->Join(), "Returned to null after symmetric exits");
 }
 
 
@@ -189,6 +217,64 @@ V8MONKEY_TEST(Isolate008, "Isolate entries stack for off-main thread") {
   V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckIsolateStacking);
   child->Run();
   V8MONKEY_CHECK(child->Join(), "Isolates returned to in correct sequence");
+}
+
+
+V8MONKEY_TEST(Isolate009, "Isolate::New returns a fresh isolate") {
+  Isolate* defaultIsolate = Isolate::GetCurrent();
+  Isolate* i = Isolate::New();
+  V8MONKEY_CHECK(defaultIsolate != i, "New returned a fresh isolate");
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(Isolate010, "Dispose refuses to delete default isolate") {
+  Isolate* defaultIsolate = Isolate::GetCurrent();
+  defaultIsolate->Dispose();
+
+  // If the implementation is broken, we'll dereference a dangling pointer here
+  defaultIsolate->Enter();
+
+  // If we're still alive, then things are working correctly
+  V8MONKEY_CHECK(true, "Default isolate not deleted");
+  defaultIsolate->Exit();
+}
+
+
+V8MONKEY_TEST(Isolate011, "Isolate not deleted on Dispose if still in use") {
+  Isolate* i = Isolate::New();
+  i->Enter();
+  i->Dispose();
+
+  // If the implementation is broken, we'll dereference a dangling pointer here
+  i->Exit();
+
+  // If we're still alive, then things are working correctly
+  V8MONKEY_CHECK(i, "In-use isolate not deleted");
+}
+
+
+V8MONKEY_TEST(Isolate012, "Attempt to dispose in-use isolate causes fatal error (main)") {
+  void* result = CheckBadDisposeIsFatal();
+  V8MONKEY_CHECK(result, "Disposing an in-use isolate is fatal");
+}
+
+
+V8MONKEY_TEST(Isolate013, "Attempt to dispose in-use isolate causes fatal error for off-main thread") {
+  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckBadDisposeIsFatal);
+  child->Run();
+  V8MONKEY_CHECK(child->Join(), "Disposing an in-use isolate is fatal");
+}
+
+
+V8MONKEY_TEST(Isolate014, "Attempt to dispose in-use isolate from another thread causes fatal error") {
+  Isolate* i = Isolate::New();
+  i->Enter();
+  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CrossThreadBadDispose);
+  child->Run(i);
+  V8MONKEY_CHECK(child->Join(), "Disposing an in-use isolate is fatal");
+  i->Exit();
+  i->Dispose();
 }
 
 
