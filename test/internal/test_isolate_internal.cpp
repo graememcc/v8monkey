@@ -80,6 +80,29 @@ namespace {
   }
 
 
+  // Returns a bool (cast to void*) denoting whether scope destruction exits the given isolate
+  V8MONKEY_TEST_HELPER(CheckScopesExit) {
+    Isolate* i = Isolate::New();
+    {
+      Isolate::Scope scope(i);
+    }
+    return reinterpret_cast<void*>(!InternalIsolate::IsEntered(AsInternal(i)));
+  }
+
+
+  // Returns a bool (cast to void*) denoting whether scope destruction copes with multiply entered isolates
+  V8MONKEY_TEST_HELPER(CheckScopesHandleMultipleEntries) {
+    Isolate* i = Isolate::New();
+    i->Enter();
+    {
+      Isolate::Scope scope(i);
+    }
+    bool result = InternalIsolate::IsEntered(AsInternal(i));
+    i->Exit();
+    return reinterpret_cast<void*>(result);
+  }
+
+
   // Returns a bool (cast to void*) denoting whether scopes can enter the default isolate
   void* CheckScopesEnterDefault(void* i) {
     Isolate* defaultIsolate = reinterpret_cast<Isolate*>(i);
@@ -214,13 +237,37 @@ V8MONKEY_TEST(IntScope002, "Scopes enter isolates on thread") {
 }
 
 
-V8MONKEY_TEST(IntScope003, "Scopes can enter default isolate on main thread") {
+V8MONKEY_TEST(IntScope003, "Scopes exit isolates on destruction on main thread") {
+  V8MONKEY_CHECK(CheckScopesExit(), "Isolate was exited");
+}
+
+
+V8MONKEY_TEST(IntScope004, "Scopes exit isolates on destruction on thread") {
+  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckScopesExit);
+  child->Run();
+  V8MONKEY_CHECK(child->Join(), "Isolate was exited");
+}
+
+
+V8MONKEY_TEST(IntScope005, "Scopes exit copes with multiple entries on main thread") {
+  V8MONKEY_CHECK(CheckScopesHandleMultipleEntries(), "Isolate was not completely exited");
+}
+
+
+V8MONKEY_TEST(IntScope006, "Scopes exit copes with multiple entries on thread") {
+  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckScopesHandleMultipleEntries);
+  child->Run();
+  V8MONKEY_CHECK(child->Join(), "Isolate was not completely exited");
+}
+
+
+V8MONKEY_TEST(IntScope007, "Scopes can enter default isolate on main thread") {
   Isolate* defaultIsolate = Isolate::GetCurrent();
   V8MONKEY_CHECK(CheckScopesEnterDefault(defaultIsolate), "Default isolate was entered");
 }
 
 
-V8MONKEY_TEST(IntScope004, "Scopes can enter default isolate on thread") {
+V8MONKEY_TEST(IntScope008, "Scopes can enter default isolate on thread") {
   Isolate* defaultIsolate = Isolate::GetCurrent();
   V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckScopesEnterDefault);
   child->Run(defaultIsolate);
