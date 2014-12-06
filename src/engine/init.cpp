@@ -122,9 +122,16 @@ namespace v8 {
 
 
   bool V8::Dispose() {
+    using namespace v8::V8Monkey;
     // XXX V8::Dispose has some semantics around stopping of utility threads that we haven't tackled
     //     For now, this is a no-op: our static object above will really shutdown SpiderMonkey
-    V8Monkey::AutoLock mutex(engineDisposalMutex);
+    AutoLock mutex(engineDisposalMutex);
+
+    InternalIsolate* i = InternalIsolate::GetCurrent();
+    if (i == NULL || i != InternalIsolate::GetDefaultIsolate()) {
+      V8MonkeyCommon::TriggerFatalError("v8::V8::Dispose", "Must dispose V8 from default isolate");
+      return false;
+    }
 
     V8IsDisposed = true;
     return true;

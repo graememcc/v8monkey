@@ -36,7 +36,6 @@ namespace {
     V8::Initialize();
     Isolate::GetCurrent()->Exit();
     bool result = InternalIsolate::IsEntered(InternalIsolate::GetDefaultIsolate()) == false;
-    V8::Dispose();
     return reinterpret_cast<void*>(result);
   }
 
@@ -52,11 +51,16 @@ namespace {
 
 
   // Thread function which implicitly enters the default isolate via an API call, but explicitly exits, and afterwards
-  // returns internal version of current isolate (cast to void* for threading API)
+  // compares the result of GetCurrent() with the default isolate, returning the bool. The rational here is that any
+  // thread that calls a function that implicitly enters the default isolate will be permanently associated with that
+  // isolate.
   V8MONKEY_TEST_HELPER(ImplicitEnterExplicitExit) {
     V8::Initialize();
-    Isolate::GetCurrent()->Exit();
-    return CurrentAsInternal();
+    Isolate* defaultIsolate = Isolate::GetCurrent();
+    defaultIsolate->Exit();
+    bool result = Isolate::GetCurrent() == defaultIsolate;
+    V8::Dispose();
+    return reinterpret_cast<void*>(result);
   }
 
 
@@ -69,7 +73,6 @@ namespace {
     bool result = Isolate::GetCurrent() == i && InternalIsolate::IsEntered(CurrentAsInternal());
     i->Exit();
     i->Dispose();
-    V8::Dispose();
     return reinterpret_cast<void*>(result);
   }
 
@@ -198,11 +201,7 @@ V8MONKEY_TEST(IntIsolate011, "Isolate::GetCurrent() still reports default for ma
 
 
 V8MONKEY_TEST(IntIsolate012, "Isolate::GetCurrent() still reports default for main thread after implicit entry / explicit exit") {
-  V8::Initialize();
-  Isolate* defaultIsolate = Isolate::GetCurrent();
-  defaultIsolate->Exit();
-  V8MONKEY_CHECK(InternalIsolate::IsDefaultIsolate(CurrentAsInternal()), "GetCurrent() still reports default");
-  V8::Dispose();
+  V8MONKEY_CHECK(ImplicitEnterExplicitExit, "GetCurrent() still reports default");
 }
 
 
@@ -214,11 +213,10 @@ V8MONKEY_TEST(IntIsolate013, "Isolate::GetCurrent() doesn't report default for t
 }
 
 
-V8MONKEY_TEST(IntIsolate014, "Isolate::GetCurrent() doesn't report default for thread after implicit default entry / explicit exit") {
+V8MONKEY_TEST(IntIsolate014, "Isolate::GetCurrent() still reports default for thread after implicit default entry / explicit exit") {
   V8Platform::Thread* child = V8Platform::Platform::CreateThread(ImplicitEnterExplicitExit);
   child->Run();
-  InternalIsolate* threadIsolate = reinterpret_cast<InternalIsolate*>(child->Join());
-  V8MONKEY_CHECK(!InternalIsolate::IsDefaultIsolate(threadIsolate), "GetCurrent() no longer reports default");
+  V8MONKEY_CHECK(child->Join(), "GetCurrent() still reports default");
 }
 
 
@@ -227,7 +225,7 @@ V8MONKEY_TEST(IntIsolate015, "V8 Initialization doesn't change entered isolate f
 }
 
 
-V8MONKEY_TEST(IntIsolate016, "V8 Initialization doesn't change entered isolate for main thread if entered isolate isn't default") {
+V8MONKEY_TEST(IntIsolate016, "V8 Initialization doesn't change entered isolate for thread if entered isolate isn't default") {
   V8Platform::Thread* child = V8Platform::Platform::CreateThread(InitAfterEnterStaysInIsolate);
   child->Run();
   V8MONKEY_CHECK(child->Join(), "Entered isolate didn't change across V8 initialization");

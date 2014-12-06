@@ -39,8 +39,8 @@ namespace v8 {
     void Enter();
     void Exit();
     void Dispose();
-    //inline void SetData(void* data);
-    //inline void* GetData();
+    void SetData(void* data);
+    void* GetData();
 
    private:
     Isolate();

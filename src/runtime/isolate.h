@@ -10,7 +10,7 @@ namespace v8 {
     // An internal variant of the public facing Isolate class
     class EXPORT_FOR_TESTING_ONLY InternalIsolate {
       public:
-        InternalIsolate() : fatalErrorHandler(NULL), threadData(NULL) {}
+        InternalIsolate() : fatalErrorHandler(NULL), threadData(NULL), embedderData(NULL) {}
         ~InternalIsolate() {}
 
         // Enter the given isolate
@@ -52,6 +52,12 @@ namespace v8 {
         // Get the fatal error handler for this isolate
         FatalErrorCallback GetFatalErrorHandler() { return fatalErrorHandler; }
 
+        // Set the embedder data for this isolate
+        void SetEmbedderData(void* data) { embedderData = data; }
+
+        // Get the embedder data for this isolate
+        void* GetEmbedderData() { return embedderData; }
+
         // Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
         // "unlock" themselves to yield the isolate, we can't even be sure that threads will enter and exit in a LIFO
         // order-the ordering will be at the mercy of the locking mechanism. Thus we need some way of answering the
@@ -75,6 +81,12 @@ namespace v8 {
         // Fatal error handler for this isolate
         FatalErrorCallback fatalErrorHandler;
 
+        // Our linked list of data about active threads in this isolate
+        ThreadData* threadData;
+
+        // Embedder data
+        void* embedderData;
+
         // Each thread has a reference to its current isolate stored within the thread
         static InternalIsolate* GetIsolateFromTLS();
         static void SetIsolateInTLS(InternalIsolate* i);
@@ -83,8 +95,6 @@ namespace v8 {
         // "default" isolate automatically, and use it where necessary.
         static InternalIsolate* defaultIsolate;
 
-        // Our linked list of data about active threads in this isolate
-        ThreadData* threadData;
 
         // Linked list manipulations
         ThreadData* FindOrCreateThreadData(int threadID, InternalIsolate* previousIsolate);

@@ -162,6 +162,16 @@ namespace v8 {
   }
 
 
+  void* Isolate::GetData() {
+    return reinterpret_cast<V8Monkey::InternalIsolate*>(this)->GetEmbedderData();
+  }
+
+
+  void Isolate::SetData(void* data) {
+    reinterpret_cast<V8Monkey::InternalIsolate*>(this)->SetEmbedderData(data);
+  }
+
+
   namespace V8Monkey {
     // Searches the linked list, and finds the ThreadData object for the given thread ID, or returns NULL
     InternalIsolate::ThreadData* InternalIsolate::FindThreadData(int threadID) {
@@ -316,6 +326,10 @@ namespace v8 {
       if (current && current->FindThreadData(threadID) != NULL) {
         return current;
       }
+
+      // V8 permanently associates threads that implicitly enter the default isolate with the default isolate
+      SetIsolateInTLS(defaultIsolate);
+
       defaultIsolate->Enter();
       return defaultIsolate;
     }
