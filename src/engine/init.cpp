@@ -39,6 +39,7 @@ namespace {
   // pthread_once call for initialization
   bool engineInitSucceeded = false;
   
+
   #ifdef V8MONKEY_INTERNAL_TEST
     bool engineInitAttempted = false;
   #endif
@@ -57,11 +58,11 @@ namespace {
 
 
   // Mutex for checking/modifying engine disposal state
-  v8::V8Monkey::Mutex* engineDisposalMutex = v8::V8Monkey::Platform::CreateMutex();
+  v8::V8Platform::Mutex engineDisposalMutex;
 
 
   // Ensure SpiderMonkey is initialized at most once
-  v8::V8Monkey::OneTimeFunctionControl* SpiderMonkeyInitControl = v8::V8Monkey::Platform::CreateOneShotFunction(InitializeOnce);
+  v8::V8Monkey::OneShot SpiderMonkeyInitControl(InitializeOnce);
 
 
   // Has V8 been 'disposed'?
@@ -76,6 +77,7 @@ namespace {
   void DefaultFatalErrorHandler(const char* location, const char* message) {
     using namespace v8::V8Platform;
 
+    // XXX FIX ME
     Platform::PrintError("Error at ");
     Platform::PrintError(location);
     Platform::PrintError(": ");
@@ -101,7 +103,7 @@ namespace {
   
 namespace v8 {
   bool V8::Initialize() {
-    SpiderMonkeyInitControl->Run();
+    SpiderMonkeyInitControl.Run();
 
     #ifdef V8MONKEY_INTERNAL_TEST
       engineInitAttempted = true;

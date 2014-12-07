@@ -226,9 +226,9 @@ V8MONKEY_TEST(Isolate001, "Main thread reports Isolate::GetCurrent non-null even
 
 
 V8MONKEY_TEST(Isolate002, "Non-main thread reports Isolate::GetCurrent null when API not used") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(ReturnCurrentIsolate);
-  child->Run();
-  Isolate* threadIsolate = static_cast<Isolate*>(child->Join());
+  V8Platform::Thread child(ReturnCurrentIsolate);
+  child.Run();
+  Isolate* threadIsolate = static_cast<Isolate*>(child.Join());
   V8MONKEY_CHECK(threadIsolate == NULL, "Thread Isolate::GetCurrent was null");
 }
 
@@ -239,9 +239,9 @@ V8MONKEY_TEST(Isolate003, "Main thread remains in isolate if exited fewer times 
 
 
 V8MONKEY_TEST(Isolate004, "Non-main thread remains in isolate if exited fewer times than entered") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(EnterTwiceReturnOnce);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Still in isolate after asymmetric exits");
+  V8Platform::Thread child(EnterTwiceReturnOnce);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Still in isolate after asymmetric exits");
 }
 
 
@@ -251,9 +251,9 @@ V8MONKEY_TEST(Isolate005, "Main thread exits to default after sufficient exits f
 
 
 V8MONKEY_TEST(Isolate006, "Non-main thread exits to null after sufficient exits from multiply-entered isolate") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(EnterThriceReturnThrice);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Returned to null after symmetric exits");
+  V8Platform::Thread child(EnterThriceReturnThrice);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Returned to null after symmetric exits");
 }
 
 
@@ -264,9 +264,9 @@ V8MONKEY_TEST(Isolate007, "Isolate entries stack for main thread") {
 
 
 V8MONKEY_TEST(Isolate008, "Isolate entries stack for off-main thread") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckIsolateStacking);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Isolates returned to in correct sequence");
+  V8Platform::Thread child(CheckIsolateStacking);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Isolates returned to in correct sequence");
 }
 
 
@@ -312,18 +312,18 @@ V8MONKEY_TEST(Isolate012, "Attempt to dispose in-use isolate causes fatal error 
 
 
 V8MONKEY_TEST(Isolate013, "Attempt to dispose in-use isolate causes fatal error for off-main thread") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckBadDisposeIsFatal);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Disposing an in-use isolate is fatal");
+  V8Platform::Thread child(CheckBadDisposeIsFatal);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Disposing an in-use isolate is fatal");
 }
 
 
 V8MONKEY_TEST(Isolate014, "Attempt to dispose in-use isolate from another thread causes fatal error") {
   Isolate* i = Isolate::New();
   i->Enter();
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CrossThreadBadDispose);
-  child->Run(i);
-  V8MONKEY_CHECK(child->Join(), "Disposing an in-use isolate is fatal");
+  V8Platform::Thread child(CrossThreadBadDispose);
+  child.Run(i);
+  V8MONKEY_CHECK(child.Join(), "Disposing an in-use isolate is fatal");
   i->Exit();
   i->Dispose();
 }
@@ -359,9 +359,9 @@ V8MONKEY_TEST(Scope001, "Creating and destroying a single scope leaves main in i
 
 
 V8MONKEY_TEST(Scope002, "Creating and destroying a single scope leaves thread in its initial state") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckSingleScopeRestoresInitialState);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "thread returned to initial isolate after scope destruction");
+  V8Platform::Thread child(CheckSingleScopeRestoresInitialState);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "thread returned to initial isolate after scope destruction");
 }
 
 
@@ -371,9 +371,9 @@ V8MONKEY_TEST(Scope003, "GetCurrent() reports correct isolate after Scope constr
 
 
 V8MONKEY_TEST(Scope004, "GetCurrent() reports correct isolate after Scope construction (within Scope lifetime)") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(GetCurrentCorrectAfterScopeConstruction);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "GetCurrent() was correct");
+  V8Platform::Thread child(GetCurrentCorrectAfterScopeConstruction);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "GetCurrent() was correct");
 }
 
 
@@ -383,9 +383,9 @@ V8MONKEY_TEST(Scope005, "Scopes stack correctly for main with explicitly entered
 
 
 V8MONKEY_TEST(Scope006, "Scopes stack correctly for thread with explicitly entered Isolates") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckScopesStackAfterExplicitEntry);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Scope stacked correctly");
+  V8Platform::Thread child(CheckScopesStackAfterExplicitEntry);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Scope stacked correctly");
 }
 
 
@@ -395,9 +395,9 @@ V8MONKEY_TEST(Scope007, "Multiple Scopes stack correctly for main thread") {
 
 
 V8MONKEY_TEST(Scope008, "Multiple Scopes stack correctly for thread") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckScopesStack);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Scopes stacked correctly");
+  V8Platform::Thread child(CheckScopesStack);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Scopes stacked correctly");
 }
 
 
@@ -408,9 +408,9 @@ V8MONKEY_TEST(Dispose001, "Attempt to dispose V8 when in non-default isolate (ma
 
 
 V8MONKEY_TEST(Dispose002, "Attempt to dispose V8 when in non-default isolate (thread) triggers fatal error") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckV8DisposeFromNonDefaultIsFatal);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Disposing V8 from a non-default isolate is fatal");
+  V8Platform::Thread child(CheckV8DisposeFromNonDefaultIsFatal);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Disposing V8 from a non-default isolate is fatal");
 }
 
 
@@ -443,7 +443,7 @@ V8MONKEY_TEST(Dispose005, "Dispose without init works correctly from main") {
 
 
 V8MONKEY_TEST(Dispose006, "Dispose without init works from thread if associated with default isolate") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckV8DisposeWithoutInit);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Disposing V8 without init from thread works in right circumstances");
+  V8Platform::Thread child(CheckV8DisposeWithoutInit);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Disposing V8 without init from thread works in right circumstances");
 }

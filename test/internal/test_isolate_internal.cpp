@@ -174,9 +174,9 @@ V8MONKEY_TEST(IntIsolate007, "Initializing V8 implicitly enters default isolate 
 
 
 V8MONKEY_TEST(IntIsolate008, "Initializing V8 implicitly enters default isolate (non-main thread)") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(InitializingEnteredDefault);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Default isolate was entered on thread as consequence of V8 init");
+  V8Platform::Thread child(InitializingEnteredDefault);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Default isolate was entered on thread as consequence of V8 init");
 }
 
 
@@ -186,9 +186,9 @@ V8MONKEY_TEST(IntIsolate009, "Main thread can exit default isolate after initial
 
 
 V8MONKEY_TEST(IntIsolate010, "Initializing V8 implicitly enters default isolate (non-main thread)") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CanExitDefaultAfterInit);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Default isolate was exited successfully from thread after consequence of V8 init");
+  V8Platform::Thread child(CanExitDefaultAfterInit);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Default isolate was exited successfully from thread after consequence of V8 init");
 }
 
 
@@ -206,17 +206,17 @@ V8MONKEY_TEST(IntIsolate012, "Isolate::GetCurrent() still reports default for ma
 
 
 V8MONKEY_TEST(IntIsolate013, "Isolate::GetCurrent() doesn't report default for thread after explicit default entry/exit") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(ExplicitEnterAndExitDefault);
-  child->Run(Isolate::GetCurrent());
-  InternalIsolate* threadIsolate = reinterpret_cast<InternalIsolate*>(child->Join());
+  V8Platform::Thread child(ExplicitEnterAndExitDefault);
+  child.Run(Isolate::GetCurrent());
+  InternalIsolate* threadIsolate = reinterpret_cast<InternalIsolate*>(child.Join());
   V8MONKEY_CHECK(!InternalIsolate::IsDefaultIsolate(threadIsolate), "GetCurrent() no longer reports default");
 }
 
 
 V8MONKEY_TEST(IntIsolate014, "Isolate::GetCurrent() still reports default for thread after implicit default entry / explicit exit") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(ImplicitEnterExplicitExit);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "GetCurrent() still reports default");
+  V8Platform::Thread child(ImplicitEnterExplicitExit);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "GetCurrent() still reports default");
 }
 
 
@@ -226,9 +226,9 @@ V8MONKEY_TEST(IntIsolate015, "V8 Initialization doesn't change entered isolate f
 
 
 V8MONKEY_TEST(IntIsolate016, "V8 Initialization doesn't change entered isolate for thread if entered isolate isn't default") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(InitAfterEnterStaysInIsolate);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Entered isolate didn't change across V8 initialization");
+  V8Platform::Thread child(InitAfterEnterStaysInIsolate);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Entered isolate didn't change across V8 initialization");
 }
 
 
@@ -251,9 +251,9 @@ V8MONKEY_TEST(IntScope001, "Scopes enter isolates on main thread") {
 
 
 V8MONKEY_TEST(IntScope002, "Scopes enter isolates on thread") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckScopesEnter);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Isolate was entered");
+  V8Platform::Thread child(CheckScopesEnter);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Isolate was entered");
 }
 
 
@@ -263,9 +263,9 @@ V8MONKEY_TEST(IntScope003, "Scopes exit isolates on destruction on main thread")
 
 
 V8MONKEY_TEST(IntScope004, "Scopes exit isolates on destruction on thread") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckScopesExit);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Isolate was exited");
+  V8Platform::Thread child(CheckScopesExit);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Isolate was exited");
 }
 
 
@@ -275,9 +275,9 @@ V8MONKEY_TEST(IntScope005, "Scopes exit copes with multiple entries on main thre
 
 
 V8MONKEY_TEST(IntScope006, "Scopes exit copes with multiple entries on thread") {
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckScopesHandleMultipleEntries);
-  child->Run();
-  V8MONKEY_CHECK(child->Join(), "Isolate was not completely exited");
+  V8Platform::Thread child(CheckScopesHandleMultipleEntries);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Isolate was not completely exited");
 }
 
 
@@ -289,7 +289,7 @@ V8MONKEY_TEST(IntScope007, "Scopes can enter default isolate on main thread") {
 
 V8MONKEY_TEST(IntScope008, "Scopes can enter default isolate on thread") {
   Isolate* defaultIsolate = Isolate::GetCurrent();
-  V8Platform::Thread* child = V8Platform::Platform::CreateThread(CheckScopesEnterDefault);
-  child->Run(defaultIsolate);
-  V8MONKEY_CHECK(child->Join(), "Default isolate was entered");
+  V8Platform::Thread child(CheckScopesEnterDefault);
+  child.Run(defaultIsolate);
+  V8MONKEY_CHECK(child.Join(), "Default isolate was entered");
 }

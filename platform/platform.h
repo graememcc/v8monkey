@@ -15,10 +15,15 @@
 
 namespace v8 {
   namespace V8Platform {
+    class Once;
+    class Mutex;
+    class Thread;
+
+
     // Class representing a simple mutex
-    class APIEXPORT Mutex {
+    class OSMutex {
       public:
-        virtual ~Mutex() {}
+        virtual ~OSMutex() {}
         virtual int Lock() = 0;
         virtual int Unlock() = 0;
     };
@@ -26,11 +31,11 @@ namespace v8 {
 
     // Platform-agnostic one-shot functions (e.g. pthread_once on POSIX, InitOnceExecuteOnce on Windows)
     typedef void (*OneTimeFunction)();
-    class APIEXPORT OneTimeFunctionControl {
+    class OSOnce {
       public:
-        OneTimeFunctionControl(OneTimeFunction f) : fn(f) {}
+        OSOnce(OneTimeFunction f) : fn(f) {}
 
-        virtual ~OneTimeFunctionControl() {}
+        virtual ~OSOnce() {}
         virtual void Run() = 0;
 
 
@@ -49,11 +54,11 @@ namespace v8 {
 
     // Platform-agnostic wrapper around a thread
     typedef void* (*ThreadFunction)(void*);
-    class APIEXPORT Thread {
+    class OSThread {
       public:
-        Thread(ThreadFunction tf) : fn(tf), hasRan(false) {}
+        OSThread(ThreadFunction tf) : fn(tf), hasRan(false) {}
 
-        virtual ~Thread() {}
+        virtual ~OSThread() {}
 
         // Start the given thread. Undefined if the thread is already running or has already completed.
         virtual void Run(void* arg = NULL) = 0;
@@ -69,14 +74,9 @@ namespace v8 {
     };
 
 
+
     class APIEXPORT Platform {
       public:
-        // Create and initialize a platform-specific mutex
-        static Mutex* CreateMutex();
-
-        // Create and initialize a one-time function
-        static OneTimeFunctionControl* CreateOneShotFunction(OneTimeFunction f);
-
         // Create a thread-local storage key
         static TLSKey* CreateTLSKey();
 
@@ -92,11 +92,76 @@ namespace v8 {
         // For testing: returns size of platform-specific TLS key type
         static size_t GetTLSKeySize();
 
-        // Create and initialize a Thread
-        static Thread* CreateThread(ThreadFunction tf);
-
         // Print to stderr
         static void PrintError(const char* message);
+
+      private:
+        // Create and initialize a platform-specific mutex
+        static OSMutex* CreateMutex();
+
+        // Create and initialize a Thread
+        static OSThread* CreateThread(ThreadFunction tf);
+
+        // Create and initialize a one-time function
+        static OSOnce* CreateOneShotFunction(OneTimeFunction f);
+
+      friend class OneShot;
+      friend class Mutex;
+      friend class Thread;
+    };
+
+
+    // RAII class for handling OSOnce pointers
+    class APIEXPORT OneShot {
+      public:
+        OneShot(OneTimeFunction f) : oneShot (Platform::CreateOneShotFunction(f)) {}
+        ~OneShot() { delete oneShot; }
+
+        void Run() {
+          oneShot->Run();
+        }
+
+      private:
+        OSOnce* oneShot;
+        // XXX Delete copy constructor
+    };
+
+
+    // RAII class for handling OSMutex pointers
+    class APIEXPORT Mutex {
+      public:
+        Mutex() : mutex (Platform::CreateMutex()) {}
+        ~Mutex() { delete mutex; }
+
+        void Lock() {
+          mutex->Lock();
+        }
+
+        void Unlock() {
+          mutex->Unlock();
+        }
+
+      private:
+        OSMutex* mutex;
+        // XXX Delete copy constructor
+    };
+
+
+    // RAII class for handling OSThreads
+    class APIEXPORT Thread {
+      public:
+        Thread(ThreadFunction fn) : thread(Platform::CreateThread(fn)) {}
+        ~Thread() { delete thread; }
+
+        void Run(void* arg = NULL) { thread->Run(arg); }
+
+        bool HasRan() { return thread->HasRan(); }
+
+        void* Join() { return thread->Join(); }
+
+      private:
+        OSThread* thread;
+        // XXX Delete copy constructor
     };
   }
 }

@@ -13,6 +13,7 @@ namespace {
   int callback1Called = 0;
   int callback2Called = 0;
 
+
   void callback1(const char* location, const char* message) {
     callback1Called = 1;
   }

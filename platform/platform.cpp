@@ -5,7 +5,7 @@
 
 namespace v8 {
   namespace V8Platform {
-    class POSIXMutex: public Mutex {
+    class POSIXMutex: public OSMutex {
       public:
         POSIXMutex() {
           // XXX Should we abort on failure?
@@ -34,9 +34,9 @@ namespace v8 {
     };
 
 
-    class POSIXOneTimeFunction: public OneTimeFunctionControl {
+    class POSIXOneTimeFunction: public OSOnce {
       public:
-        POSIXOneTimeFunction(OneTimeFunction f): OneTimeFunctionControl(f) {
+        POSIXOneTimeFunction(OneTimeFunction f): OSOnce (f) {
           // Is it safe to place the macro definition in the initializer list?
           once_control = PTHREAD_ONCE_INIT;
         }
@@ -53,9 +53,9 @@ namespace v8 {
     };
 
 
-    class POSIXThread: public Thread {
+    class POSIXThread: public OSThread {
       public:
-        POSIXThread(ThreadFunction tf) : Thread(tf) {}
+        POSIXThread(ThreadFunction tf) : OSThread(tf) {}
 
 
         void Run(void* arg) {
@@ -77,12 +77,12 @@ namespace v8 {
     };
 
 
-    Mutex* Platform::CreateMutex() {
+    OSMutex* Platform::CreateMutex() {
       return new POSIXMutex();
     }
 
 
-    OneTimeFunctionControl* Platform::CreateOneShotFunction(OneTimeFunction f) {
+    OSOnce* Platform::CreateOneShotFunction(OneTimeFunction f) {
       return new POSIXOneTimeFunction(f);
     }
 
@@ -131,7 +131,7 @@ namespace v8 {
     }
 
 
-    Thread* Platform::CreateThread(ThreadFunction tf) {
+    OSThread* Platform::CreateThread(ThreadFunction tf) {
       return new POSIXThread(tf);
     }
 

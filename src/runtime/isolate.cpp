@@ -55,7 +55,7 @@ namespace {
 
   // Returns a unique thread ID
   int CreateThreadID() {
-    static Mutex* threadIDMutex = Platform::CreateMutex();
+    static Mutex threadIDMutex;
 
     // Thread IDs must be greater than 0; otherwise we wouldn't be able to tell if the value is the thread ID, or
     // represents the case where the given thread has no data for the TLS key
@@ -142,6 +142,7 @@ namespace v8 {
     // Note that we check this here: the default isolate can be disposed of while entered. In fact, it is
     // a V8 API requirement that it is entered when V8 is disposed (which in turn disposes the default
     // isolate)
+    // XXX Clarify this comment. In fact clarify you can really dispose of default if in it
     if (internal->ContainsThreads()) {
       V8Monkey::V8MonkeyCommon::TriggerFatalError("v8::Isolate::Dispose",
                                                   "Attempt to dispose isolate in which threads are active");
@@ -204,6 +205,8 @@ namespace v8 {
 
 
     // Delete (and free) the given ThreadData
+    // XXX Check invariants here and document
+    // XXX Key question: in the face of locking can threads exit iso in different order from entry
     void InternalIsolate::DeleteThreadData(ThreadData* td) {
       // Assumption: td is non-null
       if (td->prev) {
@@ -308,7 +311,7 @@ namespace v8 {
 
 
     void InternalIsolate::CreateDefaultIsolate() {
-      static V8Platform::Mutex* mutex = V8Platform::Platform::CreateMutex();
+      static V8Platform::Mutex mutex;
 
       AutoLock lock(mutex);
       if (defaultIsolate == NULL) {
