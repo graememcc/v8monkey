@@ -20,17 +20,26 @@ V8MONKEY_TEST(Locker001, "IsActive is false if no lockers ever constructed") {
 
 
 V8MONKEY_TEST(Locker002, "IsActive reports true when locker constructed") {
-  Locker l(Isolate::New());
+  Isolate* i = Isolate::New();
+
+  {
+    Locker l(i);
+  }
+
   V8MONKEY_CHECK(Locker::IsActive(), "IsActive reported true");
+  i->Dispose();
 }
 
 
 V8MONKEY_TEST(Locker003, "IsActive remains true after locker destruction") {
+  Isolate* i = Isolate::New();
   {
-    Locker l(Isolate::New());
+    Locker l(i);
   }
 
   V8MONKEY_CHECK(Locker::IsActive(), "IsActive reported true");
+
+  i->Dispose();
 }
 
 
@@ -56,6 +65,7 @@ V8MONKEY_TEST(Locker007, "IsLocked reports false for default isolate when locker
   {
     Locker l(Isolate::GetCurrent());
   }
+
   V8MONKEY_CHECK(!Locker::IsLocked(Isolate::GetCurrent()), "Isolate not locked");
 }
 
@@ -67,6 +77,7 @@ V8MONKEY_TEST(Locker008, "IsLocked reports true for non-default isolate when loc
     Locker l(i);
     V8MONKEY_CHECK(Locker::IsLocked(i), "Isolate locked");
   }
+
   i->Dispose();
 }
 
@@ -76,7 +87,9 @@ V8MONKEY_TEST(Locker009, "IsLocked reports false for non-default isolate when lo
   {
     Locker l(i);
   }
+
   V8MONKEY_CHECK(!Locker::IsLocked(i), "Isolate not locked");
+
   i->Dispose();
 }
 
@@ -105,6 +118,7 @@ V8MONKEY_TEST(Locker011, "IsLocked reports false if multiple locks created for s
       }
     }
   }
+
   V8MONKEY_CHECK(!Locker::IsLocked(), "Isolate not locked after mutiple lockers");
 }
 
@@ -180,9 +194,10 @@ V8MONKEY_TEST(Locker018, "Locker destruction unlocks correct isolate") {
     V8MONKEY_CHECK(Isolate::GetCurrent() == a, "Sanity check");
   }
   V8MONKEY_CHECK(!Locker::IsLocked(b), "Correct isolate unlocked");
+
+  b->Dispose();
   a->Exit();
   a->Dispose();
-  b->Dispose();
 }
 
 
@@ -200,9 +215,9 @@ V8MONKEY_TEST(Locker019, "Unlocker destruction locks correct isolate") {
     V8MONKEY_CHECK(Locker::IsLocked(b), "Correct isolate relocked");
   }
 
+  b->Dispose();
   a->Exit();
   a->Dispose();
-  b->Dispose();
 }
 
 
@@ -217,5 +232,6 @@ V8MONKEY_TEST(Locker020, "Unlocker unlocks default isolate if no isolate specifi
       V8MONKEY_CHECK(Locker::IsLocked(Isolate::GetCurrent()), "Unlocked correct isolate");
     }
   }
+
   a->Dispose();
 }

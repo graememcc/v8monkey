@@ -96,6 +96,8 @@ namespace {
       Isolate::Scope scope(i);
       result = InternalIsolate::IsEntered(AsInternal(i));
     }
+
+    i->Dispose();
     return reinterpret_cast<void*>(result);
   }
 
@@ -108,6 +110,8 @@ namespace {
       Isolate::Scope scope(i);
     }
     bool result = !InternalIsolate::IsEntered(AsInternal(i));
+
+    i->Dispose();
     return reinterpret_cast<void*>(result);
   }
 
@@ -120,6 +124,7 @@ namespace {
     {
       Isolate::Scope scope(i);
     }
+
     bool result = InternalIsolate::IsEntered(AsInternal(i));
     return reinterpret_cast<void*>(result);
   }
@@ -180,8 +185,10 @@ V8MONKEY_TEST(IntIsolate005, "Default isolate initially not entered by main thre
 
 V8MONKEY_TEST(IntIsolate006, "IsDefaultIsolate works correctly for non-default isolate") {
   TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(!InternalIsolate::IsDefaultIsolate(AsInternal(Isolate::New())),
-                 "IsDefaultIsolate reports false for non-default");
+
+  Isolate* i = Isolate::New();
+  V8MONKEY_CHECK(!InternalIsolate::IsDefaultIsolate(AsInternal(i)), "IsDefaultIsolate reports false for non-default");
+  i->Dispose();
 }
 
 
@@ -249,6 +256,7 @@ V8MONKEY_TEST(IntIsolate015, "Isolate reports empty when not entered") {
   TestUtils::AutoTestCleanup ac;
   Isolate* i = Isolate::New();
   V8MONKEY_CHECK(!AsInternal(i)->ContainsThreads(), "Empty isolate reports no threads active");
+  i->Dispose();
 }
 
 
@@ -264,6 +272,7 @@ V8MONKEY_TEST(IntIsolate017, "IsLockedForThisThread reports false initially") {
   TestUtils::AutoTestCleanup ac;
   Isolate* i = Isolate::New();
   V8MONKEY_CHECK(!AsInternal(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
+  i->Dispose();
 }
 
 
@@ -272,25 +281,33 @@ V8MONKEY_TEST(IntIsolate018, "IsLockedForThisThread reports true after locking")
   Isolate* i = Isolate::New();
   AsInternal(i)->Lock();
   V8MONKEY_CHECK(AsInternal(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
+  i->Dispose();
 }
 
 
 V8MONKEY_TEST(IntIsolate019, "IsLockedForThisThread reports false after locking") {
   TestUtils::AutoTestCleanup ac;
+
   Isolate* i = Isolate::New();
   AsInternal(i)->Lock();
   AsInternal(i)->Unlock();
+
   V8MONKEY_CHECK(!AsInternal(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
+  i->Dispose();
 }
 
 
 V8MONKEY_TEST(IntIsolate020, "IsLockedForThisThread reports false from different thread") {
   TestUtils::AutoTestCleanup ac;
-  InternalIsolate* i = AsInternal(Isolate::New());
-  i->Lock();
+
+  Isolate* i = Isolate::New();
+  AsInternal(i)->Lock();
   V8Platform::Thread child(CheckThreadLockStatus);
-  child.Run(i);
+  child.Run(AsInternal(i));
+
   V8MONKEY_CHECK(!child.Join(), "Thread found IsLockedForThisThread false");
+  AsInternal(i)->Unlock();
+  i->Dispose();
 }
 
 

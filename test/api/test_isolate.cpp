@@ -114,6 +114,11 @@ namespace {
     Isolate* i = reinterpret_cast<Isolate*>(arg);
     errorCaught = 0;
     i->Dispose();
+    bool result = V8::IsDead() && errorCaught != 0;
+
+    // We will have entered the default isolate courtesy of SetFatalErrorHandler 
+    Isolate::GetCurrent()->Exit();
+
     return reinterpret_cast<void*>(V8::IsDead() && errorCaught != 0);
   }
 
@@ -127,7 +132,10 @@ namespace {
       Isolate::Scope scope(i);
     }
 
-    return reinterpret_cast<void*>(Isolate::GetCurrent() == initial);
+    bool result = Isolate::GetCurrent() == initial;
+
+    i->Dispose();
+    return reinterpret_cast<void*>(result);
   }
 
 
@@ -139,8 +147,8 @@ namespace {
       Isolate::Scope scope(i);
       result = Isolate::GetCurrent() == i;
     }
-    i->Dispose();
 
+    i->Dispose();
     return reinterpret_cast<void*>(result);
   }
 
@@ -156,6 +164,8 @@ namespace {
     }
 
     bool result = Isolate::GetCurrent() == first;
+
+    second->Dispose();
     first->Exit();
     first->Dispose();
 
@@ -194,12 +204,14 @@ namespace {
     Isolate* i = Isolate::New();
     i->Enter();
 
-    V8::SetFatalErrorHandler(fatalErrorHandler);
     errorCaught = 0;
+    V8::SetFatalErrorHandler(fatalErrorHandler);
     V8::Dispose();
     bool result = V8::IsDead() && errorCaught != 0;
+
     i->Exit();
     i->Dispose();
+    Isolate::GetCurrent()->Exit();
 
     return reinterpret_cast<void*>(result);
   }
@@ -213,6 +225,7 @@ namespace {
     // default isolate even when every possible isolate is exited). SetFatalErrorHandler is such a function.
     V8::SetFatalErrorHandler(dummyFatalErrorHandler);
     bool result = V8::Dispose();
+    Isolate::GetCurrent()->Exit();
 
     return reinterpret_cast<void*>(result);
   }
@@ -301,7 +314,8 @@ V8MONKEY_TEST(Isolate011, "Isolate not deleted on Dispose if still in use") {
   i->Exit();
 
   // If we're still alive, then things are working correctly
-  V8MONKEY_CHECK(i, "In-use isolate not deleted");
+  V8MONKEY_CHECK(true, "In-use isolate not deleted");
+  i->Dispose();
 }
 
 
@@ -350,6 +364,7 @@ V8MONKEY_TEST(Isolate017, "Embedder data is isolate specific") {
   Isolate* j = Isolate::New();
   bool result = i->GetData() == i && j->GetData() == NULL;
   V8MONKEY_CHECK(result, "Data was correct");
+  j->Dispose();
 }
 
 
@@ -362,6 +377,7 @@ V8MONKEY_TEST(Scope002, "Creating and destroying a single scope leaves thread in
   V8Platform::Thread child(CheckSingleScopeRestoresInitialState);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "thread returned to initial isolate after scope destruction");
+  
 }
 
 
@@ -404,6 +420,9 @@ V8MONKEY_TEST(Scope008, "Multiple Scopes stack correctly for thread") {
 V8MONKEY_TEST(Dispose001, "Attempt to dispose V8 when in non-default isolate (main thread) triggers fatal error") {
   void* result = CheckV8DisposeFromNonDefaultIsFatal();
   V8MONKEY_CHECK(result, "Disposing V8 from a non-default isolate is fatal");
+
+  Isolate::GetCurrent()->Dispose();
+  V8::Dispose();
 }
 
 
@@ -411,6 +430,9 @@ V8MONKEY_TEST(Dispose002, "Attempt to dispose V8 when in non-default isolate (th
   V8Platform::Thread child(CheckV8DisposeFromNonDefaultIsFatal);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "Disposing V8 from a non-default isolate is fatal");
+
+  Isolate::GetCurrent()->Dispose();
+  V8::Dispose();
 }
 
 
@@ -432,8 +454,11 @@ V8MONKEY_TEST(Dispose004, "V8::Dispose returns false when unsuccessful") {
 
   V8::SetFatalErrorHandler(dummyFatalErrorHandler);
   bool result = V8::Dispose();
+
   i->Exit();
   i->Dispose();
+  Isolate::GetCurrent()->Exit();
+  Isolate::GetCurrent()->Dispose();
 
   V8MONKEY_CHECK(!result, "Failed dispose returned false");
 }

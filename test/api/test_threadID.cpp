@@ -27,7 +27,12 @@ V8MONKEY_TEST(ThreadID002, "Main thread gets thread id of 1 (explicit engine ini
 
 namespace {
   V8MONKEY_TEST_HELPER(ReturnOwnThreadID) {
-    return reinterpret_cast<void*>(V8::GetCurrentThreadId());
+    int threadID = V8::GetCurrentThreadId();
+
+    // Account for the implicit init
+    Isolate::GetCurrent()->Exit();
+
+    return reinterpret_cast<void*>(threadID);
   }
 }
 

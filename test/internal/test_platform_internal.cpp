@@ -72,6 +72,7 @@ V8MONKEY_TEST(Plat003, "TLS Key get returns correct value") {
 V8MONKEY_TEST(Plat004, "HasRan correct after thread runs") {
   Thread t(thread_run_main);
   t.Run(NULL);
+  t.Join();
   V8MONKEY_CHECK(t.HasRan(), "HasRan reported true");
 }
 

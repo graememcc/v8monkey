@@ -330,13 +330,15 @@ namespace v8 {
     }
 
 
+#include <stdio.h>
     void InternalIsolate::CreateDefaultIsolate() {
       static V8Platform::Mutex mutex;
-
+      static InternalIsolate i;
+          
       AutoLock lock(mutex);
       if (defaultIsolate == NULL) {
         InitializeCommonTLSKeys();
-        defaultIsolate = new InternalIsolate();
+        defaultIsolate = &i;
         SetIsolateInTLS(defaultIsolate);
         FetchOrAssignThreadId();
       }

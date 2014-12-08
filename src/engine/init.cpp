@@ -135,7 +135,7 @@ if (InternalIsolate::IsEntered(i)) {
       return false;
 }
     // The dispose method won't delete default isolates, so just delete here
-    delete i;
+    //delete i;
 
     V8IsDisposed = true;
     return true;

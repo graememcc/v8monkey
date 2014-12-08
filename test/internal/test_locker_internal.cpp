@@ -43,6 +43,9 @@ V8MONKEY_TEST(IntLocker004, "Locking non-default isolate does not enter it") {
     Locker l(i);
     V8MONKEY_CHECK(!InternalIsolate::IsEntered(reinterpret_cast<InternalIsolate*>(i)), "Locker construction didn't enter isolate");
   }
+
+  // We didn't enter the isolate, so need to manually delete it
+  i->Dispose();
 }
 
 
@@ -166,4 +169,7 @@ V8MONKEY_TEST(IntLocker013, "Unlocker destruction for non-default doesn't re-ent
     }
     V8MONKEY_CHECK(!InternalIsolate::IsEntered(reinterpret_cast<InternalIsolate*>(i)), "Unlocker destruction doesn't enter isolate");
   }
+
+  // Manually delete i, as we didn't enter it
+  i->Dispose();
 }
