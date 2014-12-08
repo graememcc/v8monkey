@@ -18,10 +18,14 @@ namespace v8 {
 
     class AutoLock {
       public:
-        AutoLock(Mutex* m): mutex(m) {
+        AutoLock(Mutex* m) : mutex(m) {
           mutex->Lock();
         }
 
+
+        AutoLock(Mutex& m) : mutex(&m) {
+          mutex->Lock();
+        }
 
         ~AutoLock() {
           mutex->Unlock();
@@ -33,6 +37,8 @@ namespace v8 {
         void* operator new[](size_t);
         void operator delete(void *);
         void operator delete[](void *);
+
+        // XXX Delete copy constructor
 
         Mutex* mutex;
     };

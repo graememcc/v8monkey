@@ -81,6 +81,9 @@ V8MonkeyTest::Run()
 
     // If the child exited abnormally, lets call that a failure
     if (!WIFEXITED(status)) {
+      if (WIFSIGNALED(status)) {
+        cout << "ERROR Crash" << endl;
+      }
       return false;
     }
 

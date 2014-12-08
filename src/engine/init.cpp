@@ -35,34 +35,25 @@ namespace {
   } autoFreeEngine;
 
 
-  // Was SpiderMonkey initted succesfully? This will be set by InitializeSpiderMonkey. This must not be read prior to a
-  // pthread_once call for initialization
+  // Was SpiderMonkey initted succesfully? This should only be read while holding the mutex
+  bool engineInitAttempted = false;
   bool engineInitSucceeded = false;
-  
+  v8::V8Platform::Mutex engineInitMutex;
 
-  #ifdef V8MONKEY_INTERNAL_TEST
-    bool engineInitAttempted = false;
-  #endif
 
   // Initialize SpiderMonkey
   void InitializeSpiderMonkey() {
+    v8::V8Monkey::AutoLock lock(engineInitMutex);
+    if (engineInitAttempted)
+      return;
+
+    engineInitAttempted = true;
     engineInitSucceeded = JS_Init();
-  }
-
-
-  // Function to initialize SpiderMonkey and common TLS keys. This function is intended to only be called once
-  void InitializeOnce() {
-    // TODO: If we only need to init SM here, we can get rid of this, and just once InitializeSpiderMonkey directly
-    InitializeSpiderMonkey();
   }
 
 
   // Mutex for checking/modifying engine disposal state
   v8::V8Platform::Mutex engineDisposalMutex;
-
-
-  // Ensure SpiderMonkey is initialized at most once
-  v8::V8Monkey::OneShot SpiderMonkeyInitControl(InitializeOnce);
 
 
   // Has V8 been 'disposed'?
@@ -100,14 +91,10 @@ namespace {
   }
 }
 
-  
+
 namespace v8 {
   bool V8::Initialize() {
-    SpiderMonkeyInitControl.Run();
-
-    #ifdef V8MONKEY_INTERNAL_TEST
-      engineInitAttempted = true;
-    #endif
+    InitializeSpiderMonkey();
 
     // engineInitSucceeded will now be in a stable state
     if (!engineInitSucceeded) {
@@ -116,7 +103,7 @@ namespace v8 {
       exit(1);
     }
 
-    // It is a V8 API requirement that initialization leaves us in the default isolate if we were not already in an isolate
+    // On initialization, if the calling thread has not entered an isolate, the default isolate will be entered
     V8Monkey::InternalIsolate::EnsureInIsolate();
 
     return true;
@@ -125,15 +112,30 @@ namespace v8 {
 
   bool V8::Dispose() {
     using namespace v8::V8Monkey;
+
+    {
+      AutoLock lock(engineInitMutex);
+      if (!engineInitSucceeded) {
+        return true;
+      }
+    }
+
     // XXX V8::Dispose has some semantics around stopping of utility threads that we haven't tackled
     //     For now, this is a no-op: our static object above will really shutdown SpiderMonkey
     AutoLock mutex(engineDisposalMutex);
 
     InternalIsolate* i = InternalIsolate::GetCurrent();
     if (i == NULL || i != InternalIsolate::GetDefaultIsolate()) {
-      V8MonkeyCommon::TriggerFatalError("v8::V8::Dispose", "Must dispose V8 from default isolate");
+      V8MonkeyCommon::TriggerFatalError("v8::V8::Dispose", "Must dispose V8 from main thread outside any isolate");
       return false;
     }
+// XXX REMOVE ME
+if (InternalIsolate::IsEntered(i)) {
+      V8MonkeyCommon::TriggerFatalError("v8::V8::Dispose", "You're still in the isolate!");
+      return false;
+}
+    // The dispose method won't delete default isolates, so just delete here
+    delete i;
 
     V8IsDisposed = true;
     return true;
@@ -158,6 +160,21 @@ namespace v8 {
     #ifdef V8MONKEY_INTERNAL_TEST
       bool TestUtils::IsV8Initialized() {
         return engineInitAttempted;
+      }
+
+
+      // Many API functions implicitly init V8 but first confirm it's not dead. They test this by setting up a fatal
+      // error handler and triggering the implicitly initting function. There are a couple of key problems: calling
+      // TriggerFatalError, though killing V8, invokes the fatal error handler itself, defeating the point of the
+      // test, and calling SetFatalErrorHandler implicitly inits V8, which is again something the test needs to
+      // control.
+      //
+      // The following function thus cicumvents API conventions, and installs an error handler without init, and kills
+      // V8 without triggering the handler.
+      void TestUtils::SetHandlerAndKill(FatalErrorCallback f) {
+        InternalIsolate* i = InternalIsolate::GetCurrent();
+        i->SetFatalErrorHandler(f);
+        hasFatalError = true;
       }
     #endif
   }

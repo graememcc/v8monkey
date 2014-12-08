@@ -15,7 +15,7 @@
 #define V8COMPAT "3.14.5.9"
 
 
-// XXX Make order correct 
+// XXX Make order correct
 namespace v8 {
   class APIEXPORT Isolate {
    public:
@@ -49,6 +49,40 @@ namespace v8 {
     Isolate& operator=(const Isolate&);
     void* operator new(size_t);
     void operator delete(void*, size_t);
+  };
+
+
+  class APIEXPORT Unlocker {
+   public:
+    explicit Unlocker(Isolate* isolate = NULL);
+    ~Unlocker();
+   private:
+    Isolate* isolate;
+  };
+
+  class APIEXPORT Locker {
+   public:
+    explicit Locker(Isolate* isolate = NULL);
+
+    ~Locker();
+
+    //static void StartPreemption(int every_n_ms);
+
+    //static void StopPreemption();
+
+    static bool IsLocked(Isolate* isolate = NULL);
+
+    static bool IsActive();
+
+   private:
+    bool hasLock;
+    //bool top_level_;
+    Isolate* isolate;
+
+    static bool active;
+
+    Locker(const Locker&);
+    void operator=(const Locker&);
   };
 
 

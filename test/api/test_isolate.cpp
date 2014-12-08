@@ -417,6 +417,9 @@ V8MONKEY_TEST(Dispose002, "Attempt to dispose V8 when in non-default isolate (th
 V8MONKEY_TEST(Dispose003, "V8::Dispose returns true when successful") {
   // Init enters the default isolate
   V8::Initialize();
+  // Exit default isolate in preparation for disposal
+  Isolate::GetCurrent()->Exit();
+
   bool result = V8::Dispose();
   V8MONKEY_CHECK(result, "Disposing V8 returned true");
 }

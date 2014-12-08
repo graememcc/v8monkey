@@ -112,6 +112,11 @@ namespace {
 
 namespace v8 {
   int V8::GetCurrentThreadId() {
+    if (V8::IsDead()) {
+      V8MonkeyCommon::TriggerFatalError("V8::GetCurrentThreadId", "V8 is dead");
+      // Note V8 actually soldiers on here and doesn't return early, so we will too!
+    }
+
     // The V8 API specifies that this call implicitly inits V8
     V8::Initialize();
 
@@ -245,7 +250,7 @@ namespace v8 {
 
       ThreadData* data = FindOrCreateThreadData(threadID, previousIsolate);
 
-      // Note a new entry for this thread 
+      // Note a new entry for this thread
       data->entryCount++;
 
       if (data->entryCount > 1) {
@@ -285,6 +290,23 @@ namespace v8 {
     }
 
 
+    void InternalIsolate::Lock() {
+      lockingMutex.Lock();
+      lockingThread = FetchOrAssignThreadId();
+    }
+
+
+    void InternalIsolate::Unlock() {
+      lockingThread = 0;
+      lockingMutex.Unlock();
+    }
+
+
+    bool InternalIsolate::IsLockedForThisThread() {
+      return lockingThread == FetchOrAssignThreadId();
+    }
+
+
     InternalIsolate* InternalIsolate::GetCurrent() {
       return GetIsolateFromTLS();
     }
@@ -300,14 +322,12 @@ namespace v8 {
     }
 
 
-    #ifdef V8MONKEY_INTERNAL_TEST
     bool InternalIsolate::IsEntered(InternalIsolate* i) {
       // Note: we can't simply grab the isolate* from TLS, as main will have a non-null value, even when it hasn't
       // entered the isolate
       int threadID = FetchOrAssignThreadId();
       return i->FindThreadData(threadID) != NULL;
     }
-    #endif
 
 
     void InternalIsolate::CreateDefaultIsolate() {
@@ -332,12 +352,41 @@ namespace v8 {
 
       // V8 permanently associates threads that implicitly enter the default isolate with the default isolate
       SetIsolateInTLS(defaultIsolate);
-
       defaultIsolate->Enter();
+
       return defaultIsolate;
     }
 
 
     InternalIsolate* InternalIsolate::defaultIsolate = NULL;
+
+
+    #ifdef V8MONKEY_INTERNAL_TEST
+    TestUtils::AutoIsolateCleanup::~AutoIsolateCleanup() {
+      while (Isolate::GetCurrent() && InternalIsolate::IsEntered(InternalIsolate::GetCurrent())) {
+        Isolate* i = Isolate::GetCurrent();
+        i->Exit();
+        i->Dispose();
+
+      }
+    }
+
+
+    TestUtils::AutoTestCleanup::AutoTestCleanup() {
+      if (GetThreadIDFromTLS() != 1) {
+        V8Platform::Platform::ExitWithError("Why are you using AutoTestCleanup on a thread, idiot?");
+      }
+    }
+
+
+    TestUtils::AutoTestCleanup::~AutoTestCleanup() {
+      while (Isolate::GetCurrent() && InternalIsolate::IsEntered(InternalIsolate::GetCurrent())) {
+        Isolate* i = Isolate::GetCurrent();
+        i->Exit();
+        i->Dispose();
+      }
+      V8::Dispose();
+    }
+    #endif
   }
 }

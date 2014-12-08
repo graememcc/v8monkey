@@ -1,7 +1,8 @@
 #ifndef V8MONKEY_ISOLATE_H
-#define V8MONKEY_ISOLATE_H 
+#define V8MONKEY_ISOLATE_H
 
 
+#include "platform.h"
 #include "test.h"
 
 
@@ -10,7 +11,7 @@ namespace v8 {
     // An internal variant of the public facing Isolate class
     class EXPORT_FOR_TESTING_ONLY InternalIsolate {
       public:
-        InternalIsolate() : fatalErrorHandler(NULL), threadData(NULL), embedderData(NULL) {}
+        InternalIsolate() : fatalErrorHandler(NULL), threadData(NULL), embedderData(NULL), lockingThread(0) {}
         ~InternalIsolate() {}
 
         // Enter the given isolate
@@ -41,10 +42,8 @@ namespace v8 {
         // the current internal isolate if non-null, otherwise enters the default isolate and returns that
         static InternalIsolate* EnsureInIsolate();
 
-        #ifdef V8MONKEY_INTERNAL_TEST
-          // Has the current thread entered the given isolate?
-          static bool IsEntered(InternalIsolate* i);
-        #endif
+        // Has the current thread entered the given isolate?
+        static bool IsEntered(InternalIsolate* i);
 
         // Set the fatal error handler for this isolate
         void SetFatalErrorHandler(FatalErrorCallback fn) { fatalErrorHandler = fn; }
@@ -57,6 +56,20 @@ namespace v8 {
 
         // Get the embedder data for this isolate
         void* GetEmbedderData() { return embedderData; }
+
+        // Lock this isolate for the current thread
+        void Lock();
+
+        // Unlock this isolate
+        void Unlock();
+
+        // This assumes that a thread's ID will never be zero
+        bool IsLocked() {
+          return lockingThread != 0;
+        }
+
+        // Is the current thread the one that locked me?
+        bool IsLockedForThisThread();
 
         // Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
         // "unlock" themselves to yield the isolate, we can't even be sure that threads will enter and exit in a LIFO
@@ -86,6 +99,12 @@ namespace v8 {
 
         // Embedder data
         void* embedderData;
+
+        // ID of the thread that has locked this isolate
+        int lockingThread;
+
+        // Locking mutex
+        V8Platform::Mutex lockingMutex;
 
         // Each thread has a reference to its current isolate stored within the thread
         static InternalIsolate* GetIsolateFromTLS();

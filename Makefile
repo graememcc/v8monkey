@@ -162,8 +162,8 @@ engineobjects = $(addsuffix .o, $(enginestems))
 runtimestems = $(addprefix src/runtime/, isolate)
 runtimeobjects = $(addsuffix .o, $(runtimestems))
 
-#threadstems = $(addprefix src/threads/, threadID)
-#threadobjects = $(addsuffix .o, $(threadstems))
+threadstems = $(addprefix src/threads/, locker)
+threadobjects = $(addsuffix .o, $(threadstems))
 
 allstems = $(enginestems) $(runtimestems) $(threadstems)
 allobjects = $(engineobjects) $(runtimeobjects) $(threadobjects)
@@ -301,11 +301,11 @@ $(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/thr
 
 
 # Several files depend on isolate.h
-$(call variants, src/init) $(call variants, src/runtime/isolate): src/runtime/isolate.h
+$(call variants, src/init) $(call variants, src/runtime/isolate) $(call variants, src/threads/locker): src/runtime/isolate.h
 
 
 # Several files depend on platform capabilities
-src/autolock.h $(call variants, src/engine/init) $(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
+src/autolock.h src/runtime/isolate.h $(call variants, src/engine/init) $(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
 
 
 # Several files depend on the miscellaneous functions in the V8MonkeyCommon class
@@ -324,7 +324,7 @@ visibility_changes: src/test.h
 # Testsuites
 
 # The test harness is composed from the following
-teststems = test_death test_isolate test_threadID test_version
+teststems = test_death test_init test_isolate test_locker test_threadID test_version
 testfiles = $(addprefix test/api/, $(teststems))
 testsources = $(addsuffix .cpp, $(testfiles))
 testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))
@@ -345,8 +345,8 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 
 
 # The "internals" test harness is composed from the following
-internalteststems = test_death_internal test_fatalerror_internal test_isolate_internal test_platform test_threadID_internal
-internaltestfiles = $(addprefix test/internal/, $(internalteststems))
+internalteststems = death fatalerror init isolate locker platform threadID
+internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
 
@@ -401,7 +401,11 @@ $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 
 
 # Various files depend on isolate.h
-$(outdir)/test/api/test_isolate.o $(outdir)/test/internal/test_fatalerror_internal.o $(outdir)/test/internal/test_isolate_internal.o: src/runtime/isolate.h
+api_isolate_deps = $(addprefix api/test_, isolate)
+internal_isolate_depstems = fatalerror init isolate locker threadID
+internal_isolate_deps = $(addsuffix _internal, $(addprefix internal/test_, $(internal_isolate_depstems)))
+$(addprefix $(outdir)/test/, $(addsuffix .o, $(api_isolate_deps) $(internal_isolate_deps))): src/runtime/isolate.h
+#$(outdir)/test/api/test_isolate.o $(outdir)/test/internal/test_fatalerror_internal.o $(outdir)/test/internal/test_isolate_internal.o $(outdir)/test/internal/test_locker_internal.o: src/runtime/isolate.h
 
 
 # Most internal test files require the TestUtils class

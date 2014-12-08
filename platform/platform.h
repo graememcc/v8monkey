@@ -62,7 +62,7 @@ namespace v8 {
 
         // Start the given thread. Undefined if the thread is already running or has already completed.
         virtual void Run(void* arg = NULL) = 0;
-        
+
         // Has this thread ever started?
         bool HasRan() { return hasRan; }
 
@@ -94,6 +94,9 @@ namespace v8 {
 
         // Print to stderr
         static void PrintError(const char* message);
+
+        // Exit with error
+        static void ExitWithError(const char* message);
 
       private:
         // Create and initialize a platform-specific mutex

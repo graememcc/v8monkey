@@ -1,5 +1,7 @@
 #include <pthread.h>
 #include <stdio.h>
+#include <stdlib.h>
+
 #include "platform.h"
 
 
@@ -138,6 +140,11 @@ namespace v8 {
 
     void Platform::PrintError(const char* message) {
       fprintf(stderr, "%s", message);
+    }
+
+    void ExitWithError(const char* message) {
+      fprintf(stderr, "%s\n", message);
+      exit(1);
     }
   }
 }
