@@ -311,9 +311,10 @@ src/autolock.h src/runtime/isolate.h $(call variants, src/engine/init) $(call va
 # Several files depend on the miscellaneous functions in the V8MonkeyCommon class
 $(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/v8monkey_common.h
 
+
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
 # internal test lib or not
-visibility_changes = $(call variants, src/engine/init) $(call variants, src/runtime/isolate)
+visibility_changes = $(call variants, src/engine/init) $(call variants, src/runtime/isolate) src/data_structures/objectblock.h: src/test.h
 
 
 # We can now declare the visibility changers dependent on a test header file
@@ -345,7 +346,7 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 
 
 # The "internals" test harness is composed from the following
-internalteststems = death fatalerror init isolate locker platform threadID
+internalteststems = death fatalerror init isolate locker objectblock platform threadID
 internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
@@ -414,6 +415,10 @@ $(internaltestobjects): src/test.h
 
 # Some test files depend on the V8MonkeyCommon class
 $(outdir)/test/internal/test_death_internal.o $(outdir)/test/internal/test_fatalerror_internal.o: src/v8monkey_common.h
+
+
+# Not unexpectedly, test_objectblock_internal depends on the header
+$(outdir)/test/internal/test_objectblock_internal.o: src/data_structures/objectblock.h
 
 
 # The individual object files depend on the existence of their output directory

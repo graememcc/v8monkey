@@ -27,10 +27,13 @@ V8MONKEY_TEST(ThreadID002, "Main thread gets thread id of 1 (explicit engine ini
 
 namespace {
   V8MONKEY_TEST_HELPER(ReturnOwnThreadID) {
-    int threadID = V8::GetCurrentThreadId();
+    int threadID;
 
-    // Account for the implicit init
-    Isolate::GetCurrent()->Exit();
+    // API requirement: one must hold a locker
+    {
+      Locker l;
+      threadID = V8::GetCurrentThreadId();
+    }
 
     return reinterpret_cast<void*>(threadID);
   }

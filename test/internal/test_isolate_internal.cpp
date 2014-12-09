@@ -281,6 +281,7 @@ V8MONKEY_TEST(IntIsolate018, "IsLockedForThisThread reports true after locking")
   Isolate* i = Isolate::New();
   AsInternal(i)->Lock();
   V8MONKEY_CHECK(AsInternal(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
+  AsInternal(i)->Unlock();
   i->Dispose();
 }
 

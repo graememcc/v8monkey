@@ -1,7 +1,7 @@
 #ifndef V8MONKEY_V8MONKEYTEST_H
 #define V8MONKEY_V8MONKEYTEST_H 
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <stdexcept>
 #include <map>
 #include <set>
