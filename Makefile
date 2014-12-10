@@ -495,7 +495,13 @@ clobber:
 	rm -f $(mozillaroot)/js/src/configure
 
 
+valgrind: $(testsuites)
+	valgrind --tool=memcheck --leak-check=full --log-file=mem_api --trace-children=yes $(outdir)/test/run_v8monkey_tests
+	valgrind --tool=memcheck --leak-check=full --log-file=mem_internal --trace-children=yes $(outdir)/test/run_v8monkey_internal_tests
+	valgrind --tool=helgrind --log-file=thread_api --trace-children=yes $(outdir)/test/run_v8monkey_tests
+	valgrind --tool=helgrind --log-file=thread_internal --trace-children=yes $(outdir)/test/run_v8monkey_internal_tests
+
+
 # ---------------------------------------------------------------OLD
 # XXX Remove me!
-#temp: $(v8monkeytarget) temp.cpp
-	#$(CXX) -o temp temp.cpp -std=c++0x -I $(depheaders) -Wl,-L$(outdir) -Wl,-rpath=$(outdir) -l$(v8lib)
+#temp: $(v8monkeytarget) temp.cpp	#$(CXX) -o temp temp.cpp -std=c++0x -I $(depheaders) -Wl,-L$(outdir) -Wl,-rpath=$(outdir) -l$(v8lib)

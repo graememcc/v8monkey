@@ -231,7 +231,7 @@ V8MONKEY_TEST(IntIsolate011, "Isolate::GetCurrent() still reports default for ma
 
 V8MONKEY_TEST(IntIsolate012, "Isolate::GetCurrent() still reports default for main thread after implicit entry / explicit exit") {
   TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(ImplicitEnterExplicitExit, "GetCurrent() still reports default");
+  V8MONKEY_CHECK(ImplicitEnterExplicitExit(), "GetCurrent() still reports default");
 }
 
 
@@ -252,7 +252,21 @@ V8MONKEY_TEST(IntIsolate014, "Isolate::GetCurrent() still reports default for th
 }
 
 
-V8MONKEY_TEST(IntIsolate015, "Isolate reports empty when not entered") {
+V8MONKEY_TEST(IntIsolate015, "Current isolate unchanged if already in isolate prior to V8 init (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(InitAfterEnterStaysInIsolate(), "Isolate unchanged");
+}
+
+
+V8MONKEY_TEST(IntIsolate016, "Current isolate unchanged if already in isolate prior to V8 init (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(InitAfterEnterStaysInIsolate);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Isolate unchanged");
+}
+
+
+V8MONKEY_TEST(IntIsolate017, "Isolate reports empty when not entered") {
   TestUtils::AutoTestCleanup ac;
   Isolate* i = Isolate::New();
   V8MONKEY_CHECK(!AsInternal(i)->ContainsThreads(), "Empty isolate reports no threads active");
@@ -260,7 +274,7 @@ V8MONKEY_TEST(IntIsolate015, "Isolate reports empty when not entered") {
 }
 
 
-V8MONKEY_TEST(IntIsolate016, "Isolate reports non-empty when entered") {
+V8MONKEY_TEST(IntIsolate018, "Isolate reports non-empty when entered") {
   TestUtils::AutoTestCleanup ac;
   Isolate* i = Isolate::New();
   i->Enter();
@@ -268,7 +282,7 @@ V8MONKEY_TEST(IntIsolate016, "Isolate reports non-empty when entered") {
 }
 
 
-V8MONKEY_TEST(IntIsolate017, "IsLockedForThisThread reports false initially") {
+V8MONKEY_TEST(IntIsolate019, "IsLockedForThisThread reports false initially") {
   TestUtils::AutoTestCleanup ac;
   Isolate* i = Isolate::New();
   V8MONKEY_CHECK(!AsInternal(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
@@ -276,7 +290,7 @@ V8MONKEY_TEST(IntIsolate017, "IsLockedForThisThread reports false initially") {
 }
 
 
-V8MONKEY_TEST(IntIsolate018, "IsLockedForThisThread reports true after locking") {
+V8MONKEY_TEST(IntIsolate020, "IsLockedForThisThread reports true after locking") {
   TestUtils::AutoTestCleanup ac;
   Isolate* i = Isolate::New();
   AsInternal(i)->Lock();
@@ -286,7 +300,7 @@ V8MONKEY_TEST(IntIsolate018, "IsLockedForThisThread reports true after locking")
 }
 
 
-V8MONKEY_TEST(IntIsolate019, "IsLockedForThisThread reports false after locking") {
+V8MONKEY_TEST(IntIsolate021, "IsLockedForThisThread reports false after locking") {
   TestUtils::AutoTestCleanup ac;
 
   Isolate* i = Isolate::New();
@@ -298,7 +312,7 @@ V8MONKEY_TEST(IntIsolate019, "IsLockedForThisThread reports false after locking"
 }
 
 
-V8MONKEY_TEST(IntIsolate020, "IsLockedForThisThread reports false from different thread") {
+V8MONKEY_TEST(IntIsolate022, "IsLockedForThisThread reports false from different thread") {
   TestUtils::AutoTestCleanup ac;
 
   Isolate* i = Isolate::New();

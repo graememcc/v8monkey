@@ -39,12 +39,13 @@ namespace v8 {
 
 
     if (!i->IsLockedForThisThread()) {
+      i->Lock();
+
       // Locking impicitly init V8 if required (which will in turn enter the default isolate if required)
       if (i == V8Monkey::InternalIsolate::GetDefaultIsolate()) {
         V8::Initialize();
       }
 
-      i->Lock();
       hasLock = true;
     } else {
       hasLock = false;
