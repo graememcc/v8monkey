@@ -50,7 +50,9 @@ class ObjectBlock {
     // block is full). desiredTop should be the address of what will become the first free slot in the remaining
     // blocks. The caller is responsible for ensuring that this value lies in the memory of the blocks already
     // allocated (although the address immediately after the last slot of any block is also acceptable).
-    static void Delete(T** currentLimit, T** currentTop, T** desiredTop);
+    // Optionally takes a function pointer. If supplied this function will be called to teardown deleted elements
+    // instead of deleting them.
+    static void Delete(T** currentLimit, T** currentTop, T** desiredTop, void (*deletionFunction)(T*) = NULL);
 
     // Returns the number of objects in the list of blocks, excluding the objects in this block (as the call has no
     // knowledge of how many slots the caller has used in the current block).
@@ -96,7 +98,7 @@ typename ObjectBlock<T>::Limits ObjectBlock<T>::Extend(T** currentLimit) {
 
 
 template<class T>
-void ObjectBlock<T>::Delete(T** currentLimit, T** currentTop, T** desiredTop) {
+void ObjectBlock<T>::Delete(T** currentLimit, T** currentTop, T** desiredTop, void (*deletionFunction)(T*)) {
   // If there's nothing to do, then do nothing
   if (!currentLimit || !currentTop) {
     return;
@@ -116,7 +118,11 @@ void ObjectBlock<T>::Delete(T** currentLimit, T** currentTop, T** desiredTop) {
       // in the block, but on our first time through, we may only be deleting a partial block.
       int deletionIndex = top < currentTop && currentTop < limit ? currentTop - top : BlockSize;
       for (int i = deletionIndex - 1; i >= 2; i--) {
-        delete *(top + i);
+        if (!deletionFunction) {
+          delete *(top + i);
+        } else {
+          deletionFunction(*(top + i));
+        }
       }
 
       // Compute the next top
@@ -137,7 +143,11 @@ void ObjectBlock<T>::Delete(T** currentLimit, T** currentTop, T** desiredTop) {
   //   - currentTop lies in this block: we need to delete from currentTop to desiredTop
   int deletionCount = (top < currentTop && currentTop < limit ? currentTop : limit) - desiredTop - 1;
   for (int i = deletionCount; i >= 0; i--) {
-    delete *(desiredTop + i);
+    if (!deletionFunction) {
+      delete *(desiredTop + i);
+    } else {
+      deletionFunction(*(top + i));
+    }
   }
 }
 

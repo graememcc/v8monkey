@@ -23,6 +23,33 @@ namespace {
   }
 
 
+  static bool wasCalled[10];
+
+
+  static bool wasDeleted[10];
+
+
+  void resetForDeletion() {
+    for (int i = 0; i < 10; i++) {
+      wasCalled[i] = false;
+      wasDeleted[i] = false;
+    }
+  }
+
+
+  class DeletionObject {
+    public:
+      DeletionObject(int n) { index = n; }
+      ~DeletionObject() { wasDeleted[index] = true; }
+      int index;
+  };
+
+
+  void deletionFunction(DeletionObject* d) {
+    wasCalled[d->index] = true;
+  }
+
+
   class IterateObject;
 
 
@@ -129,11 +156,10 @@ V8MONKEY_TEST(ObjectBlock007, "Limit and top correspond") {
 
 
 V8MONKEY_TEST(ObjectBlock008, "Deleting deletes individual members (single block)") {
-  int i;
   class DummyObj;
 
   static bool objectDeleted[ObjectBlock<DummyObj>::EffectiveBlockSize];
-  for (i = 0; i < ObjectBlock<DummyObj>::EffectiveBlockSize; i++) {
+  for (int i = 0; i < ObjectBlock<DummyObj>::EffectiveBlockSize; i++) {
     objectDeleted[i] = false;
   }
 
@@ -161,11 +187,10 @@ V8MONKEY_TEST(ObjectBlock008, "Deleting deletes individual members (single block
 
 
 V8MONKEY_TEST(ObjectBlock009, "Deleting deletes individual members (partial block)") {
-  int i;
   class DummyObj;
 
   static bool objectDeleted[ObjectBlock<DummyObj>::EffectiveBlockSize];
-  for (i = 0; i < ObjectBlock<DummyObj>::EffectiveBlockSize; i++) {
+  for (int i = 0; i < ObjectBlock<DummyObj>::EffectiveBlockSize; i++) {
     objectDeleted[i] = false;
   }
 
@@ -199,11 +224,10 @@ V8MONKEY_TEST(ObjectBlock009, "Deleting deletes individual members (partial bloc
 
 
 V8MONKEY_TEST(ObjectBlock010, "Deleting deletes individual members (cross block full rollback)") {
-  int i;
   class DummyObj;
 
   static bool objectDeleted[ObjectBlock<DummyObj>::EffectiveBlockSize * 2];
-  for (i = 0; i < ObjectBlock<DummyObj>::EffectiveBlockSize * 2; i++) {
+  for (int i = 0; i < ObjectBlock<DummyObj>::EffectiveBlockSize * 2; i++) {
     objectDeleted[i] = false;
   }
 
@@ -238,11 +262,10 @@ V8MONKEY_TEST(ObjectBlock010, "Deleting deletes individual members (cross block 
 
 
 V8MONKEY_TEST(ObjectBlock011, "Deleting deletes individual members (cross block)") {
-  int i;
   class DummyObj;
 
   static bool objectDeleted[ObjectBlock<DummyObj>::EffectiveBlockSize + 20];
-  for (i = 0; i < ObjectBlock<DummyObj>::EffectiveBlockSize + 20; i++) {
+  for (int i = 0; i < ObjectBlock<DummyObj>::EffectiveBlockSize + 20; i++) {
     objectDeleted[i] = false;
   }
 
@@ -282,7 +305,55 @@ V8MONKEY_TEST(ObjectBlock011, "Deleting deletes individual members (cross block)
 }
 
 
-V8MONKEY_TEST(ObjectBlock012, "Iteration works correctly (single block)") {
+V8MONKEY_TEST(ObjectBlock012, "Deleting calls given function if supplied") {
+  DeletionObject* pointers[10];
+
+  ObjectBlock<DeletionObject>::Limits data = ObjectBlock<DeletionObject>::Extend(NULL);
+  DeletionObject** pos = data.top;
+
+  for (int i = 0; i < 10; i++) {
+    pointers[i] = new DeletionObject(i);
+    *(pos++) = pointers[i];
+  }
+
+  resetForDeletion();
+  ObjectBlock<DeletionObject>::Delete(data.limit, pos, NULL, deletionFunction);
+
+  for (int i = 0; i < 10; i++) {
+    V8MONKEY_CHECK(wasCalled[i], "Given function called");
+  }
+
+  for (int i = 0; i < 10; i++) {
+    delete pointers[i];
+  }
+}
+
+
+V8MONKEY_TEST(ObjectBlock013, "If supplied function, object not deleted by ObjectBlock") {
+  DeletionObject* pointers[10];
+
+  ObjectBlock<DeletionObject>::Limits data = ObjectBlock<DeletionObject>::Extend(NULL);
+  DeletionObject** pos = data.top;
+
+  for (int i = 0; i < 10; i++) {
+    pointers[i] = new DeletionObject(i);
+    *(pos++) = pointers[i];
+  }
+
+  resetForDeletion();
+  ObjectBlock<DeletionObject>::Delete(data.limit, pos, NULL, deletionFunction);
+
+  for (int i = 0; i < 10; i++) {
+    V8MONKEY_CHECK(!wasDeleted[i], "Object not deleted");
+  }
+
+  for (int i = 0; i < 10; i++) {
+    delete pointers[i];
+  }
+}
+
+
+V8MONKEY_TEST(ObjectBlock014, "Iteration works correctly (single block)") {
   ObjectBlock<IterateObject>::Limits data = ObjectBlock<IterateObject>::Extend(NULL);
   IterateObject** pos = data.top;
 
@@ -301,7 +372,7 @@ V8MONKEY_TEST(ObjectBlock012, "Iteration works correctly (single block)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock013, "Iteration works correctly (cross block)") {
+V8MONKEY_TEST(ObjectBlock015, "Iteration works correctly (cross block)") {
   ObjectBlock<IterateObject>::Limits data1 = ObjectBlock<IterateObject>::Extend(NULL);
   IterateObject** pos = data1.top;
   ObjectBlock<IterateObject>::Limits data2 = ObjectBlock<IterateObject>::Extend(data1.limit);
