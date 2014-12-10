@@ -18,7 +18,7 @@
 
 .DEFAULT_GOAL = all
 
-.PHONY: all clean clobber check
+.PHONY: all clean clobber check valgrind
 
 # TODO Provide a target or flag for debug builds. We need to ensure this builds a debug SpiderMonkey library too
 
