@@ -293,7 +293,7 @@ $(call variants, src/engine/version) $(outdir)/test/api/test_version.o: CXXFLAGS
 
 
 # init depends on the jsapi header
-$(call variants, src/engine/init): $(smheadersdir)/jsapi.h
+src/types/base_types.h $(call variants, src/engine/init): $(smheadersdir)/jsapi.h
 
 
 # init depends on the RAII autolock class
@@ -314,7 +314,8 @@ $(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/v8m
 
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
 # internal test lib or not
-visibility_changes = $(call variants, src/engine/init) $(call variants, src/runtime/isolate) src/data_structures/objectblock.h: src/test.h
+headers_needing_test = src/data_structures/objectblock.h src/data_structures/smart_pointer.h src/types/base_types.h
+visibility_changes = $(call variants, src/engine/init) $(call variants, src/runtime/isolate) $(headers_needing_test): src/test.h
 
 
 # We can now declare the visibility changers dependent on a test header file
@@ -346,7 +347,7 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 
 
 # The "internals" test harness is composed from the following
-internalteststems = death fatalerror init isolate locker objectblock platform threadID
+internalteststems = death fatalerror init isolate locker objectblock platform smartpointer threadID
 internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
@@ -419,6 +420,18 @@ $(outdir)/test/internal/test_death_internal.o $(outdir)/test/internal/test_fatal
 
 # Not unexpectedly, test_objectblock_internal depends on the header
 $(outdir)/test/internal/test_objectblock_internal.o: src/data_structures/objectblock.h
+
+
+# test_smartptr_internal depends on the base_type definitions
+$(outdir)/test/internal/test_smartpointer_internal.o: src/types/base_types.h
+
+
+# test_smartptr_internal needs the smart pointer definition
+$(outdir)/test/internal/test_smartpointer_internal.o: src/data_structures/smart_pointer.h
+
+
+# Several files depend on the JSAPI header
+$(outdir)/test/internal/test_smartpointer_internal.o: $(smheadersdir)/jsapi.h
 
 
 # The individual object files depend on the existence of their output directory
