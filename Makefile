@@ -521,4 +521,4 @@ valgrind: $(testsuites)
 # ---------------------------------------------------------------OLD
 # XXX Remove me!
 temp: $(v8monkeytarget) temp.cpp
-	$(CXX) -o temp temp.cpp -std=c++0x -I $(depheaders) -Wl,-L$(outdir) -Wl,-rpath=$(outdir) -l$(v8lib)
+	$(CXX) -v -Wl,-v -o temp temp.cpp -std=c++0x -I $(v8monkeyheadersdir) $(call linkcommand, $(outdir), $(v8lib))
