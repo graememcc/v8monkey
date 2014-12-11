@@ -445,7 +445,7 @@ $(addprefix $(outdir)/test/internal/test_, $(addsuffix _internal.o, $(test_baset
 
 
 # test_smartptr_internal needs the smart pointer definition
-$(outdir)/test/internal/test_handlescope_internal.o $(outdir)/test/internal/test_smartpointer_internal.o: src/data_structures/smart_pointer.h
+$(outdir)/test/internal/test_smartpointer_internal.o: src/data_structures/smart_pointer.h
 
 
 # Several files depend on the JSAPI header

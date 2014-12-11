@@ -1,7 +1,6 @@
 #include "v8.h"
 
 #include "data_structures/objectblock.h"
-#include "data_structures/smart_pointer.h"
 #include "runtime/isolate.h"
 #include "runtime/handlescope.h"
 #include "types/base_types.h"
@@ -13,19 +12,15 @@
  * handles. However, it is entirely possible for the same underlying value to be assigned to two different handles in
  * different scopes, so we must be careful about deletion. (V8 doesn't have to worry: deleting the HandleScope doesn't
  * destroy the underlying object, it simply unroots it, and the garbage collector will swoop in and delete it later,
- * whereas we need to manually unroot the JS::Heap objects we have wrapped in our V8-like objects.). Thus, we use
- * reference-counting smart pointers to really store the handles. The smart pointers will be the same size as a real
- * pointer, so we do the casting dance in CreateHandle and the destructor to keep everything in order.
+ * whereas we need to manually unroot the JS::Heap objects we have wrapped in our V8-like objects.). Thus, we reference
+ * count the objects (manually here, and the smart pointer class provides automatic reference-counting where needed).
  *
  */
 
 
 namespace {
-  // Because we secretly wrap the objects in refcount-handling smart pointers, we can't just let the ObjectBlock
-  // merrily delete what it believes to be V8MonkeyObjects. We supply it this function to cast then delete.
-  void deleteSmart(v8::V8Monkey::V8MonkeyObject* obj) {
-    v8::V8Monkey::SmartPtr<v8::V8Monkey::V8MonkeyObject>* sp = reinterpret_cast<v8::V8Monkey::SmartPtr<v8::V8Monkey::V8MonkeyObject>*>(obj);
-    delete sp;
+  void deleteRefCount(v8::V8Monkey::V8MonkeyObject* obj) {
+    obj->Release();
   }
 }
 
@@ -46,7 +41,7 @@ namespace v8 {
 
     HandleScopeData hsd = isolate->GetHandleScopeData();
     if (hsd.limit != prev_limit || hsd.next != prev_next) {
-      V8Monkey::ObjectBlock<V8MonkeyObject>::Delete(hsd.limit, hsd.next, prev_next, deleteSmart);
+      V8Monkey::ObjectBlock<V8MonkeyObject>::Delete(hsd.limit, hsd.next, prev_next, deleteRefCount);
     }
 
     hsd.limit = prev_limit;
@@ -66,11 +61,12 @@ namespace v8 {
       hsd.next = limits.top;
     }
 
-    V8MonkeyObject** ptr = hsd.next;
-    SmartPtr<V8MonkeyObject>* sp = new SmartPtr<V8MonkeyObject>(obj);
-    *(hsd.next++) = reinterpret_cast<V8MonkeyObject*>(sp);
-
+    V8MonkeyObject** ptr = hsd.next++;
     InternalIsolate::GetCurrent()->SetHandleScopeData(hsd);
+
+    obj->AddRef();
+    *ptr = obj;
+
     return ptr;
   }
 }

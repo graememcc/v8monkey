@@ -67,7 +67,7 @@ namespace v8 {
 
   template <class T> class Local : public Handle<T> {
     public:
-      inline Local();
+      inline Local() {}
       template <class S> inline Local(Local<S> that)
           : Handle<T>(reinterpret_cast<T*>(*that)) {}
 
@@ -118,8 +118,7 @@ namespace v8 {
       // XXX Needed ?
       bool is_closed_;
 
-      // XXX Needed ?
-      V8Monkey::V8MonkeyObject** RawClose(V8Monkey::V8MonkeyObject** value);
+      V8Monkey::V8MonkeyObject** InternalClose(V8Monkey::V8MonkeyObject** value);
     };
 
 
@@ -395,128 +394,151 @@ namespace v8 {
     };
   */
 
-    class APIEXPORT Isolate {
-     public:
+  class APIEXPORT Isolate {
+    public:
       class APIEXPORT Scope {
-       public:
-        explicit Scope(Isolate* isolate) : isolate(isolate) {
-          isolate->Enter();
-        }
+        public:
+          explicit Scope(Isolate* isolate) : isolate(isolate) {
+            isolate->Enter();
+          }
 
-        ~Scope() { isolate->Exit(); }
+          ~Scope() { isolate->Exit(); }
 
-       private:
-        Isolate* const isolate;
-        Scope(const Scope&);
-        Scope& operator=(const Scope&);
+        private:
+          Isolate* const isolate;
+
+          Scope(const Scope&);
+
+          Scope& operator=(const Scope&);
       };
 
       static Isolate* New();
+
       static Isolate* GetCurrent();
 
       void Enter();
+
       void Exit();
+
       void Dispose();
+
       void SetData(void* data);
+
       void* GetData();
 
-     private:
+    private:
       Isolate();
+
       Isolate(const Isolate&);
+
       ~Isolate();
+
       Isolate& operator=(const Isolate&);
+ 
       void* operator new(size_t);
+
       void operator delete(void*, size_t);
-    };
+  };
 
 
-    class APIEXPORT Unlocker {
-     public:
+  class APIEXPORT Unlocker {
+    public:
       explicit Unlocker(Isolate* isolate = NULL);
-      ~Unlocker();
-     private:
-      Isolate* isolate;
-    };
 
-    class APIEXPORT Locker {
-     public:
+      ~Unlocker();
+
+    private:
+      Isolate* isolate;
+  };
+
+
+  class APIEXPORT Locker {
+    public:
       explicit Locker(Isolate* isolate = NULL);
 
       ~Locker();
 
-      //static void StartPreemption(int every_n_ms);
+      static void StartPreemption(int every_n_ms) {
+        // TODO: Not implemented
+      }
 
-      //static void StopPreemption();
+      static void StopPreemption() {
+        // TODO Not implemented
+      }
 
       static bool IsLocked(Isolate* isolate = NULL);
 
       static bool IsActive();
 
-     private:
+    private:
       bool hasLock;
+
+      // XXX Remove?
       //bool top_level_;
+
       Isolate* isolate;
 
       static bool active;
 
       Locker(const Locker&);
+
       void operator=(const Locker&);
-    };
+  };
 
 
-    typedef void (*FatalErrorCallback)(const char* location, const char* message);
+  typedef void (*FatalErrorCallback)(const char* location, const char* message);
 
 
-    class APIEXPORT V8 {
-      public:
-        static bool Initialize();
-        static bool Dispose();
-        static bool IsDead();
-        static const char* GetVersion() { return  version_string; };
-        static int GetCurrentThreadId();
-        static void SetFatalErrorHandler(FatalErrorCallback that);
-        /* TO IMPLEMENT:
-      static void SetAllowCodeGenerationFromStringsCallback(
-      static void IgnoreOutOfMemoryException();
-      static StartupData::CompressionAlgorithm GetCompressedStartupDataAlgorithm();
-      static int GetCompressedStartupDataCount();
-      static void GetCompressedStartupData(StartupData* compressed_data);
-      static void SetDecompressedStartupData(StartupData* decompressed_data);
-      static bool AddMessageListener(MessageCallback that,
-                                     Handle<Value> data = Handle<Value>());
-      static void RemoveMessageListeners(MessageCallback that);
-      static void SetCaptureStackTraceForUncaughtExceptions(
-          bool capture,
-          int frame_limit = 10,
-          StackTrace::StackTraceOptions options = StackTrace::kOverview);
-      static void SetFlagsFromString(const char* str, int length);
-      static void SetFlagsFromCommandLine(int* argc,
-                                          char** argv,
-                                          bool remove_flags);
-      static void SetCounterFunction(CounterLookupCallback);
-      static void SetCreateHistogramFunction(CreateHistogramCallback);
-      static void SetAddHistogramSampleFunction(AddHistogramSampleCallback);
-      static void EnableSlidingStateWindow();
-      static void SetFailedAccessCheckCallbackFunction(FailedAccessCheckCallback);
-      static void AddGCPrologueCallback(
-          GCPrologueCallback callback, GCType gc_type_filter = kGCTypeAll);
-      static void RemoveGCPrologueCallback(GCPrologueCallback callback);
-      static void SetGlobalGCPrologueCallback(GCCallback);
-      static void AddGCEpilogueCallback(
-          GCEpilogueCallback callback, GCType gc_type_filter = kGCTypeAll);
-      static void RemoveGCEpilogueCallback(GCEpilogueCallback callback);
-      static void AddMemoryAllocationCallback(MemoryAllocationCallback callback,
-                                              ObjectSpace space,
-                                              AllocationAction action);
-      static void RemoveMemoryAllocationCallback(MemoryAllocationCallback callback);
-      static void AddCallCompletedCallback(CallCompletedCallback callback);
-      static void RemoveCallCompletedCallback(CallCompletedCallback callback);
-      static void AddObjectGroup(Persistent<Value>* objects,
-                                 size_t length,
-                                 RetainedObjectInfo* info = NULL);
-      static void AddImplicitReferences(Persistent<Object> parent,
-                                        Persistent<Value>* children,
-                                        size_t length);
+  class APIEXPORT V8 {
+    public:
+      static bool Initialize();
+      static bool Dispose();
+      static bool IsDead();
+      static const char* GetVersion() { return  version_string; };
+      static int GetCurrentThreadId();
+      static void SetFatalErrorHandler(FatalErrorCallback that);
+      /* TO IMPLEMENT:
+    static void SetAllowCodeGenerationFromStringsCallback(
+    static void IgnoreOutOfMemoryException();
+    static StartupData::CompressionAlgorithm GetCompressedStartupDataAlgorithm();
+    static int GetCompressedStartupDataCount();
+    static void GetCompressedStartupData(StartupData* compressed_data);
+    static void SetDecompressedStartupData(StartupData* decompressed_data);
+    static bool AddMessageListener(MessageCallback that,
+                                   Handle<Value> data = Handle<Value>());
+    static void RemoveMessageListeners(MessageCallback that);
+    static void SetCaptureStackTraceForUncaughtExceptions(
+        bool capture,
+        int frame_limit = 10,
+        StackTrace::StackTraceOptions options = StackTrace::kOverview);
+    static void SetFlagsFromString(const char* str, int length);
+    static void SetFlagsFromCommandLine(int* argc,
+                                        char** argv,
+                                        bool remove_flags);
+    static void SetCounterFunction(CounterLookupCallback);
+    static void SetCreateHistogramFunction(CreateHistogramCallback);
+    static void SetAddHistogramSampleFunction(AddHistogramSampleCallback);
+    static void EnableSlidingStateWindow();
+    static void SetFailedAccessCheckCallbackFunction(FailedAccessCheckCallback);
+    static void AddGCPrologueCallback(
+        GCPrologueCallback callback, GCType gc_type_filter = kGCTypeAll);
+    static void RemoveGCPrologueCallback(GCPrologueCallback callback);
+    static void SetGlobalGCPrologueCallback(GCCallback);
+    static void AddGCEpilogueCallback(
+        GCEpilogueCallback callback, GCType gc_type_filter = kGCTypeAll);
+    static void RemoveGCEpilogueCallback(GCEpilogueCallback callback);
+    static void AddMemoryAllocationCallback(MemoryAllocationCallback callback,
+                                            ObjectSpace space,
+                                            AllocationAction action);
+    static void RemoveMemoryAllocationCallback(MemoryAllocationCallback callback);
+    static void AddCallCompletedCallback(CallCompletedCallback callback);
+    static void RemoveCallCompletedCallback(CallCompletedCallback callback);
+    static void AddObjectGroup(Persistent<Value>* objects,
+                               size_t length,
+                               RetainedObjectInfo* info = NULL);
+    static void AddImplicitReferences(Persistent<Object> parent,
+                                      Persistent<Value>* children,
+                                      size_t length);
       static void SetEntropySource(EntropySource source);
       static void SetReturnAddressLocationResolver(
           ReturnAddressLocationResolver return_address_resolver);
@@ -562,7 +584,13 @@ namespace v8 {
         // This is just a utility class, so should not be constructible
         V8();
         static const char* version_string;
-    };
-  }
+  };
 
-  #endif
+
+  template<class T>
+  Local<T> HandleScope::Close(Handle<T> value) {
+    return InternalClose(reinterpret_cast<V8Monkey::V8MonkeyObject**>(*value));
+  }
+}
+
+#endif

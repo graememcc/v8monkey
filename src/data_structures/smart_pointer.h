@@ -90,6 +90,16 @@ class EXPORT_FOR_TESTING_ONLY SmartPtr {
       return ptr;
     }
 
+    void Delete() {
+      delete this;
+    }
+
+    #ifdef V8MONKEY_INTERNAL_TEST
+    T* RawPtr() {
+      return ptr;
+    }
+    #endif
+
   private:
     T* ptr;
 };
