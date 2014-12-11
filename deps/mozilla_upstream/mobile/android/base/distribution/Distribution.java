@@ -63,8 +63,8 @@ public class Distribution {
     private static final int STATE_SET = 2;
 
     private static final String FETCH_PROTOCOL = "https";
-    private static final String FETCH_HOSTNAME = "distro-download.cdn.mozilla.net";
-    private static final String FETCH_PATH = "/android/1/";
+    private static final String FETCH_HOSTNAME = "mobile.cdn.mozilla.net";
+    private static final String FETCH_PATH = "/distributions/1/";
     private static final String FETCH_EXTENSION = ".jar";
 
     private static final String EXPECTED_CONTENT_TYPE = "application/java-archive";
@@ -122,7 +122,7 @@ public class Distribution {
     private final String prefsBranch;
 
     private volatile int state = STATE_UNKNOWN;
-    private File distributionDir = null;
+    private File distributionDir;
 
     private final Queue<Runnable> onDistributionReady = new ConcurrentLinkedQueue<Runnable>();
 

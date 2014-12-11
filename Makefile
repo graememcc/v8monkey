@@ -466,16 +466,19 @@ $(smtarget) $(smheadersdir)/jsapi.h: $(depsdir)/Makefile
 
 # To create the Makefile, we must have a config.status script
 $(depsdir)/Makefile: $(depsdir)/config.status
+	rm -f $(smheadersdir)/jsapi.h
 	cd $(depsdir) && $(mozillaroot)/js/src/configure
 
 
 # A config.status script is created by running configure
 $(depsdir)/config.status: $(mozillaroot)/js/src/configure | $(depsdir)
+	rm -f $(depsdir)/Makefile
 	cd $(depsdir) && $(mozillaroot)/js/src/configure
 
 
 # To run configure we must first invoke autoconf
 $(mozillaroot)/js/src/configure:
+	rm -f $(smheadersdir)/jsapi.h
 	cd $(mozillaroot)/js/src && autoconf
 
 
@@ -517,4 +520,5 @@ valgrind: $(testsuites)
 
 # ---------------------------------------------------------------OLD
 # XXX Remove me!
-#temp: $(v8monkeytarget) temp.cpp	#$(CXX) -o temp temp.cpp -std=c++0x -I $(depheaders) -Wl,-L$(outdir) -Wl,-rpath=$(outdir) -l$(v8lib)
+temp: $(v8monkeytarget) temp.cpp
+	$(CXX) -o temp temp.cpp -std=c++0x -I $(depheaders) -Wl,-L$(outdir) -Wl,-rpath=$(outdir) -l$(v8lib)

@@ -11,7 +11,6 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Casting.h"
-#include "mozilla/DebugOnly.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 #include "mozilla/NullPtr.h"
@@ -796,9 +795,7 @@ class HashTable : private AllocPolicy
         }
 
         bool operator==(const Ptr &rhs) const {
-#ifdef JS_DEBUG
             MOZ_ASSERT(found() && rhs.found());
-#endif
             return entry_ == rhs.entry_;
         }
 
@@ -890,23 +887,29 @@ class HashTable : private AllocPolicy
         {}
 
         bool empty() const {
+#ifdef JS_DEBUG
             MOZ_ASSERT(generation == table_->generation());
             MOZ_ASSERT(mutationCount == table_->mutationCount);
+#endif
             return cur == end;
         }
 
         T &front() const {
-            MOZ_ASSERT(validEntry);
             MOZ_ASSERT(!empty());
+#ifdef JS_DEBUG
+            MOZ_ASSERT(validEntry);
             MOZ_ASSERT(generation == table_->generation());
             MOZ_ASSERT(mutationCount == table_->mutationCount);
+#endif
             return cur->get();
         }
 
         void popFront() {
             MOZ_ASSERT(!empty());
+#ifdef JS_DEBUG
             MOZ_ASSERT(generation == table_->generation());
             MOZ_ASSERT(mutationCount == table_->mutationCount);
+#endif
             while (++cur < end && !cur->isLive())
                 continue;
 #ifdef JS_DEBUG
@@ -956,6 +959,7 @@ class HashTable : private AllocPolicy
         // a new key at the new Lookup position.  |front()| is invalid after
         // this operation until the next call to |popFront()|.
         void rekeyFront(const Lookup &l, const Key &k) {
+            JS_ASSERT(&k != &HashPolicy::getKey(this->cur->get()));
             Ptr p(*this->cur, table_);
             table_.rekeyWithoutRehash(p, l, k);
             rekeyed = true;
@@ -1077,7 +1081,7 @@ class HashTable : private AllocPolicy
                       "newly-calloc'd tables have to be considered empty");
         static_assert(sMaxCapacity <= SIZE_MAX / sizeof(Entry),
                       "would overflow allocating max number of entries");
-        return static_cast<Entry*>(alloc.calloc_(capacity * sizeof(Entry)));
+        return alloc.template pod_calloc<Entry>(capacity);
     }
 
     static void destroyTable(AllocPolicy &alloc, Entry *oldTable, uint32_t capacity)
@@ -1480,7 +1484,6 @@ class HashTable : private AllocPolicy
 #ifdef JS_DEBUG
         MOZ_ASSERT(!mEntered);
 #endif
-
         if (!table)
             return;
 
