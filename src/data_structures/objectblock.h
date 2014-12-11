@@ -96,7 +96,6 @@ typename ObjectBlock<T>::Limits ObjectBlock<T>::Extend(T** currentLimit) {
   return Limits{nextBlock + 2, nextBlock + BlockSize};
 }
 
-
 template<class T>
 void ObjectBlock<T>::Delete(T** currentLimit, T** currentTop, T** desiredTop, void (*deletionFunction)(T*)) {
   // If there's nothing to do, then do nothing
@@ -118,7 +117,7 @@ void ObjectBlock<T>::Delete(T** currentLimit, T** currentTop, T** desiredTop, vo
       // in the block, but on our first time through, we may only be deleting a partial block.
       int deletionIndex = top < currentTop && currentTop < limit ? currentTop - top : BlockSize;
       for (int i = deletionIndex - 1; i >= 2; i--) {
-        if (!deletionFunction) {
+        if (deletionFunction == NULL) {
           delete *(top + i);
         } else {
           deletionFunction(*(top + i));
@@ -146,7 +145,7 @@ void ObjectBlock<T>::Delete(T** currentLimit, T** currentTop, T** desiredTop, vo
     if (!deletionFunction) {
       delete *(desiredTop + i);
     } else {
-      deletionFunction(*(top + i));
+      deletionFunction(*(desiredTop + i));
     }
   }
 }

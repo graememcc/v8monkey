@@ -23,14 +23,17 @@ namespace {
   }
 
 
-  static bool wasCalled[10];
+  class DeletionObject;
 
 
-  static bool wasDeleted[10];
+  static bool wasCalled[ObjectBlock<DeletionObject>::EffectiveBlockSize + 2];
+
+
+  static bool wasDeleted[ObjectBlock<DeletionObject>::EffectiveBlockSize + 2];
 
 
   void resetForDeletion() {
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < ObjectBlock<DeletionObject>::EffectiveBlockSize + 2; i++) {
       wasCalled[i] = false;
       wasDeleted[i] = false;
     }
@@ -305,7 +308,7 @@ V8MONKEY_TEST(ObjectBlock011, "Deleting deletes individual members (cross block)
 }
 
 
-V8MONKEY_TEST(ObjectBlock012, "Deleting calls given function if supplied") {
+V8MONKEY_TEST(ObjectBlock012, "Deleting calls given function if supplied (single block)") {
   DeletionObject* pointers[10];
 
   ObjectBlock<DeletionObject>::Limits data = ObjectBlock<DeletionObject>::Extend(NULL);
@@ -329,7 +332,74 @@ V8MONKEY_TEST(ObjectBlock012, "Deleting calls given function if supplied") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock013, "If supplied function, object not deleted by ObjectBlock") {
+V8MONKEY_TEST(ObjectBlock013, "Deleting calls given function if supplied (intra block)") {
+  DeletionObject* pointers[20];
+
+  ObjectBlock<DeletionObject>::Limits data = ObjectBlock<DeletionObject>::Extend(NULL);
+  DeletionObject** pos = data.top;
+
+  for (int i = 0; i < 20; i++) {
+    pointers[i] = new DeletionObject(i);
+    *(pos++) = pointers[i];
+  }
+
+  resetForDeletion();
+  ObjectBlock<DeletionObject>::Delete(data.limit, data.top + 20, data.top + 10, deletionFunction);
+
+  for (int i = 0; i < 10; i++) {
+    V8MONKEY_CHECK(!wasCalled[i], "Given function not called for remaining values");
+  }
+
+  for (int i = 10; i < 20; i++) {
+    V8MONKEY_CHECK(wasCalled[i], "Given function called for correct values");
+  }
+
+  ObjectBlock<DeletionObject>::Delete(data.limit, data.top + 10, NULL, deletionFunction);
+
+  for (int i = 0; i < 10; i++) {
+    V8MONKEY_CHECK(wasCalled[i], "Given function called for remaining values");
+  }
+
+  for (int i = 0; i < 20; i++) {
+    delete pointers[i];
+  }
+}
+
+
+V8MONKEY_TEST(ObjectBlock014, "Deleting calls given function if supplied (cross block)") {
+  const int blockSize = ObjectBlock<DeletionObject>::EffectiveBlockSize;
+  DeletionObject* pointers[blockSize + 2];
+
+  ObjectBlock<DeletionObject>::Limits data = ObjectBlock<DeletionObject>::Extend(NULL);
+  DeletionObject** pos = data.top;
+
+  for (int i = 0; i < blockSize; i++) {
+    pointers[i] = new DeletionObject(i);
+    *(pos++) = pointers[i];
+  }
+
+  ObjectBlock<DeletionObject>::Limits data2 = ObjectBlock<DeletionObject>::Extend(data.limit);
+  DeletionObject** pos2 = data2.top;
+
+  for (int i = 0; i < 2; i++) {
+    pointers[i + blockSize] = new DeletionObject(i + blockSize);
+    *(pos2++) = pointers[i + blockSize];
+  }
+
+  resetForDeletion();
+  ObjectBlock<DeletionObject>::Delete(data2.limit, pos2, NULL, deletionFunction);
+
+  for (int i = 0; i < blockSize + 2; i++) {
+    V8MONKEY_CHECK(wasCalled[i], "Given function called for values");
+  }
+
+  for (int i = 0; i < blockSize + 2; i++) {
+    delete pointers[i];
+  }
+}
+
+
+V8MONKEY_TEST(ObjectBlock015, "If supplied function, object not deleted by ObjectBlock") {
   DeletionObject* pointers[10];
 
   ObjectBlock<DeletionObject>::Limits data = ObjectBlock<DeletionObject>::Extend(NULL);
@@ -353,7 +423,66 @@ V8MONKEY_TEST(ObjectBlock013, "If supplied function, object not deleted by Objec
 }
 
 
-V8MONKEY_TEST(ObjectBlock014, "Iteration works correctly (single block)") {
+V8MONKEY_TEST(ObjectBlock016, "If supplied function, object not deleted by ObjectBlock (intra block)") {
+  DeletionObject* pointers[20];
+
+  ObjectBlock<DeletionObject>::Limits data = ObjectBlock<DeletionObject>::Extend(NULL);
+  DeletionObject** pos = data.top;
+
+  for (int i = 0; i < 20; i++) {
+    pointers[i] = new DeletionObject(i);
+    *(pos++) = pointers[i];
+  }
+
+  resetForDeletion();
+  ObjectBlock<DeletionObject>::Delete(data.limit, data.top + 20, data.top + 10, deletionFunction);
+
+  for (int i = 0; i < 20; i++) {
+    V8MONKEY_CHECK(!wasDeleted[i], "Object not deleted");
+  }
+
+  ObjectBlock<DeletionObject>::Delete(data.limit, data.top + 10, NULL, deletionFunction);
+
+  for (int i = 0; i < 20; i++) {
+    delete pointers[i];
+  }
+}
+
+
+V8MONKEY_TEST(ObjectBlock017, "If supplied function, object not deleted by ObjectBlock (cross block)") {
+  const int blockSize = ObjectBlock<DeletionObject>::EffectiveBlockSize;
+  DeletionObject* pointers[blockSize + 2];
+
+  ObjectBlock<DeletionObject>::Limits data = ObjectBlock<DeletionObject>::Extend(NULL);
+  DeletionObject** pos = data.top;
+
+  for (int i = 0; i < blockSize; i++) {
+    pointers[i] = new DeletionObject(i);
+    *(pos++) = pointers[i];
+  }
+
+  ObjectBlock<DeletionObject>::Limits data2 = ObjectBlock<DeletionObject>::Extend(data.limit);
+  DeletionObject** pos2 = data2.top;
+
+  for (int i = 0; i < 2; i++) {
+    pointers[blockSize + i] = new DeletionObject(blockSize + i);
+    *(pos2++) = pointers[blockSize + i];
+  }
+
+  resetForDeletion();
+  ObjectBlock<DeletionObject>::Delete(data2.limit, pos2, NULL, deletionFunction);
+
+  for (int i = 0; i < blockSize + 2; i++) {
+    V8MONKEY_CHECK(!wasDeleted[i], "Object not deleted");
+  }
+
+  for (int i = 0; i < blockSize + 2; i++) {
+    delete pointers[i];
+  }
+}
+
+
+V8MONKEY_TEST(ObjectBlock018, "Iteration works correctly (single block)") {
   ObjectBlock<IterateObject>::Limits data = ObjectBlock<IterateObject>::Extend(NULL);
   IterateObject** pos = data.top;
 
@@ -372,7 +501,7 @@ V8MONKEY_TEST(ObjectBlock014, "Iteration works correctly (single block)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock015, "Iteration works correctly (cross block)") {
+V8MONKEY_TEST(ObjectBlock019, "Iteration works correctly (cross block)") {
   ObjectBlock<IterateObject>::Limits data1 = ObjectBlock<IterateObject>::Extend(NULL);
   IterateObject** pos = data1.top;
   ObjectBlock<IterateObject>::Limits data2 = ObjectBlock<IterateObject>::Extend(data1.limit);

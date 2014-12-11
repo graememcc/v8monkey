@@ -13,13 +13,13 @@ using V8Monkey::TestUtils;
 
 // XXX V8 Dispose where necessary
 namespace {
-  InternalIsolate* AsInternal(Isolate* i) {
-    return reinterpret_cast<InternalIsolate*>(i);
-  }
+  //InternalIsolate* AsInternal(Isolate* i) {
+    //return reinterpret_cast<InternalIsolate*>(i);
+  //}
 
 
   InternalIsolate* CurrentAsInternal() {
-    return AsInternal(Isolate::GetCurrent());
+    return InternalIsolate::FromIsolate(Isolate::GetCurrent());
   }
 
 
@@ -94,7 +94,7 @@ namespace {
     bool result;
     {
       Isolate::Scope scope(i);
-      result = InternalIsolate::IsEntered(AsInternal(i));
+      result = InternalIsolate::IsEntered(InternalIsolate::FromIsolate(i));
     }
 
     i->Dispose();
@@ -109,7 +109,7 @@ namespace {
     {
       Isolate::Scope scope(i);
     }
-    bool result = !InternalIsolate::IsEntered(AsInternal(i));
+    bool result = !InternalIsolate::IsEntered(InternalIsolate::FromIsolate(i));
 
     i->Dispose();
     return reinterpret_cast<void*>(result);
@@ -125,7 +125,7 @@ namespace {
       Isolate::Scope scope(i);
     }
 
-    bool result = InternalIsolate::IsEntered(AsInternal(i));
+    bool result = InternalIsolate::IsEntered(InternalIsolate::FromIsolate(i));
     return reinterpret_cast<void*>(result);
   }
 
@@ -137,7 +137,7 @@ namespace {
     bool result;
     {
       Isolate::Scope scope(defaultIsolate);
-      result = InternalIsolate::IsEntered(AsInternal(defaultIsolate));
+      result = InternalIsolate::IsEntered(InternalIsolate::FromIsolate(defaultIsolate));
     }
     return reinterpret_cast<void*>(result);
   }
@@ -169,10 +169,10 @@ V8MONKEY_TEST(IntIsolate004, "IsEntered works correctly") {
   TestUtils::AutoTestCleanup ac;
   Isolate* mainThreadIsolate = Isolate::GetCurrent();
   mainThreadIsolate->Enter();
-  V8MONKEY_CHECK(InternalIsolate::IsEntered(AsInternal(mainThreadIsolate)),
+  V8MONKEY_CHECK(InternalIsolate::IsEntered(InternalIsolate::FromIsolate(mainThreadIsolate)),
                  "IsEntered reports true for entered isolate");
   mainThreadIsolate->Exit();
-  V8MONKEY_CHECK(!InternalIsolate::IsEntered(AsInternal(mainThreadIsolate)),
+  V8MONKEY_CHECK(!InternalIsolate::IsEntered(InternalIsolate::FromIsolate(mainThreadIsolate)),
                  "IsEntered reports false for exited isolate");
 }
 
@@ -187,7 +187,7 @@ V8MONKEY_TEST(IntIsolate006, "IsDefaultIsolate works correctly for non-default i
   TestUtils::AutoTestCleanup ac;
 
   Isolate* i = Isolate::New();
-  V8MONKEY_CHECK(!InternalIsolate::IsDefaultIsolate(AsInternal(i)), "IsDefaultIsolate reports false for non-default");
+  V8MONKEY_CHECK(!InternalIsolate::IsDefaultIsolate(InternalIsolate::FromIsolate(i)), "IsDefaultIsolate reports false for non-default");
   i->Dispose();
 }
 
@@ -269,7 +269,7 @@ V8MONKEY_TEST(IntIsolate016, "Current isolate unchanged if already in isolate pr
 V8MONKEY_TEST(IntIsolate017, "Isolate reports empty when not entered") {
   TestUtils::AutoTestCleanup ac;
   Isolate* i = Isolate::New();
-  V8MONKEY_CHECK(!AsInternal(i)->ContainsThreads(), "Empty isolate reports no threads active");
+  V8MONKEY_CHECK(!InternalIsolate::FromIsolate(i)->ContainsThreads(), "Empty isolate reports no threads active");
   i->Dispose();
 }
 
@@ -278,14 +278,14 @@ V8MONKEY_TEST(IntIsolate018, "Isolate reports non-empty when entered") {
   TestUtils::AutoTestCleanup ac;
   Isolate* i = Isolate::New();
   i->Enter();
-  V8MONKEY_CHECK(AsInternal(i)->ContainsThreads(), "Entered isolate reports threads active");
+  V8MONKEY_CHECK(InternalIsolate::FromIsolate(i)->ContainsThreads(), "Entered isolate reports threads active");
 }
 
 
 V8MONKEY_TEST(IntIsolate019, "IsLockedForThisThread reports false initially") {
   TestUtils::AutoTestCleanup ac;
   Isolate* i = Isolate::New();
-  V8MONKEY_CHECK(!AsInternal(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
+  V8MONKEY_CHECK(!InternalIsolate::FromIsolate(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
   i->Dispose();
 }
 
@@ -293,9 +293,9 @@ V8MONKEY_TEST(IntIsolate019, "IsLockedForThisThread reports false initially") {
 V8MONKEY_TEST(IntIsolate020, "IsLockedForThisThread reports true after locking") {
   TestUtils::AutoTestCleanup ac;
   Isolate* i = Isolate::New();
-  AsInternal(i)->Lock();
-  V8MONKEY_CHECK(AsInternal(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
-  AsInternal(i)->Unlock();
+  InternalIsolate::FromIsolate(i)->Lock();
+  V8MONKEY_CHECK(InternalIsolate::FromIsolate(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
+  InternalIsolate::FromIsolate(i)->Unlock();
   i->Dispose();
 }
 
@@ -304,10 +304,10 @@ V8MONKEY_TEST(IntIsolate021, "IsLockedForThisThread reports false after locking"
   TestUtils::AutoTestCleanup ac;
 
   Isolate* i = Isolate::New();
-  AsInternal(i)->Lock();
-  AsInternal(i)->Unlock();
+  InternalIsolate::FromIsolate(i)->Lock();
+  InternalIsolate::FromIsolate(i)->Unlock();
 
-  V8MONKEY_CHECK(!AsInternal(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
+  V8MONKEY_CHECK(!InternalIsolate::FromIsolate(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
   i->Dispose();
 }
 
@@ -316,12 +316,12 @@ V8MONKEY_TEST(IntIsolate022, "IsLockedForThisThread reports false from different
   TestUtils::AutoTestCleanup ac;
 
   Isolate* i = Isolate::New();
-  AsInternal(i)->Lock();
+  InternalIsolate::FromIsolate(i)->Lock();
   V8Platform::Thread child(CheckThreadLockStatus);
-  child.Run(AsInternal(i));
+  child.Run(InternalIsolate::FromIsolate(i));
 
   V8MONKEY_CHECK(!child.Join(), "Thread found IsLockedForThisThread false");
-  AsInternal(i)->Unlock();
+  InternalIsolate::FromIsolate(i)->Unlock();
   i->Dispose();
 }
 

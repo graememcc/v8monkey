@@ -330,11 +330,10 @@ namespace v8 {
     }
 
 
-#include <stdio.h>
     void InternalIsolate::CreateDefaultIsolate() {
       static V8Platform::Mutex mutex;
       static InternalIsolate i;
-          
+
       AutoLock lock(mutex);
       if (defaultIsolate == NULL) {
         InitializeCommonTLSKeys();
@@ -357,6 +356,16 @@ namespace v8 {
       defaultIsolate->Enter();
 
       return defaultIsolate;
+    }
+
+
+    HandleScopeData InternalIsolate::GetHandleScopeData() {
+      return handleScopeData;
+    }
+
+
+    void InternalIsolate::SetHandleScopeData(HandleScopeData& hsd) {
+      handleScopeData = hsd;
     }
 
 

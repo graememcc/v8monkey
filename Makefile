@@ -159,7 +159,7 @@ $(outdir)/%.o: %.cpp $(v8monkeyheadersdir)/v8.h
 enginestems = $(addprefix src/engine/, init version)
 engineobjects = $(addsuffix .o, $(enginestems))
 
-runtimestems = $(addprefix src/runtime/, isolate)
+runtimestems = $(addprefix src/runtime/, isolate handlescope)
 runtimeobjects = $(addsuffix .o, $(runtimestems))
 
 threadstems = $(addprefix src/threads/, locker)
@@ -301,7 +301,7 @@ $(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/thr
 
 
 # Several files depend on isolate.h
-$(call variants, src/init) $(call variants, src/runtime/isolate) $(call variants, src/threads/locker): src/runtime/isolate.h
+$(call variants, src/init) $(call variants, src/runtime/handlescope) $(call variants, src/runtime/isolate) $(call variants, src/threads/locker): src/runtime/isolate.h
 
 
 # Several files depend on platform capabilities
@@ -312,9 +312,22 @@ src/autolock.h src/runtime/isolate.h $(call variants, src/engine/init) $(call va
 $(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/v8monkey_common.h
 
 
+# Various files need the base_type definitions
+src/runtime/handlescope.h: src/types/base_types.h
+
+
+# Some files need the definition of handlescopes.h
+$(call variants, src/runtime/handlescope) src/runtime/isolate.h: src/runtime/handlescope.h
+
+
+# HandleScopes use object blocks
+$(call variants, src/runtime/handlescope): src/data_structures/objectblock.h
+
+
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
 # internal test lib or not
-headers_needing_test = src/data_structures/objectblock.h src/data_structures/smart_pointer.h src/types/base_types.h
+headers_needing_test_stems = data_structures/objectblock data_structures/smart_pointer runtime/handlescope types/base_types
+headers_needing_test = $(addprefix src/, $(addsuffix .h, $(headers_needing_test_stems)))
 visibility_changes = $(call variants, src/engine/init) $(call variants, src/runtime/isolate) $(headers_needing_test): src/test.h
 
 
@@ -347,7 +360,7 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 
 
 # The "internals" test harness is composed from the following
-internalteststems = death fatalerror init isolate locker objectblock platform smartpointer threadID
+internalteststems = death fatalerror handlescope init isolate locker objectblock platform smartpointer threadID
 internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
@@ -404,10 +417,14 @@ $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 
 # Various files depend on isolate.h
 api_isolate_deps = $(addprefix api/test_, isolate)
-internal_isolate_depstems = fatalerror init isolate locker threadID
+internal_isolate_depstems = fatalerror handlescope init isolate locker threadID
 internal_isolate_deps = $(addsuffix _internal, $(addprefix internal/test_, $(internal_isolate_depstems)))
 $(addprefix $(outdir)/test/, $(addsuffix .o, $(api_isolate_deps) $(internal_isolate_deps))): src/runtime/isolate.h
 #$(outdir)/test/api/test_isolate.o $(outdir)/test/internal/test_fatalerror_internal.o $(outdir)/test/internal/test_isolate_internal.o $(outdir)/test/internal/test_locker_internal.o: src/runtime/isolate.h
+
+
+# Some tests rely on the HandleScopeData definition
+$(outdir)/test/internal/test_handlescope_internal.o: src/runtime/handlescope.h
 
 
 # Most internal test files require the TestUtils class
@@ -419,15 +436,16 @@ $(outdir)/test/internal/test_death_internal.o $(outdir)/test/internal/test_fatal
 
 
 # Not unexpectedly, test_objectblock_internal depends on the header
-$(outdir)/test/internal/test_objectblock_internal.o: src/data_structures/objectblock.h
+$(outdir)/test/internal/test_handlescope_internal.o $(outdir)/test/internal/test_objectblock_internal.o: src/data_structures/objectblock.h
 
 
 # test_smartptr_internal depends on the base_type definitions
-$(outdir)/test/internal/test_smartpointer_internal.o: src/types/base_types.h
+test_basetypes_deps = handlescope smartpointer
+$(addprefix $(outdir)/test/internal/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
 
 
 # test_smartptr_internal needs the smart pointer definition
-$(outdir)/test/internal/test_smartpointer_internal.o: src/data_structures/smart_pointer.h
+$(outdir)/test/internal/test_handlescope_internal.o $(outdir)/test/internal/test_smartpointer_internal.o: src/data_structures/smart_pointer.h
 
 
 # Several files depend on the JSAPI header

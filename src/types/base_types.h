@@ -20,7 +20,7 @@ namespace v8 {
       public:
         V8MonkeyObject() : refCount(0) {}
 
-        virtual ~V8MonkeyObject();
+        virtual ~V8MonkeyObject() {}
 
         void AddRef() {
           refCount++;
@@ -83,7 +83,22 @@ namespace v8 {
     class EXPORT_FOR_TESTING_ONLY SMGCObject : public SMObject {};
 
 
-    V8MonkeyObject::~V8MonkeyObject() {}
+    /*
+     * A dummy implementation of V8MonkeyObject for testing purposes
+     *
+     */
+    #ifdef V8MONKEY_INTERNAL_TEST
+    class DummyV8MonkeyObject: public V8MonkeyObject {
+      public:
+        DummyV8MonkeyObject() {}
+        ~DummyV8MonkeyObject() {}
+        void Trace(JSRuntime* runtime, JSTracer* tracer) {}
+
+        inline bool operator== (const DummyV8MonkeyObject &other) {
+          return &other == this;
+        }
+    };
+    #endif
   }
 }
 

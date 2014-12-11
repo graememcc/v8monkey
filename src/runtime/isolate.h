@@ -2,6 +2,7 @@
 #define V8MONKEY_ISOLATE_H
 
 
+#include "handlescope.h"
 #include "platform.h"
 #include "test.h"
 
@@ -11,7 +12,10 @@ namespace v8 {
     // An internal variant of the public facing Isolate class
     class EXPORT_FOR_TESTING_ONLY InternalIsolate {
       public:
-        InternalIsolate() : fatalErrorHandler(NULL), threadData(NULL), embedderData(NULL), lockingThread(0) {}
+        InternalIsolate() : fatalErrorHandler(NULL), threadData(NULL), embedderData(NULL), lockingThread(0) {
+          handleScopeData.Initialize();
+        }
+
         ~InternalIsolate() {}
 
         // Enter the given isolate
@@ -71,6 +75,12 @@ namespace v8 {
         // Is the current thread the one that locked me?
         bool IsLockedForThisThread();
 
+        // Return a copy of the handle scope data for this isolate
+        HandleScopeData GetHandleScopeData();
+
+        // Copy the given HandleScopeData into our own
+        void SetHandleScopeData(HandleScopeData& hsd);
+
         // Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
         // "unlock" themselves to yield the isolate, we can't even be sure that threads will enter and exit in a LIFO
         // order-the ordering will be at the mercy of the locking mechanism. Thus we need some way of answering the
@@ -89,6 +99,12 @@ namespace v8 {
           ThreadData(int id, InternalIsolate* previous, ThreadData* previousElement, ThreadData* nextElement) :
             entryCount(0), threadID(id), previousIsolate(previous), prev(previousElement), next(nextElement) {}
         };
+
+        #ifdef V8MONKEY_INTERNAL_TEST
+        static InternalIsolate* FromIsolate(Isolate* i) {
+          return reinterpret_cast<InternalIsolate*>(i);
+        }
+        #endif
 
       private:
         // Fatal error handler for this isolate
@@ -114,6 +130,8 @@ namespace v8 {
         // "default" isolate automatically, and use it where necessary.
         static InternalIsolate* defaultIsolate;
 
+        // HandleScope data
+        HandleScopeData handleScopeData;
 
         // Linked list manipulations
         ThreadData* FindOrCreateThreadData(int threadID, InternalIsolate* previousIsolate);

@@ -17,16 +17,122 @@
 
 // XXX Make order correct
 namespace v8 {
+  namespace V8Monkey {
+    class V8MonkeyObject;
+    class InternalIsolate;
+  }
+
+
+  template <class T> class Handle {
+    public:
+      inline Handle() : val_(0) {}
+
+      inline explicit Handle(T* val) : val_(val) {}
+
+      template <class S> inline Handle(Handle<S> that)
+          : val_(reinterpret_cast<T*>(*that)) {}
+
+      inline bool IsEmpty() const { return val_ == 0; }
+
+      inline void Clear() { val_ = 0; }
+
+      inline T* operator->() const { return val_; }
+
+      inline T* operator*() const { return val_; }
+
+      template <class S> inline bool operator==(Handle<S> that) const {
+        V8Monkey::V8MonkeyObject** a = reinterpret_cast<V8Monkey::V8MonkeyObject**>(**this);
+        V8Monkey::V8MonkeyObject** b = reinterpret_cast<V8Monkey::V8MonkeyObject**>(*that);
+        if (a == 0) return b == 0;
+        if (b == 0) return false;
+        return *a == *b;
+      }
+
+      template <class S> inline bool operator!=(Handle<S> that) const {
+        return !operator==(that);
+      }
+
+      template <class S> static inline Handle<T> Cast(Handle<S> that) {
+        return Handle<T>(T::Cast(*that));
+      }
+
+      template <class S> inline Handle<S> As() {
+        return Handle<S>::Cast(*this);
+      }
+
+    private:
+      T* val_;
+  };
+
+
+  template <class T> class Local : public Handle<T> {
+    public:
+      inline Local();
+      template <class S> inline Local(Local<S> that)
+          : Handle<T>(reinterpret_cast<T*>(*that)) {}
+
+      template <class S> inline Local(S* that) : Handle<T>(that) { }
+
+      template <class S> static inline Local<T> Cast(Local<S> that) {
+        return Local<T>(T::Cast(*that));
+      }
+
+      template <class S> inline Local<S> As() {
+        return Local<S>::Cast(*this);
+      }
+
+      inline static Local<T> New(Handle<T> that);
+  };
+
+
+  class APIEXPORT HandleScope {
+    public:
+      HandleScope();
+
+      ~HandleScope();
+
+      template <class T> Local<T> Close(Handle<T> value);
+
+      static int NumberOfHandles();
+
+      static V8Monkey::V8MonkeyObject** CreateHandle(V8Monkey::V8MonkeyObject* value);
+
+    private:
+      HandleScope(const HandleScope&);
+
+      void operator=(const HandleScope&);
+
+      void* operator new(size_t size);
+
+      void operator delete(void*, size_t);
+
+      // XXX Needed?
+      void Leave();
+
+      V8Monkey::InternalIsolate* isolate;
+
+      V8Monkey::V8MonkeyObject** prev_next;
+
+      V8Monkey::V8MonkeyObject** prev_limit;
+
+      // XXX Needed ?
+      bool is_closed_;
+
+      // XXX Needed ?
+      V8Monkey::V8MonkeyObject** RawClose(V8Monkey::V8MonkeyObject** value);
+    };
+
+
 /*
   class V8EXPORT Data {
-    private:
-      Data();
-  };
-*/
+      private:
+        Data();
+    };
+  */
 
 
-  /*
-    class V8EXPORT ScriptData {
+    /*
+      class V8EXPORT ScriptData {
       public:
         virtual ~ScriptData() { }
   
