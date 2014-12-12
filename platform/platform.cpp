@@ -102,6 +102,19 @@ namespace v8 {
     }
 
 
+    TLSKey* Platform::CreateTLSKey(void (*destructorFn)(void*)) {
+      // We don't actually create an object, we just pretend whatever pthread_key_create gives us is a pointer.
+      // A test in test_platform checks that pthread_key_t fits, however, as noted there, I'd like to check this earlier,
+      // e.g. perhaps at the configure stage if we go down the configure/make route
+      pthread_key_t key;
+
+      // XXX Should we abort on non-zero return code?
+      pthread_key_create(&key, destructorFn);
+
+      return reinterpret_cast<TLSKey*>(key);
+    }
+
+
     void Platform::DeleteTLSKey(TLSKey* k) {
       // Convince C++ we're not really losing precision
       pthread_key_t key = *reinterpret_cast<pthread_key_t*>(&k);

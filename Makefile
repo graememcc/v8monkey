@@ -292,12 +292,13 @@ $(v8objects) $(testlibobjects): $(v8monkeyheadersdir)/v8.h
 $(call variants, src/engine/version) $(outdir)/test/api/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
 
 
-# init depends on the jsapi header
-src/types/base_types.h $(call variants, src/engine/init): $(smheadersdir)/jsapi.h
+# Several files depend on the JSAPI header
+jsapi_deps = $(call variants, src/engine/init) $(call variants, src/runtime/isolate)
+src/runtime/isolate.h src/types/base_types.h $(jsapi_deps): $(smheadersdir)/jsapi.h
 
 
 # init depends on the RAII autolock class
-$(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/threads/autolock.h
+src/data_structures/destruct_list.h $(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/threads/autolock.h
 
 
 # Several files depend on isolate.h
@@ -305,7 +306,8 @@ $(call variants, src/init) $(call variants, src/runtime/handlescope) $(call vari
 
 
 # Several files depend on platform capabilities
-src/autolock.h src/runtime/isolate.h $(call variants, src/engine/init) $(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
+header_platform_deps = $(addprefix src/, threads/autolock.h, runtime/isolate.h, data_structures/destruct_list.h)
+$(header_platform_deps) $(call variants, src/engine/init) $(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
 
 
 # Several files depend on the miscellaneous functions in the V8MonkeyCommon class

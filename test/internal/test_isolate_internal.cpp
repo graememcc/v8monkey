@@ -80,6 +80,200 @@ namespace {
   }
 
 
+  // Returns a bool denoting whether the runtime associated with a thread is initially null
+  V8MONKEY_TEST_HELPER(RuntimeInitiallyNull) {
+    TestUtils::AutoIsolateCleanup ac;
+    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() == nullptr;
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the context associated with a thread is initially null
+  V8MONKEY_TEST_HELPER(ContextInitiallyNull) {
+    TestUtils::AutoIsolateCleanup ac;
+    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() == nullptr;
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the runtime associated with a thread is non-null after explicit entry
+  V8MONKEY_TEST_HELPER(RuntimeNonNullAfterEntry) {
+    TestUtils::AutoIsolateCleanup ac;
+    Isolate* i = Isolate::New();
+    i->Enter();
+    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() != nullptr;
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the context associated with a thread is non-null after explicit entry
+  V8MONKEY_TEST_HELPER(ContextNonNullAfterEntry) {
+    TestUtils::AutoIsolateCleanup ac;
+    Isolate* i = Isolate::New();
+    i->Enter();
+    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() != nullptr;
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the runtime associated with a thread is non-null after implicit entry
+  V8MONKEY_TEST_HELPER(RuntimeNonNullAfterImplicitEntry) {
+    TestUtils::AutoIsolateCleanup ac;
+    V8::Initialize();
+    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() != nullptr;
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the context associated with a thread is non-null after implicit entry
+  V8MONKEY_TEST_HELPER(ContextNonNullAfterImplicitEntry) {
+    TestUtils::AutoIsolateCleanup ac;
+    V8::Initialize();
+    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() != nullptr;
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the runtime associated with a thread is unchanged after exit
+  V8MONKEY_TEST_HELPER(RuntimeUnchangedAfterExit) {
+    TestUtils::AutoIsolateCleanup ac;
+    Isolate* i = Isolate::New();
+    i->Enter();
+    JSRuntime* prev = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread();
+    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() == prev;
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the context associated with a thread is unchanged after exit
+  V8MONKEY_TEST_HELPER(ContextUnchangedAfterExit) {
+    TestUtils::AutoIsolateCleanup ac;
+    Isolate* i = Isolate::New();
+    i->Enter();
+    JSContext* prev = v8::V8Monkey::InternalIsolate::GetJSContextForThread();
+    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() == prev;
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the runtime associated with a thread is unchanged after reentry
+  V8MONKEY_TEST_HELPER(RuntimeUnchangedAfterReentry) {
+    TestUtils::AutoIsolateCleanup ac;
+    Isolate* i = Isolate::New();
+    i->Enter();
+    JSRuntime* prev = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread();
+    i->Exit();
+    i->Enter();
+    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() == prev;
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the context associated with a thread is unchanged after reentry
+  V8MONKEY_TEST_HELPER(ContextUnchangedAfterReentry) {
+    TestUtils::AutoIsolateCleanup ac;
+    Isolate* i = Isolate::New();
+    i->Enter();
+    JSContext* prev = v8::V8Monkey::InternalIsolate::GetJSContextForThread();
+    i->Exit();
+    i->Enter();
+    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() == prev;
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the runtime associated with a thread is unchanged after entering another isolate
+  V8MONKEY_TEST_HELPER(RuntimeUnchangedAfterEnteringOther) {
+    TestUtils::AutoIsolateCleanup ac;
+    Isolate* i = Isolate::New();
+    i->Enter();
+    JSRuntime* prev = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread();
+    i->Exit();
+    Isolate* j = Isolate::New();
+    j->Enter();
+    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() == prev;
+    i->Dispose();
+
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the context associated with a thread is unchanged after entering another isolate
+  V8MONKEY_TEST_HELPER(ContextUnchangedAfterEnteringOther) {
+    TestUtils::AutoIsolateCleanup ac;
+    Isolate* i = Isolate::New();
+    i->Enter();
+    JSContext* prev = v8::V8Monkey::InternalIsolate::GetJSContextForThread();
+    i->Exit();
+    Isolate* j = Isolate::New();
+    j->Enter();
+    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() == prev;
+    i->Dispose();
+
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the runtime associated with a thread is unchanged after entering another isolate
+  V8MONKEY_TEST_HELPER(RuntimeUnchangedAfterEnteringOtherStack) {
+    TestUtils::AutoIsolateCleanup ac;
+    Isolate* i = Isolate::New();
+    i->Enter();
+    JSRuntime* prev = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread();
+    Isolate* j = Isolate::New();
+    j->Enter();
+    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() == prev;
+
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a bool denoting whether the context associated with a thread is unchanged after entering another isolate
+  V8MONKEY_TEST_HELPER(ContextUnchangedAfterEnteringOtherStack) {
+    TestUtils::AutoIsolateCleanup ac;
+    Isolate* i = Isolate::New();
+    i->Enter();
+    JSContext* prev = v8::V8Monkey::InternalIsolate::GetJSContextForThread();
+    Isolate* j = Isolate::New();
+    j->Enter();
+    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() == prev;
+
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Thread function which returns the current JSRuntime cast to void
+  void* GetThreadJSRuntime(void* iso) {
+    TestUtils::AutoIsolateCleanup ac;
+    Isolate* i = reinterpret_cast<Isolate*>(iso);
+    JSRuntime* rt;
+
+    {
+      Locker l(i);
+      i->Enter();
+      rt = InternalIsolate::GetJSRuntimeForThread();
+      i->Exit();
+    }
+    return rt;
+  }
+
+
+  // Thread function which returns the current JSContext cast to void
+  void* GetThreadJSContext(void* iso) {
+    TestUtils::AutoIsolateCleanup ac;
+    Isolate* i = reinterpret_cast<Isolate*>(iso);
+    JSContext* cx;
+
+    {
+      Locker l(i);
+      i->Enter();
+      cx = InternalIsolate::GetJSContextForThread();
+      i->Exit();
+    }
+    return cx;
+  }
+
+
   // Thread function which tests if IsLockedForThisThread returns true for the given isolate
   void* CheckThreadLockStatus(void* iso) {
     InternalIsolate* i = reinterpret_cast<InternalIsolate*>(iso);
@@ -323,6 +517,264 @@ V8MONKEY_TEST(IntIsolate022, "IsLockedForThisThread reports false from different
   V8MONKEY_CHECK(!child.Join(), "Thread found IsLockedForThisThread false");
   InternalIsolate::FromIsolate(i)->Unlock();
   i->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate023, "Associated runtime initially null (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeInitiallyNull(), "JSRuntime is null");
+}
+
+
+V8MONKEY_TEST(IntIsolate024, "Associated runtime initially null (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(RuntimeInitiallyNull);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSRuntime is null");
+}
+
+
+V8MONKEY_TEST(IntIsolate025, "Associated context initially null (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextInitiallyNull(), "JSContext is null");
+}
+
+
+V8MONKEY_TEST(IntIsolate026, "Associated context initially null (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(ContextInitiallyNull);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSContext is null");
+}
+
+
+V8MONKEY_TEST(IntIsolate027, "After explicit isolate entry, JSRuntime non-null (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeNonNullAfterEntry(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate028, "After explicit isolate entry, JSRuntime non-null (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(RuntimeNonNullAfterEntry);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate029, "After explicit isolate entry, JSContext non-null (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextNonNullAfterEntry(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate030, "After explicit isolate entry, JSContext non-null (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(ContextNonNullAfterEntry);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate031, "After implicit isolate entry, JSRuntime non-null (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeNonNullAfterImplicitEntry(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate032, "After implicit isolate entry, JSRuntime non-null (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(RuntimeNonNullAfterImplicitEntry);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate033, "After implicit isolate entry, JSContext non-null (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextNonNullAfterImplicitEntry(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate034, "After implicit isolate entry, JSContext non-null (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(ContextNonNullAfterImplicitEntry);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate035, "After isolate exit, JSRuntime unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeUnchangedAfterExit(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate036, "After isolate exit, JSRuntime unchanged (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(RuntimeUnchangedAfterExit);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate037, "After isolate exit, JSContext unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextUnchangedAfterExit(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate038, "After isolate exit, JSContext unchanged (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(ContextUnchangedAfterExit);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate039, "After isolate re-entry, JSRuntime unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeUnchangedAfterReentry(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate040, "After isolate re-entry, JSRuntime unchanged (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(RuntimeUnchangedAfterReentry);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate041, "After isolate re-entry, JSContext unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextUnchangedAfterReentry(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate042, "After isolate re-entry, JSContext unchanged (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(ContextUnchangedAfterReentry);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate043, "After exiting one isolate and entering another, JSRuntime unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeUnchangedAfterEnteringOther(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate044, "After exiting one isolate and entering another, JSRuntime unchanged (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(RuntimeUnchangedAfterEnteringOther);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate045, "After exiting one isolate and entering another, JSContext unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextUnchangedAfterEnteringOther(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate046, "After exiting one isolate and entering another, JSContext unchanged (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(ContextUnchangedAfterEnteringOther);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate047, "After exiting one isolate and entering another (stacking), JSRuntime unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeUnchangedAfterEnteringOtherStack(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate048, "After exiting one isolate and entering another (stacking), JSRuntime unchanged (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(RuntimeUnchangedAfterEnteringOtherStack);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate049, "After exiting one isolate and entering another (stacking), JSContext unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextUnchangedAfterEnteringOtherStack(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate050, "After exiting one isolate and entering another (stacking), JSContext unchanged (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(ContextUnchangedAfterEnteringOtherStack);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate051, "Child threads entering same isolate are assigned different JSRuntimes") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* i = Isolate::New();
+  V8Platform::Thread child1(GetThreadJSRuntime);
+  V8Platform::Thread child2(GetThreadJSRuntime);
+
+  child1.Run(i);
+  child2.Run(i);
+
+  void* rt1 = child1.Join();
+  void* rt2 = child2.Join();
+
+  i->Dispose();
+
+  V8MONKEY_CHECK(rt1 != rt2, "Child threads assigned distinct runtimes");
+}
+
+
+V8MONKEY_TEST(IntIsolate052, "Child threads entering same isolate are assigned different JSContexts") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* i = Isolate::New();
+  V8Platform::Thread child1(GetThreadJSContext);
+  V8Platform::Thread child2(GetThreadJSContext);
+
+  child1.Run(i);
+  child2.Run(i);
+
+  void* cx1 = child1.Join();
+  void* cx2 = child2.Join();
+
+  i->Dispose();
+
+  V8MONKEY_CHECK(cx1 != cx2, "Child threads assigned distinct contexts");
+}
+
+
+V8MONKEY_TEST(IntIsolate053, "Main thread and child thread entering same isolate are assigned different JSRuntimes") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* i = Isolate::GetCurrent();
+  void* rt1 = GetThreadJSRuntime(i);
+
+  V8Platform::Thread child2(GetThreadJSRuntime);
+  child2.Run(i);
+  void* rt2 = child2.Join();
+
+  V8MONKEY_CHECK(rt1 != rt2, "Main and child threads assigned distinct runtimes");
+}
+
+
+V8MONKEY_TEST(IntIsolate054, "Child threads entering same isolate are assigned different JSContexts") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* i = Isolate::GetCurrent();
+  void* cx1 = GetThreadJSContext(i);
+
+  V8Platform::Thread child2(GetThreadJSContext);
+  child2.Run(i);
+  void* cx2 = child2.Join();
+
+  V8MONKEY_CHECK(cx1 != cx2, "Main and child threads assigned distinct contexts");
 }
 
 

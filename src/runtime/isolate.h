@@ -1,6 +1,7 @@
 #ifndef V8MONKEY_ISOLATE_H
 #define V8MONKEY_ISOLATE_H
 
+#include "jsapi.h"
 
 #include "handlescope.h"
 #include "platform.h"
@@ -105,6 +106,12 @@ namespace v8 {
           return reinterpret_cast<InternalIsolate*>(i);
         }
         #endif
+
+        // Return the JSRuntime associated with this thread. May be null
+        static JSRuntime* GetJSRuntimeForThread();
+
+        // Return the JSContext associated with this thread. May be null
+        static JSContext* GetJSContextForThread();
 
       private:
         // Fatal error handler for this isolate

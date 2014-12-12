@@ -80,6 +80,9 @@ namespace v8 {
         // Create a thread-local storage key
         static TLSKey* CreateTLSKey();
 
+        // Create a thread-local storage key with the given destructor
+        static TLSKey* CreateTLSKey(void (*destructorFn)(void*));
+
         // Delete a thread-local storage key
         static void DeleteTLSKey(TLSKey* k);
 

@@ -1,6 +1,8 @@
 // V8
 #include "v8.h"
 
+#include "jsapi.h"
+
 #include "autolock.h"
 #include "isolate.h"
 #include "platform.h"
@@ -19,12 +21,13 @@
  * was removed in bug 650411. Don't believe the documentation for JS_NewRuntime either, which states that JSRuntimes
  * can be moved from one thread to another with an API call. This too was removed, in bug 901934).
  *
- * Clearly then, we cannot have a 1-1 correspondence from V8 Isolates to JSAPI JSRuntimes.
+ * Clearly then, we cannot have a 1-1 correspondence from V8 Isolates to JSAPI JSRuntimes. Instead, we watch for threads
+ * we haven't seen before entering an isolate. At that point, the JSRuntime and JSContext will be created, and attached
+ * to the thread using TLS, with a destructor to tear them down. (Separate machinery ensures that the main thread's 
+ * runtime and context are destroyed before we call JS_Shutdown).
  *
- * TODO: What approach are we taking
- *
- * We follow the lead of V8 here. The public-facing Isolate class is made of air; it simply wraps pointers to the
- * internal class.
+ * In terms of implementation, we follow the lead of V8 here. The public-facing Isolate class is made of air; it simply
+ * wraps pointers to the corresponding internal class.
  *
  */
 
@@ -41,9 +44,67 @@ namespace {
   using namespace v8::V8Monkey;
 
 
+  struct RTCXData {
+    JSRuntime* rt;
+    JSContext* cx;
+  };
+
+
   // Thread-local storage keys for isolate related thread data
   TLSKey* threadIDKey = NULL;
   TLSKey* isolateKey = NULL;
+  TLSKey* rtcxKey = NULL;
+
+
+  // Tear down a context and runtime for a thread.
+  void tearDownCXAndRT(void* raw) {
+    RTCXData* data = reinterpret_cast<RTCXData*>(raw);
+    JS_DestroyContext(data->cx);
+    JS_DestroyRuntime(data->rt);
+    delete data;
+  }
+
+
+  // Assigns a JSRuntime and JSContext to this thread if necessary. If a JSRuntime* is present in TLS, then we assume
+  // that the context is present also
+  void EnsureRuntimeAndContext() {
+    void* raw_id = Platform::GetTLSData(rtcxKey);
+    if (raw_id) {
+      return;
+    }
+
+    RTCXData* data = new RTCXData;
+
+    // SpiderMonkey must be up and running before we start handing out runtimes
+    V8MonkeyCommon::EnsureSpiderMonkey();
+
+    JSRuntime* rt = JS_NewRuntime(JS::DefaultHeapMaxBytes);
+
+    if (!rt) {
+      // The game is up
+      delete data;
+      V8MonkeyCommon::TriggerFatalError("EnsureRuntimeAndContext", "SpiderMonkey's JS_NewRuntime failed");
+      return;
+    }
+
+    data->rt = rt;
+
+    // The stackChunkSize parameter isn't actually used by SpiderMonkey. This might affect implementation of
+    // the V8 resource constraints class.
+    JSContext* cx = JS_NewContext(rt, 8192);
+    if (!cx) {
+      // The game is up
+      JS_DestroyRuntime(rt);
+      delete data;
+      V8MonkeyCommon::TriggerFatalError("EnsureRuntimeAndContext", "SpiderMonkey's JS_NewContext failed");
+      return;
+    }
+
+    data->cx = cx;
+    // Set options here. Note: the MDN page for JS_NewContext uses JS_(G|S)etOptions. This changed in bug 880330.
+    JS::RuntimeOptionsRef(rt).setVarObjFix(true);
+    Platform::StoreTLSData(rtcxKey, data);
+  }
 
 
   // Returns the thread's ID from TLS, or 0 if not present
@@ -92,6 +153,7 @@ namespace {
   void InitializeCommonTLSKeys() {
     threadIDKey = Platform::CreateTLSKey();
     isolateKey = Platform::CreateTLSKey();
+    rtcxKey = Platform::CreateTLSKey(tearDownCXAndRT);
   }
 
 
@@ -245,6 +307,9 @@ namespace v8 {
       // We need to ensure this thread has an ID. GetCurrentThreadId creates one if necessary
       int threadID = FetchOrAssignThreadId();
 
+      // Likewise, it should have a JSRuntime and JSContext
+      EnsureRuntimeAndContext();
+
       // What isolate was the thread in previously?
       InternalIsolate* previousIsolate = GetIsolateFromTLS();
 
@@ -366,6 +431,39 @@ namespace v8 {
 
     void InternalIsolate::SetHandleScopeData(HandleScopeData& hsd) {
       handleScopeData = hsd;
+    }
+
+
+    // Return the JSRuntime associated with this thread. May be null
+    JSRuntime* InternalIsolate::GetJSRuntimeForThread() {
+      void* raw = Platform::GetTLSData(rtcxKey);
+      if (raw == nullptr) {
+        return nullptr;
+      }
+      RTCXData* data = reinterpret_cast<RTCXData*>(raw);
+      return data->rt;
+    }
+
+
+    // Return the JSContext associated with this thread. May be null
+    JSContext* InternalIsolate::GetJSContextForThread() {
+      void* raw = Platform::GetTLSData(rtcxKey);
+      if (raw == nullptr) {
+        return nullptr;
+      }
+      RTCXData* data = reinterpret_cast<RTCXData*>(raw);
+      return data->cx;
+    }
+
+
+    void V8MonkeyCommon::ForceRTCXDisposal() {
+      void* raw = Platform::GetTLSData(rtcxKey);
+      if (raw == nullptr) {
+        return;
+      }
+
+      tearDownCXAndRT(raw);
+      Platform::StoreTLSData(rtcxKey, 0);
     }
 
 

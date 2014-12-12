@@ -1,6 +1,8 @@
 #ifndef V8MONKEY_DESTRUCTLIST_H
 #define V8MONKEY_DESTRUCTLIST_H
 
+#include "threads/autolock.h"
+#include "platform.h"
 #include "test.h"
 
 
@@ -12,7 +14,10 @@
  * Pointers can be added multiple times, but will only be stored once. The deletion function is thus guaranteed to only
  * be called once per pointer. Note that NULL pointers are accepted.
  *
- * V8Monkey uses this for teardown of JSRuntimes and JSContexts.
+ * Add and delete operations are atomic.
+ *
+ * The intention was to use this for JSRuntime and JSContext teardown, however the design didn't work out. I'm leaving
+ * this in the tree for the moment, in case I find a use for it later.
  *
  */
 
@@ -26,6 +31,7 @@ namespace v8 {
         DestructingList(void (*destructionFn)(T*)) : destructionFunction(destructionFn), head(nullptr) {}
 
         ~DestructingList() {
+          AutoLock lock(mutex);
           DestructingListElem<T>* current = head;
 
           while (current != nullptr) {
@@ -39,6 +45,7 @@ namespace v8 {
         }
 
         void Add(T* value) {
+          AutoLock lock(mutex);
           if (Contains(value)) {
             return;
           }
@@ -51,6 +58,8 @@ namespace v8 {
         }
 
         void Delete(T* value) {
+          AutoLock lock(mutex);
+
           DestructingListElem<T>* val = Find(value);
           if (val == nullptr) {
             return;
@@ -87,6 +96,8 @@ namespace v8 {
         }
 
         void Iterate(void (*iterationFunction)(T*)) {
+          AutoLock lock(mutex);
+
           DestructingListElem<T>* current = head;
 
           while (current != nullptr) {
@@ -108,6 +119,8 @@ namespace v8 {
         void (*destructionFunction)(T*);
 
         DestructingListElem<T>* head;
+
+        V8Platform::Mutex mutex;
 
         DestructingListElem<T>* Find(T* value) {
           DestructingListElem<T>* current = head;

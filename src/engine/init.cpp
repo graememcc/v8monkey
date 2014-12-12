@@ -30,6 +30,7 @@ namespace {
 
 
       ~AutoSpiderMonkeyShutdown() {
+        v8::V8Monkey::V8MonkeyCommon::ForceRTCXDisposal();
         JS_ShutDown();
       }
   } autoFreeEngine;
@@ -54,6 +55,10 @@ namespace {
 
   // Mutex for checking/modifying engine disposal state
   v8::V8Platform::Mutex engineDisposalMutex;
+
+
+  // Has V8 been initted? We sometimes need to distinguish between V8 and SM inits
+  bool v8initted = false;
 
 
   // Has V8 been 'disposed'?
@@ -96,6 +101,11 @@ namespace v8 {
   bool V8::Initialize() {
     InitializeSpiderMonkey();
 
+    {
+      V8Monkey::AutoLock lock(engineInitMutex);
+      v8initted = true;
+    }
+
     // engineInitSucceeded will now be in a stable state
     if (!engineInitSucceeded) {
       // The V8 API appears to present engine init as infallible. In SpiderMonkey, failure—though unlikely—is possible.
@@ -115,7 +125,7 @@ namespace v8 {
 
     {
       AutoLock lock(engineInitMutex);
-      if (!engineInitSucceeded) {
+      if (!engineInitSucceeded || !v8initted) {
         return true;
       }
     }
@@ -154,6 +164,11 @@ if (InternalIsolate::IsEntered(i)) {
     void V8MonkeyCommon::TriggerFatalError(const char* location, const char* message) {
       hasFatalError = true;
       GetFatalErrorHandlerOrDefault()(location, message);
+    }
+
+
+    void V8MonkeyCommon::EnsureSpiderMonkey() {
+      InitializeSpiderMonkey();
     }
 
 
