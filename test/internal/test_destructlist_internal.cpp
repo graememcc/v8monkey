@@ -218,6 +218,7 @@ V8MONKEY_TEST(DSList015, "Delete Works correctly when empty") {
   int* a = new int(1);
   ds.Delete(a);
   V8MONKEY_CHECK(ds.Count() == 0, "List unaffected");
+  delete a;
 }
 
 
@@ -232,6 +233,7 @@ V8MONKEY_TEST(DSList016, "Delete works correctly when not there") {
   V8MONKEY_CHECK(ds.Contains(a), "List unaffected (1)");
   V8MONKEY_CHECK(ds.Contains(b), "List unaffected (2)");
   V8MONKEY_CHECK(ds.Count() == 2, "List unaffected (3)");
+  delete c;
 }
 
 
