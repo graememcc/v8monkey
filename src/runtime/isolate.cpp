@@ -3,8 +3,9 @@
 
 #include "jsapi.h"
 
-#include "autolock.h"
-#include "isolate.h"
+#include "data_structures/objectblock.h"
+#include "threads/autolock.h"
+#include "runtime/isolate.h"
 #include "platform.h"
 #include "v8monkey_common.h"
 
@@ -167,8 +168,28 @@ namespace {
   } defaultCreator;
 
 
-  // We define this here rather than with the class declaration to ensure correct static constructor ordering
-  //DefaultIsolateCreator thread1;
+  // Interface to isolate tracing for the SpiderMonkey garbage collector. Each isolate that has tracable roots stored
+  // in handlescopes will call JS_AddExtraGCRoots with this function, to participate in rooting.
+  void gcTracer(JSTracer* tracer, void* data) {
+    v8::V8Monkey::InternalIsolate* i = reinterpret_cast<v8::V8Monkey::InternalIsolate*>(data);
+    i->Trace(tracer);
+  }
+
+
+  // The ObjectBlock could potentially contain objects created by different threads, i.e. in different JSRuntimes.
+  // To that end, we supply both the JSRuntime and the JSTracer to the iterated objects. They will know which runtime
+  // created them, and can ignore the tracing requests for foreign runtimes.
+  struct TraceData {
+    JSRuntime* rt;
+    JSTracer* tracer;
+  };
+
+
+  // Interface to isolate tracing for the ObjectBlock iteration function
+  void traceV8MonkeyObject(V8MonkeyObject* object, void* data) {
+    TraceData* td = reinterpret_cast<TraceData*>(data);
+    object->Trace(td->rt, td->tracer);
+  }
 }
 
 
@@ -467,10 +488,55 @@ namespace v8 {
     }
 
 
+    // Mechanism for handlescopes to tell this isolate it needs to start rooting objects
+    void InternalIsolate::SetNeedToRoot(bool needToRoot) {
+      EnsureRuntimeAndContext();
+
+      if (needToRoot) {
+      #ifdef V8MONKEY_INTERNAL_TEST
+        if (gcOnNotifierFn) {
+          gcOnNotifierFn(GetJSRuntimeForThread(), gcTracer, this);
+        } else {
+          JS_AddExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
+        }
+      #else
+        JS_AddExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
+      #endif
+      } else {
+      #ifdef V8MONKEY_INTERNAL_TEST
+        if (gcOffNotifierFn) {
+          gcOffNotifierFn(GetJSRuntimeForThread(), gcTracer, this);
+        } else {
+          JS_RemoveExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
+        }
+      #else
+        JS_RemoveExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
+      #endif
+      }
+    }
+
+
+    void InternalIsolate::Trace(JSTracer* tracer) {
+      TraceData* td = new TraceData;
+      td->rt = GetJSRuntimeForThread();
+      td->tracer = tracer;
+
+      // Don't allow mutation of handle scope data whilst iterating over it
+      handleScopeDataMutex.Lock();
+      ObjectBlock<V8MonkeyObject>::Iterate(handleScopeData.limit, handleScopeData.next, traceV8MonkeyObject, td);
+      handleScopeDataMutex.Unlock();
+      delete td;
+    }
+
+
     InternalIsolate* InternalIsolate::defaultIsolate = NULL;
 
 
     #ifdef V8MONKEY_INTERNAL_TEST
+
+    void (*InternalIsolate::gcOnNotifierFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
+    void (*InternalIsolate::gcOffNotifierFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
+
     TestUtils::AutoIsolateCleanup::~AutoIsolateCleanup() {
       while (Isolate::GetCurrent() && InternalIsolate::IsEntered(InternalIsolate::GetCurrent())) {
         Isolate* i = Isolate::GetCurrent();

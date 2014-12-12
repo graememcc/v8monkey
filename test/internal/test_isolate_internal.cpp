@@ -1,5 +1,7 @@
 #include "v8.h"
 
+#include "jsapi.h"
+
 #include "isolate.h"
 #include "platform.h"
 #include "test.h"
@@ -13,11 +15,6 @@ using V8Monkey::TestUtils;
 
 // XXX V8 Dispose where necessary
 namespace {
-  //InternalIsolate* AsInternal(Isolate* i) {
-    //return reinterpret_cast<InternalIsolate*>(i);
-  //}
-
-
   InternalIsolate* CurrentAsInternal() {
     return InternalIsolate::FromIsolate(Isolate::GetCurrent());
   }
@@ -278,6 +275,22 @@ namespace {
   void* CheckThreadLockStatus(void* iso) {
     InternalIsolate* i = reinterpret_cast<InternalIsolate*>(iso);
     return reinterpret_cast<void*>(i->IsLockedForThisThread());
+  }
+
+
+  static bool wasGCOnNotified = false;
+
+
+  void gcOnNotifier(JSRuntime* rt, JSTraceDataOp op, void* data) {
+    wasGCOnNotified = true;
+  }
+
+
+  static bool wasGCOffNotified = false;
+
+
+  void gcOffNotifier(JSRuntime* rt, JSTraceDataOp op, void* data) {
+    wasGCOffNotified = true;
   }
 
 
@@ -775,6 +788,28 @@ V8MONKEY_TEST(IntIsolate054, "Child threads entering same isolate are assigned d
   void* cx2 = child2.Join();
 
   V8MONKEY_CHECK(cx1 != cx2, "Main and child threads assigned distinct contexts");
+}
+
+
+V8MONKEY_TEST(IntIsolate055, "Calling SetNeedToRoot with true correctly notifies the engine") {
+  TestUtils::AutoTestCleanup ac;
+  InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+  wasGCOnNotified = false;
+  InternalIsolate::GetCurrent()->SetNeedToRoot(true);
+
+  V8MONKEY_CHECK(wasGCOnNotified, "Notified SpiderMonkey about need to root");
+  InternalIsolate::SetGCNotifier(nullptr, nullptr);
+}
+
+
+V8MONKEY_TEST(IntIsolate056, "Calling SetNeedToRoot with false correctly notifies the engine") {
+  TestUtils::AutoTestCleanup ac;
+  InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+  wasGCOffNotified = false;
+  InternalIsolate::GetCurrent()->SetNeedToRoot(false);
+
+  V8MONKEY_CHECK(wasGCOffNotified, "Notified SpiderMonkey about need to root");
+  InternalIsolate::SetGCNotifier(nullptr, nullptr);
 }
 
 

@@ -1,7 +1,6 @@
 #ifndef V8MONKEY_PLATFORM_H
 #define V8MONKEY_PLATFORM_H
 
-
 /*
  * This file abstracts away platform specific details, though at time of writing the only implementation is for Linux
  *

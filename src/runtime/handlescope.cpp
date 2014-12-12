@@ -3,6 +3,7 @@
 #include "data_structures/objectblock.h"
 #include "runtime/isolate.h"
 #include "runtime/handlescope.h"
+#include "threads/autolock.h"
 #include "types/base_types.h"
 #include "test.h"
 
@@ -39,13 +40,21 @@ namespace v8 {
   HandleScope::~HandleScope() {
     using namespace V8Monkey;
 
+    InternalIsolate::AutoHandleScopeDataMutex lock(isolate);
+
     HandleScopeData hsd = isolate->GetHandleScopeData();
     if (hsd.limit != prev_limit || hsd.next != prev_next) {
+      // If we're resetting to null, the isolate doesn't have to participate in rooting any more
+      if (prev_limit == NULL && prev_next == NULL) {
+        isolate->SetNeedToRoot(false);
+      }
+
       V8Monkey::ObjectBlock<V8MonkeyObject>::Delete(hsd.limit, hsd.next, prev_next, deleteRefCount);
     }
 
     hsd.limit = prev_limit;
     hsd.next = prev_next;
+
     InternalIsolate::GetCurrent()->SetHandleScopeData(hsd);
   }
 
@@ -53,9 +62,17 @@ namespace v8 {
   V8Monkey::V8MonkeyObject** HandleScope::CreateHandle(V8Monkey::V8MonkeyObject* obj) {
     using namespace V8Monkey;
 
-    HandleScopeData hsd = InternalIsolate::GetCurrent()->GetHandleScopeData();
+    InternalIsolate* i = InternalIsolate::GetCurrent();
+    InternalIsolate::AutoHandleScopeDataMutex lock(i);
+
+    HandleScopeData hsd = i->GetHandleScopeData();
 
     if (hsd.limit == hsd.next) {
+      // If we're adding entries, the isolate needs to start working with the garbage collector
+      if (hsd.limit == NULL) {
+        i->SetNeedToRoot(true);
+      }
+
       ObjectBlock<V8MonkeyObject>::Limits limits = ObjectBlock<V8MonkeyObject>::Extend(hsd.limit);
       hsd.limit = limits.limit;
       hsd.next = limits.top;

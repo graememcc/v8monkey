@@ -59,9 +59,13 @@ namespace {
   bool objectVisited[ObjectBlock<IterateObject>::EffectiveBlockSize * 2];
 
 
+  void* objectVisitData[ObjectBlock<IterateObject>::EffectiveBlockSize * 2];
+
+
   void resetForIteration() {
     for (int i = 0; i < ObjectBlock<IterateObject>::EffectiveBlockSize * 2; i++) {
       objectVisited[i] = false;
+      objectVisitData[i] = nullptr;
     }
   }
 
@@ -76,6 +80,11 @@ namespace {
 
   void objectVisitor(IterateObject* i) {
     objectVisited[i->index] = true;
+  }
+
+
+  void objectDataVisitor(IterateObject* i, void* data) {
+    objectVisitData[i->index] = data;
   }
 }
 
@@ -520,6 +529,53 @@ V8MONKEY_TEST(ObjectBlock019, "Iteration works correctly (cross block)") {
 
   for (int i = 0; i < ObjectBlock<IterateObject>::EffectiveBlockSize + 20; i++) {
     V8MONKEY_CHECK(objectVisited[i], "Object visited");
+  }
+
+
+  ObjectBlock<IterateObject>::Delete(data2.limit, data2.top + 20, NULL);
+}
+
+
+V8MONKEY_TEST(ObjectBlock020, "Iteration with data works correctly (single block)") {
+  ObjectBlock<IterateObject>::Limits data = ObjectBlock<IterateObject>::Extend(NULL);
+  IterateObject** pos = data.top;
+
+  for (int i = 0; i < 10; i++) {
+    *(pos++) = new IterateObject(i);
+  }
+
+  resetForIteration();
+  void* objData = reinterpret_cast<void*>(0xbeef);
+  ObjectBlock<IterateObject>::Iterate(data.limit, pos, objectDataVisitor, objData);
+
+  for (int i = 0; i < 10; i++) {
+    V8MONKEY_CHECK(objectVisitData[i] == objData, "Object visited with correct data");
+  }
+
+  ObjectBlock<IterateObject>::Delete(data.limit, data.top + 10, NULL);
+}
+
+
+V8MONKEY_TEST(ObjectBlock021, "Iteration with data works correctly (cross block)") {
+  ObjectBlock<IterateObject>::Limits data1 = ObjectBlock<IterateObject>::Extend(NULL);
+  IterateObject** pos = data1.top;
+  ObjectBlock<IterateObject>::Limits data2 = ObjectBlock<IterateObject>::Extend(data1.limit);
+  IterateObject** pos2 = data2.top;
+
+  for (int i = 0; i < ObjectBlock<IterateObject>::EffectiveBlockSize; i++) {
+    *(pos++) = new IterateObject(i);
+  }
+
+  for (int i = 0; i < 20; i++) {
+    *(pos2++) = new IterateObject(ObjectBlock<IterateObject>::EffectiveBlockSize + i);
+  }
+
+  resetForIteration();
+  void* objData = reinterpret_cast<void*>(0xbeef);
+  ObjectBlock<IterateObject>::Iterate(data2.limit, data2.top + 20, objectDataVisitor, objData);
+
+  for (int i = 0; i < ObjectBlock<IterateObject>::EffectiveBlockSize + 20; i++) {
+    V8MONKEY_CHECK(objectVisitData[i] == objData, "Object visited with correct data");
   }
 
 

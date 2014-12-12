@@ -82,6 +82,37 @@ namespace v8 {
         // Copy the given HandleScopeData into our own
         void SetHandleScopeData(HandleScopeData& hsd);
 
+        // Get the GC Mutex for mutating HandleScopeData
+        void LockHSDMutex() {
+          handleScopeDataMutex.Lock();
+        }
+
+        // Unlock the GC Mutex for mutating HandleScopeData
+        void UnlockHSDMutex() {
+          handleScopeDataMutex.Unlock();
+        }
+
+        // GC Rooting
+        void Trace(JSTracer* tracer);
+
+        // RAII helper
+        class AutoHandleScopeDataMutex {
+          public:
+            AutoHandleScopeDataMutex(InternalIsolate* i) : isolate(i) {
+              isolate->LockHSDMutex();
+            }
+
+            ~AutoHandleScopeDataMutex() {
+              isolate->UnlockHSDMutex();
+            }
+
+          private:
+            InternalIsolate* isolate;
+        };
+
+        // Mechanism for handlescopes to tell this isolate it needs to start rooting objects
+        void SetNeedToRoot(bool needToRoot);
+
         // Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
         // "unlock" themselves to yield the isolate, we can't even be sure that threads will enter and exit in a LIFO
         // order-the ordering will be at the mercy of the locking mechanism. Thus we need some way of answering the
@@ -105,6 +136,12 @@ namespace v8 {
         static InternalIsolate* FromIsolate(Isolate* i) {
           return reinterpret_cast<InternalIsolate*>(i);
         }
+
+        static void SetGCNotifier(void (*onNotifier)(JSRuntime*, JSTraceDataOp, void*), void (*offNotifier)(JSRuntime*, JSTraceDataOp, void*)) {
+          gcOnNotifierFn = onNotifier;
+          gcOffNotifierFn = offNotifier;
+        }
+
         #endif
 
         // Return the JSRuntime associated with this thread. May be null
@@ -129,6 +166,9 @@ namespace v8 {
         // Locking mutex
         V8Platform::Mutex lockingMutex;
 
+        // GC Mutex
+        V8Platform::Mutex handleScopeDataMutex;
+
         // Each thread has a reference to its current isolate stored within the thread
         static InternalIsolate* GetIsolateFromTLS();
         static void SetIsolateInTLS(InternalIsolate* i);
@@ -144,6 +184,11 @@ namespace v8 {
         ThreadData* FindOrCreateThreadData(int threadID, InternalIsolate* previousIsolate);
         ThreadData* FindThreadData(int threadID);
         void DeleteThreadData(ThreadData* data);
+
+        #ifdef V8MONKEY_INTERNAL_TEST
+        static void (*gcOnNotifierFn)(JSRuntime*, JSTraceDataOp, void*);
+        static void (*gcOffNotifierFn)(JSRuntime*, JSTraceDataOp, void*);
+        #endif
     };
   }
 }

@@ -10,7 +10,7 @@
 #
 # In either of the above cases, I think ultimately we would still want a target that says "yeah, I don't have that
 # library. Go ahead and pull in the SpiderMonkey source and build it for me, would ya?"
-# 
+#
 # Of course, at time of writing, I also need to investigate what node actually expects in terms of v8 libraries, (i.e
 # shared or static?) which in turn leads to questions regarding the scope of my v8monkey: should it simply satisfy
 # node's V8 embedding requirements or do we want it to be fully general for any V8 embedder?
@@ -322,8 +322,8 @@ src/runtime/handlescope.h: src/types/base_types.h
 $(call variants, src/runtime/handlescope) src/runtime/isolate.h: src/runtime/handlescope.h
 
 
-# HandleScopes use object blocks
-$(call variants, src/runtime/handlescope): src/data_structures/objectblock.h
+# HandleScopes and isolates use object blocks
+$(call variants, src/runtime/handlescope) $(call variants, src/runtime/isolate): src/data_structures/objectblock.h
 
 
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
@@ -454,8 +454,10 @@ $(outdir)/test/internal/test_smartpointer_internal.o: src/data_structures/smart_
 $(outdir)/test/internal/test_destructlist_internal.o: src/data_structures/destruct_list.h
 
 
-# Several files depend on the JSAPI header
-$(outdir)/test/internal/test_smartpointer_internal.o: $(smheadersdir)/jsapi.h
+# Several internal files depend on the JSAPI header
+test_jsapi_stems = isolate smartpointer
+test_jsapi_deps = $(addsuffix _internal.o, $(addprefix $(outdir)/test/internal/test_, $(test_jsapi_stems)))
+$(test_jsapi_deps): $(smheadersdir)/jsapi.h
 
 
 # The individual object files depend on the existence of their output directory
@@ -473,7 +475,7 @@ $(outdir)/test/harness/V8MonkeyTest.o: $(outdir)/test/harness
 # *********************************************************************************************************************
 # Code from here on down is concerned with building the SpiderMonkey shared library
 
-# In the below, I was shelling out to the Mozilla make unneccesarily, as make apparently compares the real file's 
+# In the below, I was shelling out to the Mozilla make unneccesarily, as make apparently compares the real file's
 # timestamp when it encounters symlinks, and it turns out that the dist/include created by building SpiderMonkey
 # contains symlinks. GNU make 3.81 provides a command-line flag to compare the symlink time, but we shouldn't require
 # our users to remember to explicitly use such a flag. Thus, after an update, we touch the source jsapi.h header to fix

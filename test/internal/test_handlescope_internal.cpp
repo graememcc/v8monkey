@@ -11,6 +11,30 @@
 using namespace v8;
 using namespace v8::V8Monkey;
 
+namespace {
+  static bool wasGCOnNotified = false;
+
+
+  static JSTraceDataOp traceFn = nullptr;
+  static void* traceData = nullptr;
+
+
+  void gcOnNotifier(JSRuntime* rt, JSTraceDataOp op, void* data) {
+    wasGCOnNotified = true;
+    traceFn = op;
+    traceData = data;
+  }
+
+
+  static bool wasGCOffNotified = false;
+
+
+  void gcOffNotifier(JSRuntime* rt, JSTraceDataOp op, void* data) {
+    wasGCOffNotified = true;
+  }
+}
+
+
 V8MONKEY_TEST(IntHandleScope001, "InternalIsolate HandleScopeData next initially null") {
   TestUtils::AutoTestCleanup ac;
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
@@ -534,4 +558,103 @@ V8MONKEY_TEST(IntHandleScope025, "Transitioning from one empty handlescope to an
 
   V8MONKEY_CHECK(hsd.next == NULL, "Moving from empty handlescope to empty handlescope works");
   V8MONKEY_CHECK(hsd.limit == NULL, "Moving from empty handlescope to empty handlescope works");
+}
+
+
+V8MONKEY_TEST(IntHandleScope026, "Adding first handle notifies SpiderMonkey about GC") {
+  TestUtils::AutoTestCleanup ac;
+
+  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
+  {
+    InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+    wasGCOnNotified = false;
+    HandleScope h;
+    HandleScope::CreateHandle(d);
+    V8MONKEY_CHECK(wasGCOnNotified, "Adding first handle notifies");
+    InternalIsolate::SetGCNotifier(nullptr, nullptr);
+  }
+  traceFn = nullptr;
+}
+
+
+V8MONKEY_TEST(IntHandleScope027, "Adding later handles dont notify") {
+  TestUtils::AutoTestCleanup ac;
+
+  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
+  {
+    HandleScope h;
+    HandleScope::CreateHandle(d);
+
+    wasGCOnNotified = false;
+    InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+    HandleScope::CreateHandle(d);
+
+    V8MONKEY_CHECK(!wasGCOnNotified, "Adding later handles don't notify");
+    InternalIsolate::SetGCNotifier(nullptr, nullptr);
+  }
+  traceFn = nullptr;
+}
+
+
+V8MONKEY_TEST(IntHandleScope028, "Removing last handle notifies SpiderMonkey about GC") {
+  TestUtils::AutoTestCleanup ac;
+
+  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
+  {
+    InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+    HandleScope h;
+    HandleScope::CreateHandle(d);
+    wasGCOffNotified = false;
+  }
+  V8MONKEY_CHECK(wasGCOffNotified, "Removing last handle notifies");
+  InternalIsolate::SetGCNotifier(nullptr, nullptr);
+  traceFn = nullptr;
+}
+
+
+V8MONKEY_TEST(IntHandleScope029, "Removing handle other than last doesn't notify SpiderMonkey about GC") {
+  TestUtils::AutoTestCleanup ac;
+
+  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
+  {
+    HandleScope h;
+    HandleScope::CreateHandle(d);
+    {
+      HandleScope i;
+      HandleScope::CreateHandle(d);
+      wasGCOffNotified = false;
+      InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+    }
+    V8MONKEY_CHECK(!wasGCOffNotified, "Removing handle doesn't notify");
+    InternalIsolate::SetGCNotifier(nullptr, nullptr);
+    traceFn = nullptr;
+  }
+}
+
+
+V8MONKEY_TEST(IntHandleScope030, "Items traced correctly") {
+  TestUtils::AutoTestCleanup ac;
+
+  static bool traced = false;
+  class TraceFake : public V8MonkeyObject {
+    public:
+      TraceFake() {}
+      ~TraceFake() {}
+      void Trace(JSRuntime* runtime, JSTracer* tracer) {traced = true; }
+  };
+
+  TraceFake* t = new TraceFake;
+  traceFn = nullptr;
+  traceData = nullptr;
+
+  {
+    HandleScope h;
+    InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+    HandleScope::CreateHandle(t);
+    traceFn(nullptr, traceData);
+    InternalIsolate::SetGCNotifier(nullptr, nullptr);
+    traceFn = nullptr;
+  }
+
+  V8MONKEY_CHECK(traced, "Value was traced");
 }

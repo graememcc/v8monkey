@@ -69,6 +69,10 @@ class ObjectBlock {
     // turn.
     static void Iterate(T** currentLimit, T** currentTop, void (*iterationFunction)(T*));
 
+    // Iterates over every object contained in the list of blocks, and calls the given function with each one in
+    // turn, passing the supplied data
+    static void Iterate(T** currentLimit, T** currentTop, void (*iterationFunction)(T*, void*), void* data);
+
   private:
     static const int BlockSize = 1022;
 
@@ -156,13 +160,31 @@ void ObjectBlock<T>::Iterate(T** currentLimit, T** currentTop, void (*iterationF
   if (!currentLimit || !currentTop)
     return;
 
-
   T** from = currentTop - 1;
   T** top = currentLimit - BlockSize;
 
   do {
     for (T** ptr = from; ptr >= top + 2; ptr--) {
       iterationFunction(*ptr);
+    }
+
+    top = reinterpret_cast<T**>(*top);
+    from = top + BlockSize - 1;
+  } while (top);
+}
+
+
+template<class T>
+void ObjectBlock<T>::Iterate(T** currentLimit, T** currentTop, void (*iterationFunction)(T*, void*), void* data) {
+  if (!currentLimit || !currentTop)
+    return;
+
+  T** from = currentTop - 1;
+  T** top = currentLimit - BlockSize;
+
+  do {
+    for (T** ptr = from; ptr >= top + 2; ptr--) {
+      iterationFunction(*ptr, data);
     }
 
     top = reinterpret_cast<T**>(*top);
