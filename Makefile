@@ -360,7 +360,7 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 
 
 # The "internals" test harness is composed from the following
-internalteststems = death fatalerror handlescope init isolate locker objectblock platform smartpointer threadID
+internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock platform smartpointer threadID
 internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
@@ -446,6 +446,10 @@ $(addprefix $(outdir)/test/internal/test_, $(addsuffix _internal.o, $(test_baset
 
 # test_smartptr_internal needs the smart pointer definition
 $(outdir)/test/internal/test_smartpointer_internal.o: src/data_structures/smart_pointer.h
+
+
+# test_destructlist_internal needs the type it tests too
+$(outdir)/test/internal/test_destructlist_internal.o: src/data_structures/destruct_list.h
 
 
 # Several files depend on the JSAPI header

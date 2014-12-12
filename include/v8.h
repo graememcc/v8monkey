@@ -119,36 +119,35 @@ namespace v8 {
       bool is_closed_;
 
       V8Monkey::V8MonkeyObject** InternalClose(V8Monkey::V8MonkeyObject** value);
-    };
+  };
 
 
-/*
-  class V8EXPORT Data {
-      private:
-        Data();
-    };
-  */
+  class APIEXPORT Data {
+    private:
+      Data() {}
+  };
+
 
 
     /*
       class V8EXPORT ScriptData {
       public:
         virtual ~ScriptData() { }
-  
+
         static ScriptData* PreCompile(const char* input, int length);
-  
+
         static ScriptData* PreCompile(Handle<String> source);
-  
+
         static ScriptData* New(const char* data, int length);
-  
+
         virtual int Length() = 0;
-  
+
         virtual const char* Data() = 0;
-  
+
         virtual bool HasError() = 0;
     };
-  
-  
+
+
     class ScriptOrigin {
       public:
         inline ScriptOrigin(
@@ -166,65 +165,65 @@ namespace v8 {
         Handle<Integer> resource_line_offset_;
         Handle<Integer> resource_column_offset_;
     };
-  
-  
+
+
     class V8EXPORT Script {
       public:
         static Local<Script> New(Handle<String> source,
                                  ScriptOrigin* origin = NULL,
                                  ScriptData* pre_data = NULL,
                                  Handle<String> script_data = Handle<String>());
-  
+
         static Local<Script> New(Handle<String> source,
                                  Handle<Value> file_name);
-  
+
         static Local<Script> Compile(Handle<String> source,
                                      ScriptOrigin* origin = NULL,
                                      ScriptData* pre_data = NULL,
                                      Handle<String> script_data = Handle<String>());
-  
+
         static Local<Script> Compile(Handle<String> source,
                                      Handle<Value> file_name,
                                      Handle<String> script_data = Handle<String>());
-  
+
         Local<Value> Run();
-  
+
         Local<Value> Id();
-  
+
         void SetData(Handle<String> data);
     };
-  
-  
+
+
     class V8EXPORT Message {
        public:
         Local<String> Get() const;
-  
+
         Local<String> GetSourceLine() const;
-  
+
         Handle<Value> GetScriptResourceName() const;
-  
+
         Handle<Value> GetScriptData() const;
-  
+
         Handle<StackTrace> GetStackTrace() const;
-  
+
         int GetLineNumber() const;
-  
+
         int GetStartPosition() const;
-  
+
         int GetEndPosition() const;
-  
+
         int GetStartColumn() const;
-  
+
         int GetEndColumn() const;
-  
+
         static void PrintCurrentStackTrace(FILE* out);
-  
+
         static const int kNoLineNumberInfo = 0;
-  
+
         static const int kNoColumnInfo = 0;
     };
-  
-  
+
+
     class V8EXPORT StackTrace {
       public:
         enum StackTraceOptions {
@@ -238,13 +237,13 @@ namespace v8 {
           kOverview = kLineNumber | kColumnOffset | kScriptName | kFunctionName,
           kDetailed = kOverview | kIsEval | kIsConstructor | kScriptNameOrSourceURL
       };
-  
+
       Local<StackFrame> GetFrame(uint32_t index) const;
-  
+
       int GetFrameCount() const;
-  
+
       Local<Array> AsArray();
-  
+
       static Local<StackTrace> CurrentStackTrace(
           int frame_limit,
           StackTraceOptions options = kOverview);
@@ -270,88 +269,113 @@ namespace v8 {
     */
 
 
+
 /*
-    class Value : public Data {
-      public:
-        inline bool IsUndefined() const;
-  
-        inline bool IsNull() const;
-  
-        V8EXPORT bool IsTrue() const;
-  
-        V8EXPORT bool IsFalse() const;
-  
-        inline bool IsString() const;
-  
-        V8EXPORT bool IsFunction() const;
-  
-        V8EXPORT bool IsArray() const;
-  
-        V8EXPORT bool IsObject() const;
-  
-        V8EXPORT bool IsBoolean() const;
-  
-        V8EXPORT bool IsNumber() const;
-  
-        V8EXPORT bool IsExternal() const;
-  
-        V8EXPORT bool IsInt32() const;
-  
-        V8EXPORT bool IsUint32() const;
-  
-        V8EXPORT bool IsDate() const;
-  
-        V8EXPORT bool IsBooleanObject() const;
-  
-        V8EXPORT bool IsNumberObject() const;
-  
-        V8EXPORT bool IsStringObject() const;
-  
-        V8EXPORT bool IsNativeError() const;
-  
-        V8EXPORT bool IsRegExp() const;
-  
-        V8EXPORT Local<Boolean> ToBoolean() const;
-        V8EXPORT Local<Number> ToNumber() const;
-        V8EXPORT Local<String> ToString() const;
-        V8EXPORT Local<String> ToDetailString() const;
-        V8EXPORT Local<Object> ToObject() const;
-        V8EXPORT Local<Integer> ToInteger() const;
-        V8EXPORT Local<Uint32> ToUint32() const;
-        V8EXPORT Local<Int32> ToInt32() const;
-  
-        V8EXPORT Local<Uint32> ToArrayIndex() const;
-  
-        V8EXPORT bool BooleanValue() const;
-        V8EXPORT double NumberValue() const;
-        V8EXPORT int64_t IntegerValue() const;
-        V8EXPORT uint32_t Uint32Value() const;
-        V8EXPORT int32_t Int32Value() const;
-  
-        V8EXPORT bool Equals(Handle<Value> that) const;
-        V8EXPORT bool StrictEquals(Handle<Value> that) const;
-  
-      private:
-        inline bool QuickIsUndefined() const;
-        inline bool QuickIsNull() const;
-        inline bool QuickIsString() const;
-        V8EXPORT bool FullIsUndefined() const;
-        V8EXPORT bool FullIsNull() const;
-        V8EXPORT bool FullIsString() const;
-    };
-  
-  
-    class Primitive : public Value { };
-  
-  
-    class Boolean : public Primitive {
-      public:
-        V8EXPORT bool Value() const;
-        static inline Handle<Boolean> New(bool value);
-    };
+  class Value : public Data {
+    public:
+      inline bool IsUndefined() const;
+
+      inline bool IsNull() const;
+
+      V8EXPORT bool IsTrue() const;
+
+      V8EXPORT bool IsFalse() const;
+
+      inline bool IsString() const;
+
+      V8EXPORT bool IsFunction() const;
+
+      V8EXPORT bool IsArray() const;
+
+      V8EXPORT bool IsObject() const;
+
+      V8EXPORT bool IsBoolean() const;
+
+      V8EXPORT bool IsNumber() const;
+
+      V8EXPORT bool IsExternal() const;
+
+      V8EXPORT bool IsInt32() const;
+
+      V8EXPORT bool IsUint32() const;
+
+      V8EXPORT bool IsDate() const;
+
+      V8EXPORT bool IsBooleanObject() const;
+
+      V8EXPORT bool IsNumberObject() const;
+
+      V8EXPORT bool IsStringObject() const;
+
+      V8EXPORT bool IsNativeError() const;
+
+      V8EXPORT bool IsRegExp() const;
+
+      V8EXPORT Local<Boolean> ToBoolean() const;
+
+      V8EXPORT Local<Number> ToNumber() const;
+
+      V8EXPORT Local<String> ToString() const;
+
+      V8EXPORT Local<String> ToDetailString() const;
+
+      V8EXPORT Local<Object> ToObject() const;
+
+      V8EXPORT Local<Integer> ToInteger() const;
+
+      V8EXPORT Local<Uint32> ToUint32() const;
+
+      V8EXPORT Local<Int32> ToInt32() const;
+
+      V8EXPORT Local<Uint32> ToArrayIndex() const;
+
+      V8EXPORT bool BooleanValue() const;
+
+      V8EXPORT double NumberValue() const;
+
+      V8EXPORT int64_t IntegerValue() const;
+
+      V8EXPORT uint32_t Uint32Value() const;
+
+      V8EXPORT int32_t Int32Value() const;
+
+      V8EXPORT bool Equals(Handle<Value> that) const;
+
+      V8EXPORT bool StrictEquals(Handle<Value> that) const;
+
+    private:
+      // XXX Needed?
+      inline bool QuickIsUndefined() const;
+
+      // XXX Needed?
+      inline bool QuickIsNull() const;
+
+      // XXX Needed?
+      inline bool QuickIsString() const;
+
+      // XXX Needed?
+      V8EXPORT bool FullIsUndefined() const;
+
+      // XXX Needed?
+      V8EXPORT bool FullIsNull() const;
+
+      // XXX Needed?
+      V8EXPORT bool FullIsString() const;
+  };
+
+
+  class Primitive : public Value {};
+
+
+  class APIEXPORT Boolean : public Primitive {
+    public:
+      bool Value() const;
+
+      static inline Handle<Boolean> New(bool value);
+  };
 */
-  
-  
+
+
   /*
     class Number : public Primitive {
       public:
@@ -362,8 +386,8 @@ namespace v8 {
         V8EXPORT Number();
         V8EXPORT static void CheckCast(v8::Value* obj);
     };
-  
-  
+
+
     class Integer : public Number {
       public:
         V8EXPORT static Local<Integer> New(int32_t value);
@@ -376,16 +400,16 @@ namespace v8 {
         V8EXPORT Integer();
         V8EXPORT static void CheckCast(v8::Value* obj);
     };
-  
-  
+
+
     class Int32 : public Integer {
       public:
         V8EXPORT int32_t Value() const;
       private:
         V8EXPORT Int32();
     };
-  
-  
+
+
     class Uint32 : public Integer {
       public:
         V8EXPORT uint32_t Value() const;
@@ -434,7 +458,7 @@ namespace v8 {
       ~Isolate();
 
       Isolate& operator=(const Isolate&);
- 
+
       void* operator new(size_t);
 
       void operator delete(void*, size_t);
@@ -589,8 +613,11 @@ namespace v8 {
 
   template<class T>
   Local<T> HandleScope::Close(Handle<T> value) {
-    return InternalClose(reinterpret_cast<V8Monkey::V8MonkeyObject**>(*value));
+    // XXX FIXME
+    return Local<T>();
+    //return InternalClose(reinterpret_cast<V8Monkey::V8MonkeyObject**>(*value));
   }
+
 }
 
 #endif

@@ -69,4 +69,11 @@ namespace v8 {
 
     return ptr;
   }
+
+
+/*
+  template <class T>
+  V8Monkey::V8MonkeyObject** HandleScope::InternalClose(V8Monkey::V8MonkeyObject** obj) {
+  }
+*/
 }
