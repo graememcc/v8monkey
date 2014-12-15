@@ -134,7 +134,10 @@ warnings = -Wall -Wextra -Wmissing-include-dirs
 #   - std=c++0x SpiderMonkey uses some C++11 features in the header
 #   - fvisibility=hidden We want to minimize the number of symbols exported
 #   - fPIC shared libraries need position-independent code
-CXXFLAGS += -g $(warnings) $(includeopt) -fPIC -fvisibility=hidden -std=c++0x
+# XXX Remove dependency flag (-MMD)
+# XXX Remove debug flag (-g)
+# XXX Remove -DDEBUG
+CXXFLAGS += -MMD -g -DDEBUG=1 $(warnings) $(includeopt) -fPIC -fvisibility=hidden -std=c++0x
 
 
 # Define a command that will produce a link command for the given library name
