@@ -1,6 +1,6 @@
 #include "v8.h"
 
-#include "isolate.h"
+#include "runtime/isolate.h"
 #include "platform.h"
 #include "V8MonkeyTest.h"
 

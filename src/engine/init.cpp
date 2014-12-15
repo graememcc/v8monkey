@@ -2,9 +2,9 @@
 #include "v8.h"
 
 
-#include "autolock.h"
+#include "threads/autolock.h"
 #include "init.h"
-#include "isolate.h"
+#include "runtime/isolate.h"
 #include "platform.h"
 #include "test.h"
 #include "v8monkey_common.h"

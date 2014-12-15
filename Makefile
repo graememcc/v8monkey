@@ -119,7 +119,7 @@ v8monkeytesttarget = $(v8monkeyinternaldir)/$(v8testlibraryfile)
 #  - some files in src/ may depend on additional headers in src
 # Note: we use -isystem to prevent warning spew from JSAPI
 # TODO: Is there a idiomatic name for this in makefiles?
-includedirs = $(v8monkeyheadersdir) $(CURDIR)/src/threads $(CURDIR)/src/engine $(CURDIR)/src/runtime $(CURDIR)/src
+includedirs = $(v8monkeyheadersdir) $(CURDIR)/src
 includeopt = $(addprefix -I, $(includedirs))
 includeopt += -isystem $(smheadersdir)
 

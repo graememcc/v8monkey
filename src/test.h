@@ -14,7 +14,7 @@
 
 // Define a utility class with a grabbag of methods handy for internal testing
 #ifdef V8MONKEY_INTERNAL_TEST
-#include "isolate.h"
+#include "runtime/isolate.h"
 
 namespace v8 {
   namespace V8Monkey {
