@@ -1,6 +1,7 @@
 #include "v8.h"
 
 #include "data_structures/destruct_list.h"
+#include "types/base_types.h"
 #include "test.h"
 #include "V8MonkeyTest.h"
 
@@ -17,13 +18,8 @@ namespace {
   }
 
 
-  class DeletionObject;
-
-
-  static bool wasDeleted[DESTRUCTARRAYSIZE];
-
-
-  static bool nullDeleted = false;
+  bool wasDeleted[DESTRUCTARRAYSIZE];
+  bool nullDeleted = false;
 
 
   void resetForDeletion() {
@@ -32,14 +28,6 @@ namespace {
     }
     nullDeleted = false;
   }
-
-
-  class DeletionObject {
-    public:
-      DeletionObject(int n) { index = n; }
-      ~DeletionObject() { wasDeleted[index] = true; }
-      int index;
-  };
 
 
   void deletionFunction(DeletionObject* d) {
@@ -436,7 +424,7 @@ V8MONKEY_TEST(DSList029, "List deletion works when empty") {
 V8MONKEY_TEST(DSList030, "List deletion works correctly") {
   DestructingList<DeletionObject>* ds = new DestructingList<DeletionObject>(deletionFunction);
   for (int i = 0; i < DESTRUCTARRAYSIZE; i++) {
-    ds->Add(new DeletionObject(i));
+    ds->Add(new DeletionObject(&wasDeleted[i]));
   }
 
   resetForDeletion();
@@ -452,7 +440,7 @@ V8MONKEY_TEST(DSList030, "List deletion works correctly") {
 V8MONKEY_TEST(DSList031, "List deletion works correctly when null present (1)") {
   DestructingList<DeletionObject>* ds = new DestructingList<DeletionObject>(deletionFunction);
   for (int i = 0; i < DESTRUCTARRAYSIZE; i++) {
-    ds->Add(new DeletionObject(i));
+    ds->Add(new DeletionObject(&wasDeleted[i]));
   }
   ds->Add(nullptr);
 
@@ -485,7 +473,7 @@ V8MONKEY_TEST(DSList033, "Deletion function called when individual items deleted
   DeletionObject* ptrs[DESTRUCTARRAYSIZE];
 
   for (int i = 0; i < DESTRUCTARRAYSIZE; i++) {
-    ptrs[i] = new DeletionObject(i);
+    ptrs[i] = new DeletionObject(&wasDeleted[i]);
     ds->Add(ptrs[i]);
   }
 

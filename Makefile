@@ -442,7 +442,7 @@ $(outdir)/test/internal/test_handlescope_internal.o $(outdir)/test/internal/test
 
 
 # test_smartptr_internal depends on the base_type definitions
-test_basetypes_deps = handlescope smartpointer
+test_basetypes_deps = destructlist handlescope objectblock smartpointer
 $(addprefix $(outdir)/test/internal/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
 
 

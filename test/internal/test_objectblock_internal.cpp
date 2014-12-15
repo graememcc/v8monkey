@@ -1,6 +1,7 @@
 #include "v8.h"
 
 #include "data_structures/objectblock.h"
+#include "types/base_types.h"
 #include "test.h"
 #include "V8MonkeyTest.h"
 
@@ -20,13 +21,7 @@ namespace {
   }
 
 
-  // TODO: We use somewhat similar DeletionObjects in the SmartPointer and HandleScope tests. This should be refactored
-  //       into common code, and placed somewhere reachable for all those tests
-
-
-  class DeletionObject;
-
-
+  // We often create several objects, and delete some subset of them. We use these arrays to track which were deleted
   const int deletionObjectBlockSize = ObjectBlock<DeletionObject>::BlockSize;
   const int deletionObjectMax = deletionObjectBlockSize + 20;
   bool wasCalled[deletionObjectMax];
@@ -39,16 +34,6 @@ namespace {
       wasDeleted[i] = false;
     }
   }
-
-
-  // Many of the tests seek to test when objects contained in object blocks are deleted. To this end, we use special
-  // fake objects that set a flag in array of flags if they were deleted
-  class DeletionObject {
-    public:
-      DeletionObject(int n) { index = n; }
-      ~DeletionObject() { wasDeleted[index] = true; }
-      int index;
-  };
 
 
   void deletionFunction(DeletionObject* d) {
@@ -178,7 +163,7 @@ V8MONKEY_TEST(ObjectBlock008, "Deleting deletes individual members (single block
   DeletionObject** pos = data.top;
 
   for (int i = 0; i < 10; i++) {
-    *(pos++) = new DeletionObject(i);
+    *(pos++) = new DeletionObject(&wasDeleted[i]);
   }
 
   resetForDeletion();
@@ -195,7 +180,7 @@ V8MONKEY_TEST(ObjectBlock009, "Deleting deletes individual members (partial bloc
   DeletionObject** pos = data.top;
 
   for (int i = 0; i < 20; i++) {
-    *(pos++) = new DeletionObject(i);
+    *(pos++) = new DeletionObject(&wasDeleted[i]);
   }
 
   resetForDeletion();
@@ -218,7 +203,7 @@ V8MONKEY_TEST(ObjectBlock010, "Deleting deletes individual members (cross block 
   DeletionObject** pos = data1.top;
 
   for (int i = 0; i < deletionObjectBlockSize; i++) {
-    *(pos++) = new DeletionObject(i);
+    *(pos++) = new DeletionObject(&wasDeleted[i]);
   }
 
   V8MONKEY_CHECK(pos == data1.limit, "Sanity check");
@@ -227,7 +212,7 @@ V8MONKEY_TEST(ObjectBlock010, "Deleting deletes individual members (cross block 
   DeletionObject** pos2 = data2.top;
 
   for (int i = 0; i < deletionObjectMax - deletionObjectBlockSize; i++) {
-    *(pos2++) = new DeletionObject(deletionObjectBlockSize + i);
+    *(pos2++) = new DeletionObject(&wasDeleted[deletionObjectBlockSize + i]);
   }
 
   resetForDeletion();
@@ -244,7 +229,7 @@ V8MONKEY_TEST(ObjectBlock011, "Deleting deletes individual members (cross block)
   DeletionObject** pos = data1.top;
 
   for (int i = 0; i < deletionObjectBlockSize; i++) {
-    *(pos++) = new DeletionObject(i);
+    *(pos++) = new DeletionObject(&wasDeleted[i]);
   }
 
   V8MONKEY_CHECK(pos == data1.limit, "Sanity check");
@@ -253,7 +238,7 @@ V8MONKEY_TEST(ObjectBlock011, "Deleting deletes individual members (cross block)
   DeletionObject** pos2 = data2.top;
 
   for (int i = 0; i < deletionObjectMax - deletionObjectBlockSize; i++) {
-    *(pos2++) = new DeletionObject(deletionObjectBlockSize + i);
+    *(pos2++) = new DeletionObject(&wasDeleted[deletionObjectBlockSize + i]);
   }
 
   resetForDeletion();
@@ -276,7 +261,7 @@ V8MONKEY_TEST(ObjectBlock012, "Deleting deletes individual members (cross block 
   DeletionObject** pos = data1.top;
 
   for (int i = 0; i < deletionObjectBlockSize; i++) {
-    *(pos++) = new DeletionObject(i);
+    *(pos++) = new DeletionObject(&wasDeleted[i]);
   }
 
   V8MONKEY_CHECK(pos == data1.limit, "Sanity check");
@@ -285,7 +270,7 @@ V8MONKEY_TEST(ObjectBlock012, "Deleting deletes individual members (cross block 
   DeletionObject** pos2 = data2.top;
 
   for (int i = 0; i < deletionObjectMax - deletionObjectBlockSize; i++) {
-    *(pos2++) = new DeletionObject(deletionObjectBlockSize + i);
+    *(pos2++) = new DeletionObject(&wasDeleted[deletionObjectBlockSize + i]);
   }
 
   resetForDeletion();
@@ -310,7 +295,7 @@ V8MONKEY_TEST(ObjectBlock013, "Deleting calls given function if supplied (single
   DeletionObject** pos = data.top;
 
   for (int i = 0; i < 10; i++) {
-    pointers[i] = new DeletionObject(i);
+    pointers[i] = new DeletionObject(&wasDeleted[i], i);
     *(pos++) = pointers[i];
   }
 
@@ -334,7 +319,7 @@ V8MONKEY_TEST(ObjectBlock014, "Deleting calls given function if supplied (intra 
   DeletionObject** pos = data.top;
 
   for (int i = 0; i < 20; i++) {
-    pointers[i] = new DeletionObject(i);
+    pointers[i] = new DeletionObject(&wasDeleted[i], i);
     *(pos++) = pointers[i];
   }
 
@@ -368,7 +353,7 @@ V8MONKEY_TEST(ObjectBlock015, "Deleting calls given function if supplied (cross 
   DeletionObject** pos = data.top;
 
   for (int i = 0; i < deletionObjectBlockSize; i++) {
-    pointers[i] = new DeletionObject(i);
+    pointers[i] = new DeletionObject(&wasDeleted[i], i);
     *(pos++) = pointers[i];
   }
 
@@ -376,8 +361,9 @@ V8MONKEY_TEST(ObjectBlock015, "Deleting calls given function if supplied (cross 
   DeletionObject** pos2 = data2.top;
 
   for (int i = 0; i < deletionObjectMax - deletionObjectBlockSize; i++) {
-    pointers[i + deletionObjectBlockSize] = new DeletionObject(i + deletionObjectBlockSize);
-    *(pos2++) = pointers[i + deletionObjectBlockSize];
+    int index = i + deletionObjectBlockSize;
+    pointers[index] = new DeletionObject(&wasDeleted[index], index);
+    *(pos2++) = pointers[index];
   }
 
   resetForDeletion();
@@ -400,7 +386,7 @@ V8MONKEY_TEST(ObjectBlock016, "Deleting calls given function if supplied (cross 
   DeletionObject** pos = data.top;
 
   for (int i = 0; i < deletionObjectBlockSize; i++) {
-    pointers[i] = new DeletionObject(i);
+    pointers[i] = new DeletionObject(&wasDeleted[i], i);
     *(pos++) = pointers[i];
   }
 
@@ -408,8 +394,9 @@ V8MONKEY_TEST(ObjectBlock016, "Deleting calls given function if supplied (cross 
   DeletionObject** pos2 = data2.top;
 
   for (int i = 0; i < deletionObjectMax - deletionObjectBlockSize; i++) {
-    pointers[i + deletionObjectBlockSize] = new DeletionObject(i + deletionObjectBlockSize);
-    *(pos2++) = pointers[i + deletionObjectBlockSize];
+    int index = i + deletionObjectBlockSize;
+    pointers[index] = new DeletionObject(&wasDeleted[index], index);
+    *(pos2++) = pointers[index];
   }
 
   resetForDeletion();
@@ -438,7 +425,7 @@ V8MONKEY_TEST(ObjectBlock017, "If supplied function, object not deleted by Objec
   DeletionObject** pos = data.top;
 
   for (int i = 0; i < 10; i++) {
-    pointers[i] = new DeletionObject(i);
+    pointers[i] = new DeletionObject(&wasDeleted[i], i);
     *(pos++) = pointers[i];
   }
 
@@ -462,7 +449,7 @@ V8MONKEY_TEST(ObjectBlock018, "If supplied function, object not deleted by Objec
   DeletionObject** pos = data.top;
 
   for (int i = 0; i < 20; i++) {
-    pointers[i] = new DeletionObject(i);
+    pointers[i] = new DeletionObject(&wasDeleted[i], i);
     *(pos++) = pointers[i];
   }
 
@@ -488,7 +475,7 @@ V8MONKEY_TEST(ObjectBlock019, "If supplied function, object not deleted by Objec
   DeletionObject** pos = data.top;
 
   for (int i = 0; i < deletionObjectBlockSize; i++) {
-    pointers[i] = new DeletionObject(i);
+    pointers[i] = new DeletionObject(&wasDeleted[i], i);
     *(pos++) = pointers[i];
   }
 
@@ -496,8 +483,9 @@ V8MONKEY_TEST(ObjectBlock019, "If supplied function, object not deleted by Objec
   DeletionObject** pos2 = data2.top;
 
   for (int i = 0; i < deletionObjectMax - deletionObjectBlockSize; i++) {
-    pointers[deletionObjectBlockSize + i] = new DeletionObject(deletionObjectBlockSize + i);
-    *(pos2++) = pointers[deletionObjectBlockSize + i];
+    int index = i + deletionObjectBlockSize;
+    pointers[index] = new DeletionObject(&wasDeleted[index], index);
+    *(pos2++) = pointers[index];
   }
 
   resetForDeletion();
@@ -520,7 +508,7 @@ V8MONKEY_TEST(ObjectBlock020, "If supplied function, object not deleted by Objec
   DeletionObject** pos = data.top;
 
   for (int i = 0; i < deletionObjectBlockSize; i++) {
-    pointers[i] = new DeletionObject(i);
+    pointers[i] = new DeletionObject(&wasDeleted[i], i);
     *(pos++) = pointers[i];
   }
 
@@ -528,8 +516,9 @@ V8MONKEY_TEST(ObjectBlock020, "If supplied function, object not deleted by Objec
   DeletionObject** pos2 = data2.top;
 
   for (int i = 0; i < deletionObjectMax - deletionObjectBlockSize; i++) {
-    pointers[deletionObjectBlockSize + i] = new DeletionObject(deletionObjectBlockSize + i);
-    *(pos2++) = pointers[deletionObjectBlockSize + i];
+    int index = i + deletionObjectBlockSize;
+    pointers[index] = new DeletionObject(&wasDeleted[index], index);
+    *(pos2++) = pointers[index];
   }
 
   resetForDeletion();
