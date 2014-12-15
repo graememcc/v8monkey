@@ -1,8 +1,7 @@
 #include "v8.h"
 
 #include "data_structures/objectblock.h"
-#include "isolate.h"
-#include "runtime/handlescope.h"
+#include "runtime/isolate.h"
 #include "types/base_types.h"
 #include "test.h"
 #include "V8MonkeyTest.h"
@@ -12,6 +11,15 @@ using namespace v8;
 using namespace v8::V8Monkey;
 
 namespace {
+  int errorCaught = 0;
+  void fatalErrorHandler(const char* location, const char* message) {
+    errorCaught = 1;
+  }
+
+
+  const int blockSize = ObjectBlock<DummyV8MonkeyObject>::BlockSize;
+
+
   static bool wasGCOnNotified = false;
 
 
@@ -40,7 +48,7 @@ V8MONKEY_TEST(IntHandleScope001, "InternalIsolate HandleScopeData next initially
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
   HandleScopeData hsd = i->GetHandleScopeData();
 
-  V8MONKEY_CHECK(hsd.next == NULL, "HandleScopeData next initially null");
+  V8MONKEY_CHECK(hsd.next == nullptr, "HandleScopeData next initially null");
 }
 
 
@@ -49,7 +57,7 @@ V8MONKEY_TEST(IntHandleScope002, "InternalIsolate HandleScopeData limit initiall
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
   HandleScopeData hsd = i->GetHandleScopeData();
 
-  V8MONKEY_CHECK(hsd.limit == NULL, "HandleScopeData limit initially null");
+  V8MONKEY_CHECK(hsd.limit == nullptr, "HandleScopeData limit initially null");
 }
 
 
@@ -63,8 +71,8 @@ V8MONKEY_TEST(IntHandleScope003, "InternalIsolate HandleScopeData changes after 
   HandleScope::CreateHandle(d);
   HandleScopeData hsd = i->GetHandleScopeData();
 
-  V8MONKEY_CHECK(hsd.next != NULL, "HandleScopeData next changed after first handle created");
-  V8MONKEY_CHECK(hsd.limit != NULL, "HandleScopeData limit changed after first handle created");
+  V8MONKEY_CHECK(hsd.next != nullptr, "HandleScopeData next changed after first handle created");
+  V8MONKEY_CHECK(hsd.limit != nullptr, "HandleScopeData limit changed after first handle created");
 }
 
 
@@ -96,12 +104,12 @@ V8MONKEY_TEST(IntHandleScope005, "InternalIsolate HandleScopeData changes after 
   V8MonkeyObject** prevNext = hsd.next;
   V8MonkeyObject** prevLimit = hsd.limit;
 
-  for (int j = 0; j < ObjectBlock<DummyV8MonkeyObject>::EffectiveBlockSize + 2; j++) {
+  for (int j = 0; j < blockSize + 2; j++) {
     HandleScope::CreateHandle(new DummyV8MonkeyObject);
     HandleScopeData hsd = i->GetHandleScopeData();
 
     V8MONKEY_CHECK(hsd.next != prevNext, "HandleScopeData next changed after another handle created");
-    if (j == 0 || j == ObjectBlock<DummyV8MonkeyObject>::EffectiveBlockSize) {
+    if (j == 0 || j == blockSize) {
       V8MONKEY_CHECK(hsd.limit != prevLimit, "HandleScopeData limit changed after another handle created");
     } else {
       V8MONKEY_CHECK(hsd.limit == prevLimit, "HandleScopeData limit not changed after another handle created");
@@ -153,7 +161,7 @@ V8MONKEY_TEST(IntHandleScope008, "Refcount correct when handle to object created
     HandleScope::CreateHandle(d);
     V8MONKEY_CHECK(d->RefCount() == 1, "Refcount increased on first handlescope addition");
     {
-      HandleScope h;
+      HandleScope i;
       HandleScope::CreateHandle(d);
       V8MONKEY_CHECK(d->RefCount() == 2, "Refcount increased on second handlescope addition");
     }
@@ -191,7 +199,7 @@ V8MONKEY_TEST(IntHandleScope010, "Refcount correct when handle to object created
     HandleScope h;
     HandleScope::CreateHandle(d);
     {
-      HandleScope j;
+      HandleScope i;
       HandleScope::CreateHandle(d);
     }
     V8MONKEY_CHECK(d->RefCount() == 2, "Refcount drops on first HandleScope destruction");
@@ -214,8 +222,8 @@ V8MONKEY_TEST(IntHandleScope011, "InternalIsolate HandleScopeData restored corre
 
   HandleScopeData hsd = i->GetHandleScopeData();
 
-  V8MONKEY_CHECK(hsd.next == NULL, "HandleScopeData next restored");
-  V8MONKEY_CHECK(hsd.limit == NULL, "HandleScopeData limit restored");
+  V8MONKEY_CHECK(hsd.next == nullptr, "HandleScopeData next restored");
+  V8MONKEY_CHECK(hsd.limit == nullptr, "HandleScopeData limit restored");
 }
 
 
@@ -225,15 +233,15 @@ V8MONKEY_TEST(IntHandleScope012, "InternalIsolate HandleScopeData restored corre
 
   {
     HandleScope h;
-    for (int j = 0; j < ObjectBlock<DummyV8MonkeyObject>::EffectiveBlockSize + 2; j++) {
+    for (int j = 0; j < blockSize + 2; j++) {
       HandleScope::CreateHandle(new DummyV8MonkeyObject);
     }
   }
 
   HandleScopeData hsd = i->GetHandleScopeData();
 
-  V8MONKEY_CHECK(hsd.next == NULL, "HandleScopeData next restored");
-  V8MONKEY_CHECK(hsd.limit == NULL, "HandleScopeData limit restored");
+  V8MONKEY_CHECK(hsd.next == nullptr, "HandleScopeData next restored");
+  V8MONKEY_CHECK(hsd.limit == nullptr, "HandleScopeData limit restored");
 }
 
 
@@ -261,8 +269,8 @@ V8MONKEY_TEST(IntHandleScope013, "HandleScopeData restored correctly from multip
 
   HandleScopeData hsd = i->GetHandleScopeData();
 
-  V8MONKEY_CHECK(hsd.next == NULL, "First HandleScopeData next restored");
-  V8MONKEY_CHECK(hsd.limit == NULL, "First HandleScopeData limit restored");
+  V8MONKEY_CHECK(hsd.next == nullptr, "First HandleScopeData next restored");
+  V8MONKEY_CHECK(hsd.limit == nullptr, "First HandleScopeData limit restored");
 }
 
 
@@ -280,7 +288,7 @@ V8MONKEY_TEST(IntHandleScope014, "HandleScopeData restored correctly from multip
     V8MonkeyObject** limit = hsd.limit;
     {
       HandleScope j;
-      for (int k = 0; k < ObjectBlock<DummyV8MonkeyObject>::EffectiveBlockSize + 2; k++) {
+      for (int k = 0; k < blockSize + 2; k++) {
         HandleScope::CreateHandle(d);
       }
     }
@@ -292,8 +300,8 @@ V8MONKEY_TEST(IntHandleScope014, "HandleScopeData restored correctly from multip
 
   HandleScopeData hsd = i->GetHandleScopeData();
 
-  V8MONKEY_CHECK(hsd.next == NULL, "First HandleScopeData next restored");
-  V8MONKEY_CHECK(hsd.limit == NULL, "First HandleScopeData limit restored");
+  V8MONKEY_CHECK(hsd.next == nullptr, "First HandleScopeData next restored");
+  V8MONKEY_CHECK(hsd.limit == nullptr, "First HandleScopeData limit restored");
 }
 
 
@@ -307,72 +315,180 @@ V8MONKEY_TEST(IntHandleScope015, "Handle creation returns correct pointer") {
   }
 }
 
-// XXX FIXME
-/*
-V8MONKEY_TEST(IntHandleScope016, "Closing HandleScope returns Local for same object when closing to null") {
+
+// Tests the case where the value to escape is at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope016, "Closing HandleScope returns Local for same object when closing to null (1)") {
   TestUtils::AutoTestCleanup ac;
 
   Local<DummyV8MonkeyObject> escaped;
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
 
+  HandleScope h;
+
   {
-    HandleScope h;
-    DummyV8MonkeyObject* ptr = static_cast<DummyV8MonkeyObject*>(*HandleScope::CreateHandle(d));
-    Local<DummyV8MonkeyObject> l(ptr);
-    escaped = h.Close(l);
+    HandleScope i;
+    DummyV8MonkeyObject** hsPointer = reinterpret_cast<DummyV8MonkeyObject**>(HandleScope::CreateHandle(d));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DummyV8MonkeyObject> handle(*(reinterpret_cast<DummyV8MonkeyObject**>(&hsPointer)));
+
+    escaped = i.Close(handle);
   }
 
-  V8MONKEY_CHECK(*escaped == d, "Value escaped correctly");
+  V8MONKEY_CHECK(*(reinterpret_cast<DummyV8MonkeyObject**>(*escaped)) == d, "Value escaped correctly");
 }
 
 
-V8MONKEY_TEST(IntHandleScope017, "Closing HandleScope doesn't lose reference count when closing to null") {
+// Tests the case where the value to escape is not at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope017, "Closing HandleScope returns Local for same object when closing to null (2)") {
   TestUtils::AutoTestCleanup ac;
 
-  static bool deleted = true;
-  class DontDeleteMe : public V8MonkeyObject {
-    public:
-      DontDeleteMe() {}
-      ~DontDeleteMe() { deleted = true; }
-      void Trace(JSRuntime* runtime, JSTracer* tracer) {}
-  };
+  Local<DummyV8MonkeyObject> escaped;
+  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
+  DummyV8MonkeyObject* e = new DummyV8MonkeyObject;
 
-  Local<DontDeleteMe> escaped;
-  DontDeleteMe* d = new DontDeleteMe;
-
+  HandleScope h;
   {
-    HandleScope h;
-    DontDeleteMe* ptr = static_cast<DontDeleteMe*>(*HandleScope::CreateHandle(d));
-    Local<DontDeleteMe> l(ptr);
-    escaped = h.Close(l);
+    HandleScope i;
+    HandleScope::CreateHandle(d);
+    DummyV8MonkeyObject** hsPointer = reinterpret_cast<DummyV8MonkeyObject**>(HandleScope::CreateHandle(e));
+    HandleScope::CreateHandle(d);
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DummyV8MonkeyObject> handle(*(reinterpret_cast<DummyV8MonkeyObject**>(&hsPointer)));
+
+    escaped = i.Close(handle);
+  }
+
+  V8MONKEY_CHECK(*(reinterpret_cast<DummyV8MonkeyObject**>(*escaped)) == e, "Value escaped correctly");
+}
+
+
+// Tests the case where the value to escape is at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope018, "Closing HandleScope doesn't lose reference count when closing to null (1)") {
+  TestUtils::AutoTestCleanup ac;
+
+  bool deleted = false;
+  Local<DeletionObject> escaped;
+  DeletionObject* d = new DeletionObject(&deleted);
+
+  HandleScope h;
+  {
+    HandleScope i;
+    DeletionObject** hsPointer = reinterpret_cast<DeletionObject**>(HandleScope::CreateHandle(d));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DeletionObject> handle(*(reinterpret_cast<DeletionObject**>(&hsPointer)));
+    escaped = i.Close(handle);
   }
 
   V8MONKEY_CHECK(!deleted, "Value didn't lose reference count");
 }
 
 
-V8MONKEY_TEST(IntHandleScope018, "Closing HandleScope adjusts previous pointers (null case)") {
+// Tests the case where the value to escape is not at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope019, "Closing HandleScope doesn't lose reference count when closing to null (2)") {
   TestUtils::AutoTestCleanup ac;
 
-  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
-  Local<DummyV8MonkeyObject> escaped;
+  bool deleted = false;
+  Local<DeletionObject> escaped;
+  DeletionObject* d = new DeletionObject(nullptr);
+  DeletionObject* e = new DeletionObject(&deleted);
 
+  HandleScope h;
   {
-    HandleScope h;
-    DummyV8MonkeyObject* ptr = static_cast<DummyV8MonkeyObject*>(*HandleScope::CreateHandle(d));
-    Local<DummyV8MonkeyObject> l(ptr);
-    escaped = h.Close(l);
+    HandleScope i;
+
+    HandleScope::CreateHandle(d);
+    DeletionObject** hsPointer = reinterpret_cast<DeletionObject**>(HandleScope::CreateHandle(e));
+    HandleScope::CreateHandle(d);
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DeletionObject> handle(*(reinterpret_cast<DeletionObject**>(&hsPointer)));
+    escaped = i.Close(handle);
   }
+
+  V8MONKEY_CHECK(!deleted, "Value didn't lose reference count");
+}
+
+
+// Tests the case where the value to escape is at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope020, "Closing HandleScope adjusts previous pointers (null case) (1)") {
+  TestUtils::AutoTestCleanup ac;
 
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
   HandleScopeData hsd = i->GetHandleScopeData();
 
-  V8MONKEY_CHECK(hsd.next != NULL, "HandleScopeData next changed after escaping");
-  V8MONKEY_CHECK(hsd.limit != NULL, "HandleScopeData limit changed after escaping");
+  V8MONKEY_CHECK(hsd.next == nullptr, "Sanity check (1)");
+  V8MONKEY_CHECK(hsd.limit == nullptr, "Sanity check (2)");
+
+  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
+  Local<DummyV8MonkeyObject> escaped;
+
+  HandleScope h;
+  {
+    HandleScope i;
+
+    DummyV8MonkeyObject** hsPointer = reinterpret_cast<DummyV8MonkeyObject**>(HandleScope::CreateHandle(d));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DummyV8MonkeyObject> handle(*(reinterpret_cast<DummyV8MonkeyObject**>(&hsPointer)));
+
+    escaped = i.Close(handle);
+  }
+
+  i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
+  hsd = i->GetHandleScopeData();
+
+  V8MONKEY_CHECK(hsd.next != nullptr, "HandleScopeData next changed after escaping");
+  V8MONKEY_CHECK(hsd.limit != nullptr, "HandleScopeData limit changed after escaping");
 }
 
 
-V8MONKEY_TEST(IntHandleScope019, "Closing HandleScope returns Local for same object when closing to earlier scope") {
+// Tests the case where the value to escape is not at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope021, "Closing HandleScope adjusts previous pointers (null case) (2)") {
+  TestUtils::AutoTestCleanup ac;
+
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
+  HandleScopeData hsd = i->GetHandleScopeData();
+
+  V8MONKEY_CHECK(hsd.next == nullptr, "Sanity check (1)");
+  V8MONKEY_CHECK(hsd.limit == nullptr, "Sanity check (2)");
+
+  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
+  DummyV8MonkeyObject* e = new DummyV8MonkeyObject;
+  Local<DummyV8MonkeyObject> escaped;
+
+  HandleScope h;
+  {
+    HandleScope i;
+
+    HandleScope::CreateHandle(d);
+    DummyV8MonkeyObject** hsPointer = reinterpret_cast<DummyV8MonkeyObject**>(HandleScope::CreateHandle(e));
+    HandleScope::CreateHandle(d);
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DummyV8MonkeyObject> handle(*(reinterpret_cast<DummyV8MonkeyObject**>(&hsPointer)));
+
+    escaped = i.Close(handle);
+  }
+
+  i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
+  hsd = i->GetHandleScopeData();
+
+  V8MONKEY_CHECK(hsd.next != nullptr, "HandleScopeData next changed after escaping");
+  V8MONKEY_CHECK(hsd.limit != nullptr, "HandleScopeData limit changed after escaping");
+}
+
+
+// Tests the case where the value to escape is at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope022, "Closing HandleScope returns Local for same object when closing to earlier scope (1)") {
   TestUtils::AutoTestCleanup ac;
 
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
@@ -384,45 +500,101 @@ V8MONKEY_TEST(IntHandleScope019, "Closing HandleScope returns Local for same obj
 
   {
     HandleScope i;
-    DummyV8MonkeyObject* ptr = static_cast<DummyV8MonkeyObject*>(*HandleScope::CreateHandle(e));
-    Local<DummyV8MonkeyObject> l(ptr);
-    escaped = i.Close(l);
+    DummyV8MonkeyObject** hsPointer = reinterpret_cast<DummyV8MonkeyObject**>(HandleScope::CreateHandle(e));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DummyV8MonkeyObject> handle(*(reinterpret_cast<DummyV8MonkeyObject**>(&hsPointer)));
+    escaped = i.Close(handle);
   }
 
-  V8MONKEY_CHECK(*escaped == e, "Value escaped correctly");
+  V8MONKEY_CHECK(*(reinterpret_cast<DummyV8MonkeyObject**>(*escaped)) == e, "Value escaped correctly");
 }
 
 
-V8MONKEY_TEST(IntHandleScope020, "Closing HandleScope doesn't lose reference count when closing to earlier") {
+// Tests the case where the value to escape is not at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope023, "Closing HandleScope returns Local for same object when closing to earlier scope (2)") {
   TestUtils::AutoTestCleanup ac;
 
-  HandleScope h;
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
+  HandleScope h;
   HandleScope::CreateHandle(d);
 
-  static bool deleted = true;
-  class DontDeleteMe : public V8MonkeyObject {
-    public:
-      DontDeleteMe() {}
-      ~DontDeleteMe() { deleted = true; }
-      void Trace(JSRuntime* runtime, JSTracer* tracer) {}
-  };
-
-  DontDeleteMe* e = new DontDeleteMe;
-  Local<DontDeleteMe> escaped;
+  DummyV8MonkeyObject* e = new DummyV8MonkeyObject;
+  Local<DummyV8MonkeyObject> escaped;
 
   {
     HandleScope i;
-    DontDeleteMe* ptr = static_cast<DontDeleteMe*>(*HandleScope::CreateHandle(e));
-    Local<DontDeleteMe> l(ptr);
-    escaped = i.Close(l);
+    HandleScope::CreateHandle(d);
+    DummyV8MonkeyObject** hsPointer = reinterpret_cast<DummyV8MonkeyObject**>(HandleScope::CreateHandle(e));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DummyV8MonkeyObject> handle(*(reinterpret_cast<DummyV8MonkeyObject**>(&hsPointer)));
+    escaped = i.Close(handle);
+  }
+
+  V8MONKEY_CHECK(*(reinterpret_cast<DummyV8MonkeyObject**>(*escaped)) == e, "Value escaped correctly");
+}
+
+
+// Tests the case where the value to escape is at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope024, "Closing HandleScope doesn't lose reference count when closing to earlier (1)") {
+  TestUtils::AutoTestCleanup ac;
+
+  bool deleted = false;
+
+  HandleScope h;
+  DeletionObject* d = new DeletionObject(nullptr);
+  HandleScope::CreateHandle(d);
+
+  DeletionObject* e = new DeletionObject(&deleted);
+  Local<DeletionObject> escaped;
+
+  {
+    HandleScope i;
+    DeletionObject** hsPointer = reinterpret_cast<DeletionObject**>(HandleScope::CreateHandle(e));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DeletionObject> handle(*(reinterpret_cast<DeletionObject**>(&hsPointer)));
+    escaped = i.Close(handle);
   }
 
   V8MONKEY_CHECK(!deleted, "Value didn't lose reference count");
 }
 
 
-V8MONKEY_TEST(IntHandleScope021, "Closing HandleScope adjusts previous pointers (typical case)") {
+// Tests the case where the value to escape is not at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope025, "Closing HandleScope doesn't lose reference count when closing to earlier (2)") {
+  TestUtils::AutoTestCleanup ac;
+
+  bool deleted = false;
+
+  HandleScope h;
+  DeletionObject* d = new DeletionObject(nullptr);
+  HandleScope::CreateHandle(d);
+
+  DeletionObject* e = new DeletionObject(&deleted);
+  Local<DeletionObject> escaped;
+
+  {
+    HandleScope i;
+    HandleScope::CreateHandle(d);
+    DeletionObject** hsPointer = reinterpret_cast<DeletionObject**>(HandleScope::CreateHandle(e));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DeletionObject> handle(*(reinterpret_cast<DeletionObject**>(&hsPointer)));
+    escaped = i.Close(handle);
+  }
+
+  V8MONKEY_CHECK(!deleted, "Value didn't lose reference count");
+}
+
+
+// Tests the case where the value to escape is at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope026, "Closing HandleScope adjusts previous pointers when closing to previous scope (1)") {
   TestUtils::AutoTestCleanup ac;
 
   HandleScope h;
@@ -440,9 +612,12 @@ V8MONKEY_TEST(IntHandleScope021, "Closing HandleScope adjusts previous pointers 
 
   {
     HandleScope i;
-    DummyV8MonkeyObject* ptr = static_cast<DummyV8MonkeyObject*>(*HandleScope::CreateHandle(e));
-    Local<DummyV8MonkeyObject> l(ptr);
-    escaped = i.Close(l);
+    DummyV8MonkeyObject** hsPointer = reinterpret_cast<DummyV8MonkeyObject**>(HandleScope::CreateHandle(e));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DummyV8MonkeyObject> handle(*(reinterpret_cast<DummyV8MonkeyObject**>(&hsPointer)));
+    escaped = i.Close(handle);
   }
 
   hsd = i->GetHandleScopeData();
@@ -452,13 +627,49 @@ V8MONKEY_TEST(IntHandleScope021, "Closing HandleScope adjusts previous pointers 
 }
 
 
-V8MONKEY_TEST(IntHandleScope022, "Closing HandleScope returns Local for same object when closing to full scope") {
+// Tests the case where the value to escape is not at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope027, "Closing HandleScope adjusts previous pointers when closing to previous scope (2)") {
   TestUtils::AutoTestCleanup ac;
-  const int blockSize = ObjectBlock<V8MonkeyObject>::EffectiveBlockSize;
+
+  HandleScope h;
+  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
+  HandleScope::CreateHandle(d);
+
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
+  HandleScopeData hsd = i->GetHandleScopeData();
+
+  V8MonkeyObject** prevNext = hsd.next;
+  V8MonkeyObject** limit = hsd.limit;
+
+  DummyV8MonkeyObject* e = new DummyV8MonkeyObject;
+  Local<DummyV8MonkeyObject> escaped;
+
+  {
+    HandleScope i;
+    HandleScope::CreateHandle(d);
+    DummyV8MonkeyObject** hsPointer = reinterpret_cast<DummyV8MonkeyObject**>(HandleScope::CreateHandle(e));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DummyV8MonkeyObject> handle(*(reinterpret_cast<DummyV8MonkeyObject**>(&hsPointer)));
+    escaped = i.Close(handle);
+  }
+
+  hsd = i->GetHandleScopeData();
+
+  V8MONKEY_CHECK(hsd.next != prevNext, "HandleScopeData next changed after escaping");
+  V8MONKEY_CHECK(hsd.limit == limit, "HandleScopeData limit unchanged after escaping");
+}
+
+
+// Tests the case where the value to escape is at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope028, "Closing HandleScope returns Local for same object when closing to full scope (1)") {
+  TestUtils::AutoTestCleanup ac;
 
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
   HandleScope h;
 
+  // Fill up a block
   for (int i = 0; i < blockSize; i++) {
     HandleScope::CreateHandle(d);
   }
@@ -468,55 +679,120 @@ V8MONKEY_TEST(IntHandleScope022, "Closing HandleScope returns Local for same obj
 
   {
     HandleScope i;
-    DummyV8MonkeyObject* ptr = static_cast<DummyV8MonkeyObject*>(*HandleScope::CreateHandle(e));
-    Local<DummyV8MonkeyObject> l(ptr);
-    escaped = i.Close(l);
+    HandleScope::CreateHandle(d);
+    DummyV8MonkeyObject** hsPointer = reinterpret_cast<DummyV8MonkeyObject**>(HandleScope::CreateHandle(e));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DummyV8MonkeyObject> handle(*(reinterpret_cast<DummyV8MonkeyObject**>(&hsPointer)));
+    escaped = i.Close(handle);
   }
 
-  V8MONKEY_CHECK(*escaped == e, "Value escaped correctly");
+  V8MONKEY_CHECK(*(reinterpret_cast<DummyV8MonkeyObject**>(*escaped)) == e, "Value escaped correctly");
 }
 
 
-V8MONKEY_TEST(IntHandleScope023, "Closing HandleScope doesn't lose reference count when closing to full scope") {
+// Tests the case where the value to escape is not at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope029, "Closing HandleScope returns Local for same object when closing to full scope (2)") {
   TestUtils::AutoTestCleanup ac;
-  const int blockSize = ObjectBlock<V8MonkeyObject>::EffectiveBlockSize;
 
-  HandleScope h;
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
+  HandleScope h;
 
+  // Fill up a block
   for (int i = 0; i < blockSize; i++) {
     HandleScope::CreateHandle(d);
   }
 
-  static bool deleted = true;
-  class DontDeleteMe : public V8MonkeyObject {
-    public:
-      DontDeleteMe() {}
-      ~DontDeleteMe() { deleted = true; }
-      void Trace(JSRuntime* runtime, JSTracer* tracer) {}
-  };
-
-  DontDeleteMe* e = new DontDeleteMe;
-  Local<DontDeleteMe> escaped;
+  DummyV8MonkeyObject* e = new DummyV8MonkeyObject;
+  Local<DummyV8MonkeyObject> escaped;
 
   {
     HandleScope i;
-    DontDeleteMe* ptr = static_cast<DontDeleteMe*>(*HandleScope::CreateHandle(e));
-    Local<DontDeleteMe> l(ptr);
-    escaped = i.Close(l);
+    HandleScope::CreateHandle(d);
+    DummyV8MonkeyObject** hsPointer = reinterpret_cast<DummyV8MonkeyObject**>(HandleScope::CreateHandle(e));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DummyV8MonkeyObject> handle(*(reinterpret_cast<DummyV8MonkeyObject**>(&hsPointer)));
+    escaped = i.Close(handle);
+  }
+
+  V8MONKEY_CHECK(*(reinterpret_cast<DummyV8MonkeyObject**>(*escaped)) == e, "Value escaped correctly");
+}
+
+
+// Tests the case where the value to escape is at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope030, "Closing HandleScope doesn't lose reference count when closing to full scope (1)") {
+  TestUtils::AutoTestCleanup ac;
+
+  bool deleted = false;
+
+  HandleScope h;
+  DeletionObject* d = new DeletionObject(nullptr);
+
+  // Fill a block
+  for (int i = 0; i < blockSize; i++) {
+    HandleScope::CreateHandle(d);
+  }
+
+  DeletionObject* e = new DeletionObject(&deleted);
+  Local<DeletionObject> escaped;
+
+  {
+    HandleScope i;
+    DeletionObject** hsPointer = reinterpret_cast<DeletionObject**>(HandleScope::CreateHandle(e));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DeletionObject> handle(*(reinterpret_cast<DeletionObject**>(&hsPointer)));
+    escaped = i.Close(handle);
   }
 
   V8MONKEY_CHECK(!deleted, "Value didn't lose reference count");
 }
 
 
-V8MONKEY_TEST(IntHandleScope024, "Closing HandleScope adjusts previous pointers (full case)") {
+// Tests the case where the value to escape is not at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope031, "Closing HandleScope doesn't lose reference count when closing to full scope (2)") {
   TestUtils::AutoTestCleanup ac;
-  const int blockSize = ObjectBlock<V8MonkeyObject>::EffectiveBlockSize;
+
+  bool deleted = false;
+
+  HandleScope h;
+  DeletionObject* d = new DeletionObject(nullptr);
+
+  // Fill a block
+  for (int i = 0; i < blockSize; i++) {
+    HandleScope::CreateHandle(d);
+  }
+
+  DeletionObject* e = new DeletionObject(&deleted);
+  Local<DeletionObject> escaped;
+
+  {
+    HandleScope i;
+    HandleScope::CreateHandle(d);
+    DeletionObject** hsPointer = reinterpret_cast<DeletionObject**>(HandleScope::CreateHandle(e));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DeletionObject> handle(*(reinterpret_cast<DeletionObject**>(&hsPointer)));
+    escaped = i.Close(handle);
+  }
+
+  V8MONKEY_CHECK(!deleted, "Value didn't lose reference count");
+}
+
+
+// Tests the case where the value to escape is at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope032, "Closing HandleScope adjusts previous pointers when previous block full (1)") {
+  TestUtils::AutoTestCleanup ac;
 
   HandleScope h;
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
 
+  // Fill up the block in this handlescope
   for (int i = 0; i < blockSize; i++) {
     HandleScope::CreateHandle(d);
   }
@@ -532,9 +808,13 @@ V8MONKEY_TEST(IntHandleScope024, "Closing HandleScope adjusts previous pointers 
 
   {
     HandleScope i;
-    DummyV8MonkeyObject* ptr = static_cast<DummyV8MonkeyObject*>(*HandleScope::CreateHandle(e));
-    Local<DummyV8MonkeyObject> l(ptr);
-    escaped = i.Close(l);
+    HandleScope::CreateHandle(e);
+    DummyV8MonkeyObject** hsPointer = reinterpret_cast<DummyV8MonkeyObject**>(HandleScope::CreateHandle(e));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DummyV8MonkeyObject> handle(*(reinterpret_cast<DummyV8MonkeyObject**>(&hsPointer)));
+    escaped = i.Close(handle);
   }
 
   hsd = i->GetHandleScopeData();
@@ -542,10 +822,49 @@ V8MONKEY_TEST(IntHandleScope024, "Closing HandleScope adjusts previous pointers 
   V8MONKEY_CHECK(hsd.next != prevNext, "HandleScopeData next changed after escaping");
   V8MONKEY_CHECK(hsd.limit != limit, "HandleScopeData limit unchanged after escaping");
 }
-*/
 
 
-V8MONKEY_TEST(IntHandleScope025, "Transitioning from one empty handlescope to another works") {
+// Tests the case where the value to escape is not at the beginning of the closing scope
+V8MONKEY_TEST(IntHandleScope033, "Closing HandleScope adjusts previous pointers when previous block full (2)") {
+  TestUtils::AutoTestCleanup ac;
+
+  HandleScope h;
+  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
+
+  // Fill up the block in this handlescope
+  for (int i = 0; i < blockSize; i++) {
+    HandleScope::CreateHandle(d);
+  }
+
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
+  HandleScopeData hsd = i->GetHandleScopeData();
+
+  V8MonkeyObject** prevNext = hsd.next;
+  V8MonkeyObject** limit = hsd.limit;
+
+  DummyV8MonkeyObject* e = new DummyV8MonkeyObject;
+  Local<DummyV8MonkeyObject> escaped;
+
+  {
+    HandleScope i;
+    HandleScope::CreateHandle(d);
+    HandleScope::CreateHandle(e);
+    DummyV8MonkeyObject** hsPointer = reinterpret_cast<DummyV8MonkeyObject**>(HandleScope::CreateHandle(e));
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DummyV8MonkeyObject> handle(*(reinterpret_cast<DummyV8MonkeyObject**>(&hsPointer)));
+    escaped = i.Close(handle);
+  }
+
+  hsd = i->GetHandleScopeData();
+
+  V8MONKEY_CHECK(hsd.next != prevNext, "HandleScopeData next changed after escaping");
+  V8MONKEY_CHECK(hsd.limit != limit, "HandleScopeData limit unchanged after escaping");
+}
+
+
+V8MONKEY_TEST(IntHandleScope034, "Transitioning from one empty handlescope to another works") {
   TestUtils::AutoTestCleanup ac;
 
   HandleScope h;
@@ -556,12 +875,12 @@ V8MONKEY_TEST(IntHandleScope025, "Transitioning from one empty handlescope to an
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
   HandleScopeData hsd = i->GetHandleScopeData();
 
-  V8MONKEY_CHECK(hsd.next == NULL, "Moving from empty handlescope to empty handlescope works");
-  V8MONKEY_CHECK(hsd.limit == NULL, "Moving from empty handlescope to empty handlescope works");
+  V8MONKEY_CHECK(hsd.next == nullptr, "Moving from empty handlescope to empty handlescope works");
+  V8MONKEY_CHECK(hsd.limit == nullptr, "Moving from empty handlescope to empty handlescope works");
 }
 
 
-V8MONKEY_TEST(IntHandleScope026, "Adding first handle notifies SpiderMonkey about GC") {
+V8MONKEY_TEST(IntHandleScope035, "Adding first handle notifies SpiderMonkey about GC") {
   TestUtils::AutoTestCleanup ac;
 
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
@@ -577,7 +896,7 @@ V8MONKEY_TEST(IntHandleScope026, "Adding first handle notifies SpiderMonkey abou
 }
 
 
-V8MONKEY_TEST(IntHandleScope027, "Adding later handles dont notify") {
+V8MONKEY_TEST(IntHandleScope036, "Adding later handles dont notify") {
   TestUtils::AutoTestCleanup ac;
 
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
@@ -596,7 +915,7 @@ V8MONKEY_TEST(IntHandleScope027, "Adding later handles dont notify") {
 }
 
 
-V8MONKEY_TEST(IntHandleScope028, "Removing last handle notifies SpiderMonkey about GC") {
+V8MONKEY_TEST(IntHandleScope037, "Removing last handle notifies SpiderMonkey about GC") {
   TestUtils::AutoTestCleanup ac;
 
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
@@ -612,7 +931,7 @@ V8MONKEY_TEST(IntHandleScope028, "Removing last handle notifies SpiderMonkey abo
 }
 
 
-V8MONKEY_TEST(IntHandleScope029, "Removing handle other than last doesn't notify SpiderMonkey about GC") {
+V8MONKEY_TEST(IntHandleScope038, "Removing handle other than last doesn't notify SpiderMonkey about GC") {
   TestUtils::AutoTestCleanup ac;
 
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
@@ -632,7 +951,7 @@ V8MONKEY_TEST(IntHandleScope029, "Removing handle other than last doesn't notify
 }
 
 
-V8MONKEY_TEST(IntHandleScope030, "Items traced correctly") {
+V8MONKEY_TEST(IntHandleScope039, "Items contained in handlescopes traced correctly") {
   TestUtils::AutoTestCleanup ac;
 
   static bool traced = false;
@@ -649,12 +968,55 @@ V8MONKEY_TEST(IntHandleScope030, "Items traced correctly") {
 
   {
     HandleScope h;
+    // Replace the call to SpiderMonkey with our fake function
     InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+
     HandleScope::CreateHandle(t);
     traceFn(nullptr, traceData);
+
     InternalIsolate::SetGCNotifier(nullptr, nullptr);
     traceFn = nullptr;
   }
 
   V8MONKEY_CHECK(traced, "Value was traced");
+}
+
+
+V8MONKEY_TEST(IntHandleScope040, "Closing HandleScope doesn't increase refcount of escaped value") {
+  TestUtils::AutoTestCleanup ac;
+
+  Local<DeletionObject> escaped;
+  DeletionObject* d = new DeletionObject(nullptr);
+  int refCount;
+
+  HandleScope h;
+  {
+    HandleScope i;
+    DeletionObject** hsPointer = reinterpret_cast<DeletionObject**>(HandleScope::CreateHandle(d));
+    refCount = d->RefCount();
+
+    // In real V8Monkey usage, all API type pointers are really double pointers to the internal representation.
+    // It makes no difference to this test, but we emulate that style of usage here.
+    Handle<DeletionObject> handle(*(reinterpret_cast<DeletionObject**>(&hsPointer)));
+    escaped = i.Close(handle);
+  }
+
+  V8MONKEY_CHECK(d->RefCount() <= refCount, "RefCount didn't increase");
+}
+
+
+V8MONKEY_TEST(IntHandleScope041, "CreateHandle triggers fatal error if no HandleScope constructed") {
+  Isolate* i = Isolate::New();
+  i->Enter();
+
+  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
+
+  errorCaught = 0;
+  V8::SetFatalErrorHandler(fatalErrorHandler);
+  HandleScope::CreateHandle(d);
+
+  V8MONKEY_CHECK(V8::IsDead() && errorCaught != 0, "Fatal error if CreateHandle called without HandleScope");
+  delete d;
+  i->Exit();
+  i->Dispose();
 }

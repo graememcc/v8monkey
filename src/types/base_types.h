@@ -124,8 +124,9 @@ namespace v8 {
 
     // Many tests seek to test when objects are deleted. To this end, we use special fake objects, that set a flag at
     // the given location if they were deleted
-    class DeletionObject {
+    class DeletionObject: public V8MonkeyObject {
       public:
+        DeletionObject(): index(-1), ptr(nullptr) {}
         DeletionObject(bool* boolPtr): index(-1), ptr(boolPtr) {}
 
         DeletionObject(bool* boolPtr, int i): index(i), ptr(boolPtr) {}
@@ -137,6 +138,8 @@ namespace v8 {
         }
 
         int index;
+
+        void Trace(JSRuntime* runtime, JSTracer* tracer) {}
       private:
         bool* ptr;
     };

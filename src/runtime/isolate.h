@@ -3,13 +3,32 @@
 
 #include "jsapi.h"
 
-#include "handlescope.h"
+#include "types/base_types.h"
 #include "platform.h"
 #include "test.h"
 
 
 namespace v8 {
   namespace V8Monkey {
+    class V8MonkeyObject;
+
+
+    // Container class for HandleScope information. Stored in the isolate, but manipulated by HandleScopes.
+    class HandleScopeData {
+     public:
+      V8MonkeyObject** next;
+
+      V8MonkeyObject** limit;
+
+      int level;
+
+      inline void Initialize() {
+        next = limit = NULL;
+        level = 0;
+      }
+    };
+
+
     // An internal variant of the public facing Isolate class
     class EXPORT_FOR_TESTING_ONLY InternalIsolate {
       public:

@@ -537,6 +537,7 @@ namespace v8 {
     void (*InternalIsolate::gcOnNotifierFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
     void (*InternalIsolate::gcOffNotifierFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
 
+// XXX Can we fix these up to look out for construction?
     TestUtils::AutoIsolateCleanup::~AutoIsolateCleanup() {
       while (Isolate::GetCurrent() && InternalIsolate::IsEntered(InternalIsolate::GetCurrent())) {
         Isolate* i = Isolate::GetCurrent();

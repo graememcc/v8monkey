@@ -313,16 +313,12 @@ header_platform_deps = $(addprefix src/, threads/autolock.h, runtime/isolate.h, 
 $(header_platform_deps) $(call variants, src/engine/init) $(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
 
 
-# Several files depend on the miscellaneous functions in the V8MonkeyCommon class
-$(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/v8monkey_common.h
+# Most files depend on the miscellaneous functions in the V8MonkeyCommon class
+$(v8objects) $(testlibobjects): src/v8monkey_common.h
 
 
 # Various files need the base_type definitions
-src/runtime/handlescope.h: src/types/base_types.h
-
-
-# Some files need the definition of handlescopes.h
-$(call variants, src/runtime/handlescope) src/runtime/isolate.h: src/runtime/handlescope.h
+src/runtime/isolate.h: src/types/base_types.h
 
 
 # HandleScopes and isolates use object blocks
@@ -344,8 +340,8 @@ visibility_changes: src/test.h
 # Testsuites
 
 # The test harness is composed from the following
-teststems = test_death test_init test_isolate test_locker test_threadID test_version
-testfiles = $(addprefix test/api/, $(teststems))
+teststems = death handlescope init isolate locker threadID version
+testfiles = $(addprefix test/api/test_, $(teststems))
 testsources = $(addsuffix .cpp, $(testfiles))
 testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))
 
@@ -426,10 +422,6 @@ internal_isolate_depstems = fatalerror handlescope init isolate locker threadID
 internal_isolate_deps = $(addsuffix _internal, $(addprefix internal/test_, $(internal_isolate_depstems)))
 $(addprefix $(outdir)/test/, $(addsuffix .o, $(api_isolate_deps) $(internal_isolate_deps))): src/runtime/isolate.h
 #$(outdir)/test/api/test_isolate.o $(outdir)/test/internal/test_fatalerror_internal.o $(outdir)/test/internal/test_isolate_internal.o $(outdir)/test/internal/test_locker_internal.o: src/runtime/isolate.h
-
-
-# Some tests rely on the HandleScopeData definition
-$(outdir)/test/internal/test_handlescope_internal.o: src/runtime/handlescope.h
 
 
 # Most internal test files require the TestUtils class

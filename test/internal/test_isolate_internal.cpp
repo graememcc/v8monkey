@@ -2,7 +2,7 @@
 
 #include "jsapi.h"
 
-#include "isolate.h"
+#include "runtime/isolate.h"
 #include "platform.h"
 #include "test.h"
 #include "V8MonkeyTest.h"

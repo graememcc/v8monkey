@@ -106,17 +106,15 @@ namespace v8 {
 
       void operator delete(void*, size_t);
 
-      // XXX Needed?
       void Leave();
 
       V8Monkey::InternalIsolate* isolate;
 
-      V8Monkey::V8MonkeyObject** prev_next;
+      V8Monkey::V8MonkeyObject** prevNext;
 
-      V8Monkey::V8MonkeyObject** prev_limit;
+      V8Monkey::V8MonkeyObject** prevLimit;
 
-      // XXX Needed ?
-      bool is_closed_;
+      bool isClosed;
 
       V8Monkey::V8MonkeyObject** InternalClose(V8Monkey::V8MonkeyObject** value);
   };
@@ -613,9 +611,7 @@ namespace v8 {
 
   template<class T>
   Local<T> HandleScope::Close(Handle<T> value) {
-    // XXX FIXME
-    return Local<T>();
-    //return InternalClose(reinterpret_cast<V8Monkey::V8MonkeyObject**>(*value));
+    return Local<T>(reinterpret_cast<T*>(InternalClose(reinterpret_cast<V8Monkey::V8MonkeyObject**>(*value))));
   }
 
 }
