@@ -491,3 +491,59 @@ V8MONKEY_TEST(DSList033, "Deletion function called when individual items deleted
 
   delete ds;
 }
+
+
+V8MONKEY_TEST(DSList034, "List deletion works when empty in standard linked list mode") {
+  DestructingList<DeletionObject>* ds = new DestructingList<DeletionObject>();
+
+  resetForDeletion();
+  delete ds;
+
+  for (int i = 0; i < DESTRUCTARRAYSIZE; i++) {
+    V8MONKEY_CHECK(!wasDeleted[i], "Object not deleted");
+  }
+  V8MONKEY_CHECK(!nullDeleted, "Null not deleted");
+}
+
+
+V8MONKEY_TEST(DSList035, "List deletion works correctly in standard linked list mode") {
+  DestructingList<DeletionObject>* ds = new DestructingList<DeletionObject>();
+  for (int i = 0; i < DESTRUCTARRAYSIZE; i++) {
+    ds->Add(new DeletionObject(&wasDeleted[i]));
+  }
+
+  resetForDeletion();
+  delete ds;
+
+  for (int i = 0; i < DESTRUCTARRAYSIZE; i++) {
+    V8MONKEY_CHECK(wasDeleted[i], "Object deleted");
+  }
+  V8MONKEY_CHECK(!nullDeleted, "Null not deleted");
+}
+
+
+V8MONKEY_TEST(DSList036, "List deletion works correctly when null present in standard linked list mode (1)") {
+  DestructingList<DeletionObject>* ds = new DestructingList<DeletionObject>();
+  for (int i = 0; i < DESTRUCTARRAYSIZE; i++) {
+    ds->Add(new DeletionObject(&wasDeleted[i]));
+  }
+  ds->Add(nullptr);
+
+  resetForDeletion();
+  delete ds;
+
+  for (int i = 0; i < DESTRUCTARRAYSIZE; i++) {
+    V8MONKEY_CHECK(wasDeleted[i], "Object deleted");
+  }
+}
+
+
+V8MONKEY_TEST(DSList037, "List deletion works correctly when null present in standard linked list mode (2)") {
+  DestructingList<DeletionObject>* ds = new DestructingList<DeletionObject>();
+  ds->Add(nullptr);
+
+  resetForDeletion();
+  delete ds;
+
+  V8MONKEY_CHECK(true, "Nothing went wrong with null in the list");
+}

@@ -301,7 +301,7 @@ src/runtime/isolate.h src/types/base_types.h $(jsapi_deps): $(smheadersdir)/jsap
 
 
 # init depends on the RAII autolock class
-src/data_structures/destruct_list.h $(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/threads/autolock.h
+$(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/threads/autolock.h
 
 
 # Several files depend on isolate.h
@@ -309,7 +309,7 @@ $(call variants, src/init) $(call variants, src/runtime/handlescope) $(call vari
 
 
 # Several files depend on platform capabilities
-header_platform_deps = $(addprefix src/, threads/autolock.h, runtime/isolate.h, data_structures/destruct_list.h)
+header_platform_deps = $(addprefix src/, threads/autolock.h, runtime/isolate.h)
 $(header_platform_deps) $(call variants, src/engine/init) $(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
 
 
