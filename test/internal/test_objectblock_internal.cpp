@@ -105,7 +105,7 @@ V8MONKEY_TEST(ObjectBlock003, "Number of objects returns <blocksize> when block 
 
   V8MONKEY_CHECK(TestingBlock::NumberOfItems(data2.limit) == TestingBlock::BlockSize, "Correct value returned");
 
-  TestingBlock::Delete(data2.limit, data2.top, data1.top);
+  TestingBlock::Delete(data2.limit, data2.limit, data1.top);
   TestingBlock::Delete(data1.limit, data1.top, nullptr);
 }
 
