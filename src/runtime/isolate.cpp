@@ -3,6 +3,7 @@
 
 #include "jsapi.h"
 
+#include "data_structures/destruct_list.h"
 #include "data_structures/objectblock.h"
 #include "threads/autolock.h"
 #include "runtime/isolate.h"
@@ -22,13 +23,22 @@
  * was removed in bug 650411. Don't believe the documentation for JS_NewRuntime either, which states that JSRuntimes
  * can be moved from one thread to another with an API call. This too was removed, in bug 901934).
  *
- * Clearly then, we cannot have a 1-1 correspondence from V8 Isolates to JSAPI JSRuntimes. Instead, we watch for threads
- * we haven't seen before entering an isolate. At that point, the JSRuntime and JSContext will be created, and attached
- * to the thread using TLS, with a destructor to tear them down. (Separate machinery ensures that the main thread's 
- * runtime and context are destroyed before we call JS_Shutdown).
+ * Clearly then, when fully emulating the V8 API, we cannot have a 1-1 correspondence from V8 Isolates to JSAPI
+ * JSRuntimes. Now, although I've pulled multithreading support for the moment-I wasn't satisfied I would be able to
+ * satisfactorily clean up threads leaving isolates, particularly once it became necessary to hook up isolates to
+ * GC rooting-but the current implementation is based on the outline of my plan for a multi-threaded world, hence the
+ * otherwise unneccessary use of Thread-Local Storage.
  *
- * In terms of implementation, we follow the lead of V8 here. The public-facing Isolate class is made of air; it simply
- * wraps pointers to the corresponding internal class.
+ * Essentially, the plan was to look out for the first time a thread enters any isolate, and assign a JSRuntime and
+ * JSContext then, with a destructor attached to the TLS key to teardown those objects on thread exit, with some separate
+ * machinery to teardown the main thread's objects (as thread destruction in that case would imply the static object whose
+ * destructor shuts down SpiderMonkey has already ran).
+ *
+ * TODO: If the differences in the threading models prove insurmountable, then there are a lot of opportunities here
+ *       and elsewhere for optimization.
+ *
+ * In terms of API implementation, we follow the lead of V8 here. The public-facing Isolate class is made of air; it
+ * simply wraps pointers to the corresponding internal class.
  *
  */
 
@@ -45,24 +55,77 @@ namespace {
   using namespace v8::V8Monkey;
 
 
-  struct RTCXData {
-    JSRuntime* rt;
-    JSContext* cx;
-  };
-
-
   // Thread-local storage keys for isolate related thread data
   TLSKey* threadIDKey = NULL;
   TLSKey* isolateKey = NULL;
   TLSKey* rtcxKey = NULL;
 
 
+  v8::V8Monkey::InternalIsolate* GetIsolateFromTLS() {
+    void* raw_id = v8::V8Platform::Platform::GetTLSData(isolateKey);
+    return reinterpret_cast<v8::V8Monkey::InternalIsolate*>(raw_id);
+  }
+
+
+  void SetIsolateInTLS(v8::V8Monkey::InternalIsolate* i) {
+    v8::V8Platform::Platform::StoreTLSData(isolateKey, i);
+  }
+
+
+  // Per-thread SpiderMonkey data
+  struct RTCXData {
+    // Pointer to a list of isolates that have not been exited or destructed, and are therefore still attached to
+    // SpiderMonkey for GC
+    v8::V8Monkey::DestructingList<v8::V8Monkey::InternalIsolate>* isolateList;
+
+    JSRuntime* rt;
+    JSContext* cx;
+  };
+
+
   // Tear down a context and runtime for a thread.
   void tearDownCXAndRT(void* raw) {
+    if (!raw) {
+      return;
+    }
+
     RTCXData* data = reinterpret_cast<RTCXData*>(raw);
+
+    // Must teardown GC hook before destroying runtime objects
+    delete data->isolateList;
+
     JS_DestroyContext(data->cx);
     JS_DestroyRuntime(data->rt);
+
     delete data;
+  }
+
+
+  // Remove an isolate from the GC teardown list (by calling the teardown list's Delete function, which will in
+  // turn invoke RemoveGCRooter
+  void AddIsolateToGCTLSList(v8::V8Monkey::InternalIsolate* i) {
+    void* raw = Platform::GetTLSData(rtcxKey);
+    ASSERT(raw != nullptr, "AddIsolateToGCTLSList", "Somehow entered isolate without JSRuntime/JSContext data");
+
+    RTCXData* data = reinterpret_cast<RTCXData*>(raw);
+    data->isolateList->Add(i);
+  }
+
+
+  // Remove an isolate from the GC teardown list (by calling the teardown list's Delete function, which will in
+  // turn invoke RemoveGCRooter
+  void DeleteIsolateFromGCTLSList(v8::V8Monkey::InternalIsolate* i) {
+    void* raw = Platform::GetTLSData(rtcxKey);
+    ASSERT(raw != nullptr, "DeleteIsolateFromGCTLSList", "Somehow entered isolate without JSRuntime/JSContext data");
+
+    RTCXData* data = reinterpret_cast<RTCXData*>(raw);
+    data->isolateList->Delete(i);
+  }
+
+
+  // Function passed to DestructingList to destroy its contents
+  void unhookFromGC(InternalIsolate* i) {
+    i->RemoveGCRooter();
   }
 
 
@@ -75,9 +138,6 @@ namespace {
     }
 
     RTCXData* data = new RTCXData;
-
-    // SpiderMonkey must be up and running before we start handing out runtimes
-    V8MonkeyCommon::EnsureSpiderMonkey();
 
     JSRuntime* rt = JS_NewRuntime(JS::DefaultHeapMaxBytes);
 
@@ -104,6 +164,9 @@ namespace {
     data->cx = cx;
     // Set options here. Note: the MDN page for JS_NewContext uses JS_(G|S)etOptions. This changed in bug 880330.
     JS::RuntimeOptionsRef(rt).setVarObjFix(true);
+
+    data->isolateList = new DestructingList<InternalIsolate>(unhookFromGC);
+
     Platform::StoreTLSData(rtcxKey, data);
   }
 
@@ -117,15 +180,14 @@ namespace {
 
   // Returns a unique thread ID
   int CreateThreadID() {
-    static Mutex threadIDMutex;
-
     // Thread IDs must be greater than 0; otherwise we wouldn't be able to tell if the value is the thread ID, or
     // represents the case where the given thread has no data for the TLS key
     static int nextID = 1;
 
+    // For my own reference, preserving the comment about locking here, even though I have pulled threading support
+    // for the moment:
     // We just use a plain ole mutex here. V8 drops down to ASM, using a lock-prefixed xaddl instruction to avoid
     // overhead
-    AutoLock lock(threadIDMutex);
     int result = nextID++;
     return result;
   }
@@ -150,24 +212,6 @@ namespace {
   }
 
 
-  // Ensure TLS keys are created
-  void InitializeCommonTLSKeys() {
-    threadIDKey = Platform::CreateTLSKey();
-    isolateKey = Platform::CreateTLSKey();
-    rtcxKey = Platform::CreateTLSKey(tearDownCXAndRT);
-  }
-
-
-
-  // We again follow V8's lead, and ensure that a static initializer bootstraps the default isolate
-  class DefaultIsolateCreator {
-    public:
-      DefaultIsolateCreator() {
-        InternalIsolate::CreateDefaultIsolate();
-      }
-  } defaultCreator;
-
-
   // Interface to isolate tracing for the SpiderMonkey garbage collector. Each isolate that has tracable roots stored
   // in handlescopes will call JS_AddExtraGCRoots with this function, to participate in rooting.
   void gcTracer(JSTracer* tracer, void* data) {
@@ -176,9 +220,9 @@ namespace {
   }
 
 
-  // The ObjectBlock could potentially contain objects created by different threads, i.e. in different JSRuntimes.
-  // To that end, we supply both the JSRuntime and the JSTracer to the iterated objects. They will know which runtime
-  // created them, and can ignore the tracing requests for foreign runtimes.
+  // Originally, the ObjectBlock could potentially contain objects created by different threads, i.e. in different
+  // JSRuntimes. To that end, we supply both the JSRuntime and the JSTracer to the iterated objects. They will know
+  // which runtime created them, and can ignore the tracing requests for foreign runtimes.
   struct TraceData {
     JSRuntime* rt;
     JSTracer* tracer;
@@ -231,6 +275,7 @@ namespace v8 {
     // a V8 API requirement that it is entered when V8 is disposed (which in turn disposes the default
     // isolate)
     // XXX Clarify this comment. In fact clarify you can really dispose of default if in it
+    // XXX Update: I'm pretty sure this is wrong
     if (internal->ContainsThreads()) {
       V8Monkey::V8MonkeyCommon::TriggerFatalError("v8::Isolate::Dispose",
                                                   "Attempt to dispose isolate in which threads are active");
@@ -262,6 +307,21 @@ namespace v8 {
 
 
   namespace V8Monkey {
+    InternalIsolate::~InternalIsolate() {
+      ASSERT(!ContainsThreads(), "InternalIsolate::~InternalIsolate", "Threads still active");
+      ASSERT(isDisposed || IsDefaultIsolate(this), "InternalIsolate::~InternalIsolate", "Isolate not disposed");
+
+      if (isRegisteredForGC) {
+        DeleteIsolateFromGCTLSList(this);
+      }
+
+      // Ensure default isolate deregisters for SpiderMonkey GC rooting
+      if (!isDisposed) {
+        this->Dispose();
+      }
+    }
+
+
     // Searches the linked list, and finds the ThreadData object for the given thread ID, or returns NULL
     InternalIsolate::ThreadData* InternalIsolate::FindThreadData(int threadID) {
       ThreadData* data = threadData;
@@ -313,14 +373,41 @@ namespace v8 {
     }
 
 
-    InternalIsolate* InternalIsolate::GetIsolateFromTLS() {
-      void* raw_id = Platform::GetTLSData(isolateKey);
-      return reinterpret_cast<InternalIsolate*>(raw_id);
+    void InternalIsolate::AddGCRooter() {
+      if (isRegisteredForGC) {
+        return;
+      }
+
+      #ifdef V8MONKEY_INTERNAL_TEST
+        if (gcOnNotifierFn) {
+          gcOnNotifierFn(GetJSRuntimeForThread(), gcTracer, this);
+        } else {
+          JS_AddExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
+        }
+      #else
+        JS_AddExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
+      #endif
+
+      AddIsolateToGCTLSList(this);
+      isRegisteredForGC = true;
     }
 
 
-    void InternalIsolate::SetIsolateInTLS(InternalIsolate* i) {
-      Platform::StoreTLSData(isolateKey, i);
+    void InternalIsolate::RemoveGCRooter() {
+      if (!isRegisteredForGC) {
+        return;
+      }
+
+      // Deregister this isolate from SpiderMonkey
+      #ifdef V8MONKEY_INTERNAL_TEST
+        if (gcOffNotifierFn) {
+          gcOffNotifierFn(GetJSRuntimeForThread(), gcTracer, this);
+        } else {
+          JS_RemoveExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
+        }
+      #else
+        JS_RemoveExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
+      #endif
     }
 
 
@@ -330,6 +417,9 @@ namespace v8 {
 
       // Likewise, it should have a JSRuntime and JSContext
       EnsureRuntimeAndContext();
+
+      // Register this isolate with SpiderMonkey for GC
+      AddGCRooter();
 
       // What isolate was the thread in previously?
       InternalIsolate* previousIsolate = GetIsolateFromTLS();
@@ -370,8 +460,28 @@ namespace v8 {
 
 
     void InternalIsolate::Dispose() {
+      if (isRegisteredForGC) {
+        DeleteIsolateFromGCTLSList(this);
+      }
+
+      // Don't dispose of the default isolate multiple times
+      // XXX: Need to force an ordering on static initialization somehow. Mainly our
+      // concern is getting the default isolate torn down before JS_Shutdown
+      if (isDisposed) {
+        return;
+      }
+
+      // Ensure we don't attempt to delete the default isolate multiple times
+      isDisposed = true;
+
       if (this != defaultIsolate) {
         delete this;
+      } else {
+        // Clear out TLS so the destructor doesn't run again (unless on main thread)
+        int threadID = FetchOrAssignThreadId();
+        if (threadID != 1) {
+          SetIsolateInTLS(nullptr);
+        }
       }
     }
 
@@ -416,17 +526,25 @@ namespace v8 {
     }
 
 
-    void InternalIsolate::CreateDefaultIsolate() {
-      static V8Platform::Mutex mutex;
-      static InternalIsolate i;
+    // Must only be called from static initializer
+    void V8MonkeyCommon::InitTLSKeys() {
+      threadIDKey = Platform::CreateTLSKey();
+      isolateKey = Platform::CreateTLSKey();
+      rtcxKey = Platform::CreateTLSKey(tearDownCXAndRT);
+    }
 
-      AutoLock lock(mutex);
-      if (defaultIsolate == NULL) {
-        InitializeCommonTLSKeys();
-        defaultIsolate = &i;
-        SetIsolateInTLS(defaultIsolate);
-        FetchOrAssignThreadId();
-      }
+
+    // Must only be called from a static initializer, and after InitTLSKeys
+    void V8MonkeyCommon::EnsureDefaultIsolate() {
+      // The internal isolate will be disposed elsewhere
+      // XXX Where?
+      InternalIsolate::defaultIsolate = new InternalIsolate;
+
+      // Associate the default isolate with this thread permanently
+      SetIsolateInTLS(InternalIsolate::defaultIsolate);
+
+      // We should be thread 1!
+      FetchOrAssignThreadId();
     }
 
 
@@ -477,6 +595,7 @@ namespace v8 {
     }
 
 
+    // Force JSRuntime and JSContext disposal for the thread that runs static initializers
     void V8MonkeyCommon::ForceRTCXDisposal() {
       void* raw = Platform::GetTLSData(rtcxKey);
       if (raw == nullptr) {
@@ -537,7 +656,8 @@ namespace v8 {
     void (*InternalIsolate::gcOnNotifierFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
     void (*InternalIsolate::gcOffNotifierFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
 
-// XXX Can we fix these up to look out for construction?
+
+    // XXX Can we fix these up to look out for construction?
     TestUtils::AutoIsolateCleanup::~AutoIsolateCleanup() {
       while (Isolate::GetCurrent() && InternalIsolate::IsEntered(InternalIsolate::GetCurrent())) {
         Isolate* i = Isolate::GetCurrent();

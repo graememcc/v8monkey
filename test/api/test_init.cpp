@@ -58,6 +58,9 @@ V8MONKEY_TEST(Init004, "After V8 initialization, current isolate unchanged when 
 }
 
 
+/*
+ * Tests disabled after threading support disabled
+ *
 namespace {
   void* threadInitTest(void* arg) {
     V8MONKEY_CHECK(Isolate::GetCurrent() == NULL, "Sanity check");
@@ -66,6 +69,7 @@ namespace {
     bool result = Isolate::GetCurrent() != NULL;
 
     Isolate::GetCurrent()->Exit();
+    Isolate::GetCurrent()->Dispose();
     V8::Dispose();
 
     return reinterpret_cast<void*>(result);
@@ -80,3 +84,4 @@ V8MONKEY_TEST(Init005, "After V8 Initialization, thread outside any isolate ente
   t.Run();
   V8MONKEY_CHECK(t.Join(), "Default isolate entered");
 }
+*/

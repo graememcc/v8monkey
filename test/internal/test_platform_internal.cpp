@@ -20,12 +20,13 @@ namespace {
     v8::V8Platform::TLSKey* key = reinterpret_cast<v8::V8Platform::TLSKey*>(arg);
     intptr_t i = 42;
     v8::V8Platform::Platform::StoreTLSData(key, *(reinterpret_cast<void**>(&i)));
+    return nullptr;
   }
 
 
   // Support function for thread running test
   void* thread_run_main(void* arg) {
-    return NULL;
+    return nullptr;
   }
 
 
@@ -73,7 +74,7 @@ V8MONKEY_TEST(Plat001, "Platform-specific TLS key fits in a pointer") {
 
 V8MONKEY_TEST(Plat002, "TLS Key get initially returns null") {
   TLSKey* key = Platform::CreateTLSKey();
-  V8MONKEY_CHECK(Platform::GetTLSData(key) == NULL, "Key value is initially null");
+  V8MONKEY_CHECK(Platform::GetTLSData(key) == nullptr, "Key value is initially null");
   Platform::DeleteTLSKey(key);
 }
 
@@ -100,7 +101,7 @@ V8MONKEY_TEST(Plat004, "Key creation with destructor works correctly") {
 
 V8MONKEY_TEST(Plat005, "HasRan correct after thread runs") {
   Thread t(thread_run_main);
-  t.Run(NULL);
+  t.Run(nullptr);
   t.Join();
   V8MONKEY_CHECK(t.HasRan(), "HasRan reported true");
 }
@@ -108,7 +109,7 @@ V8MONKEY_TEST(Plat005, "HasRan correct after thread runs") {
 
 V8MONKEY_TEST(Plat006, "Thread joining returns correct value") {
   Thread t(thread_join_main);
-  t.Run(NULL);
+  t.Run(nullptr);
   void* result = t.Join();
   V8MONKEY_CHECK(reinterpret_cast<intptr_t>(result) == THREAD_RESULT, "Value returned by thread join is correct");
 }
@@ -122,11 +123,11 @@ V8MONKEY_TEST(Plat007, "Thread argument passing works correctly") {
 }
 
 
-V8MONKEY_TEST(Plat008, "Run called with no arguments calls thread function with NULL") {
+V8MONKEY_TEST(Plat008, "Run called with no arguments calls thread function with nullptr") {
   Thread t(thread_noarg_main);
   t.Run();
   void* result = t.Join();
-  V8MONKEY_CHECK(result == NULL, "Run was called with null pointer");
+  V8MONKEY_CHECK(result == nullptr, "Run was called with null pointer");
 }
 
 

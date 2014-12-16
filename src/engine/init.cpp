@@ -2,7 +2,6 @@
 #include "v8.h"
 
 
-#include "threads/autolock.h"
 #include "init.h"
 #include "runtime/isolate.h"
 #include "platform.h"
@@ -19,42 +18,9 @@
 
 
 namespace {
-  // SpiderMonkey docs state that a call to JS_Shutdown—which releases any remaining resources not tied to specific
-  // runtimes or contexts—is currently optional, but warns that this might not always be so. Thus we create an object
-  // in static storage, whose destructor will ensure that the appropriate shutdown call is made.
-  // XXX Need to be sure that there won't be any extant threads holding runtimes in existence, in the face of no
-  //     guarantees with regards to static destructor ordering
-  class AutoSpiderMonkeyShutdown {
-    public:
-      AutoSpiderMonkeyShutdown() {}
-
-
-      ~AutoSpiderMonkeyShutdown() {
-        v8::V8Monkey::V8MonkeyCommon::ForceRTCXDisposal();
-        JS_ShutDown();
-      }
-  } autoFreeEngine;
-
-
-  // Was SpiderMonkey initted succesfully? This should only be read while holding the mutex
+  // Was SpiderMonkey initted succesfully? This should only be read while holding the relevant mutex
   bool engineInitAttempted = false;
   bool engineInitSucceeded = false;
-  v8::V8Platform::Mutex engineInitMutex;
-
-
-  // Initialize SpiderMonkey
-  void InitializeSpiderMonkey() {
-    v8::V8Monkey::AutoLock lock(engineInitMutex);
-    if (engineInitAttempted)
-      return;
-
-    engineInitAttempted = true;
-    engineInitSucceeded = JS_Init();
-  }
-
-
-  // Mutex for checking/modifying engine disposal state
-  v8::V8Platform::Mutex engineDisposalMutex;
 
 
   // Has V8 been initted? We sometimes need to distinguish between V8 and SM inits
@@ -94,19 +60,41 @@ namespace {
     v8::FatalErrorCallback fn = i->GetFatalErrorHandler();
     return fn ? fn : DefaultFatalErrorHandler;
   }
+
+
+  // The single static initializer for our global state, to avoid running into static initialization ordering problems across
+  // translation unit boundaries.
+  class OneTrueStaticInitializer {
+    public:
+      OneTrueStaticInitializer() {
+        // Initialize all required TLS keys
+        v8::V8Monkey::V8MonkeyCommon::InitTLSKeys();
+        v8::V8Monkey::V8MonkeyCommon::EnsureDefaultIsolate();
+
+        // Just go ahead and init SpiderMonkey here too. We don't acquire the mutex: we should be single-threaded at this point
+        engineInitAttempted = true;
+        engineInitSucceeded = JS_Init();
+      }
+
+      // SpiderMonkey docs state that a call to JS_Shutdown-which releases any remaining resources not tied to specific
+      // runtimes or contexts-is currently optional, but warns that this might not always be so. Thus we ensure we shut
+      // things down in this destructor.
+      ~OneTrueStaticInitializer() {
+        // Ensure default isolate is disposed
+        delete v8::V8Monkey::InternalIsolate::GetCurrent();
+
+        // Force any extant threads to dispose of their JSRuntimes and JSContexts
+        v8::V8Monkey::V8MonkeyCommon::ForceRTCXDisposal();
+        JS_ShutDown();
+      }
+  } staticInitializer;
 }
 
 
 namespace v8 {
   bool V8::Initialize() {
-    InitializeSpiderMonkey();
+    v8initted = true;
 
-    {
-      V8Monkey::AutoLock lock(engineInitMutex);
-      v8initted = true;
-    }
-
-    // engineInitSucceeded will now be in a stable state
     if (!engineInitSucceeded) {
       // The V8 API appears to present engine init as infallible. In SpiderMonkey, failure—though unlikely—is possible.
       // If init failed, I doubt we'll be able to sensibly proceed.
@@ -123,16 +111,12 @@ namespace v8 {
   bool V8::Dispose() {
     using namespace v8::V8Monkey;
 
-    {
-      AutoLock lock(engineInitMutex);
-      if (!engineInitSucceeded || !v8initted) {
-        return true;
-      }
+    if (!engineInitSucceeded || !v8initted) {
+      return true;
     }
 
     // XXX V8::Dispose has some semantics around stopping of utility threads that we haven't tackled
     //     For now, this is a no-op: our static object above will really shutdown SpiderMonkey
-    AutoLock mutex(engineDisposalMutex);
 
     InternalIsolate* i = InternalIsolate::GetCurrent();
     if (i == NULL || i != InternalIsolate::GetDefaultIsolate()) {
@@ -144,8 +128,9 @@ if (InternalIsolate::IsEntered(i)) {
       V8MonkeyCommon::TriggerFatalError("v8::V8::Dispose", "You're still in the isolate!");
       return false;
 }
-    // The dispose method won't delete default isolates, so just delete here
-    //delete i;
+
+    // Attempt to dispose of isolate, in case we're being called from an off-main thread that entered the default
+    i->Dispose();
 
     V8IsDisposed = true;
     return true;
@@ -154,8 +139,6 @@ if (InternalIsolate::IsEntered(i)) {
 
   // XXX We likely need to extend this to handle OOM and other such error situations
   bool V8::IsDead() {
-    V8Monkey::AutoLock mutex(engineDisposalMutex);
-
     return V8IsDisposed || hasFatalError;
   }
 
@@ -164,11 +147,6 @@ if (InternalIsolate::IsEntered(i)) {
     void V8MonkeyCommon::TriggerFatalError(const char* location, const char* message) {
       hasFatalError = true;
       GetFatalErrorHandlerOrDefault()(location, message);
-    }
-
-
-    void V8MonkeyCommon::EnsureSpiderMonkey() {
-      InitializeSpiderMonkey();
     }
 
 

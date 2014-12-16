@@ -239,52 +239,23 @@ V8MONKEY_TEST(Isolate001, "Main thread reports Isolate::GetCurrent non-null even
 }
 
 
-V8MONKEY_TEST(Isolate002, "Non-main thread reports Isolate::GetCurrent null when API not used") {
-  V8Platform::Thread child(ReturnCurrentIsolate);
-  child.Run();
-  Isolate* threadIsolate = static_cast<Isolate*>(child.Join());
-  V8MONKEY_CHECK(threadIsolate == NULL, "Thread Isolate::GetCurrent was null");
-}
-
-
-V8MONKEY_TEST(Isolate003, "Main thread remains in isolate if exited fewer times than entered") {
+V8MONKEY_TEST(Isolate002, "Main thread remains in isolate if exited fewer times than entered") {
   V8MONKEY_CHECK(EnterTwiceReturnOnce(), "Still in isolate after asymmetric exits");
 }
 
 
-V8MONKEY_TEST(Isolate004, "Non-main thread remains in isolate if exited fewer times than entered") {
-  V8Platform::Thread child(EnterTwiceReturnOnce);
-  child.Run();
-  V8MONKEY_CHECK(child.Join(), "Still in isolate after asymmetric exits");
-}
-
-
-V8MONKEY_TEST(Isolate005, "Main thread exits to default after sufficient exits from multiply-entered isolate") {
+V8MONKEY_TEST(Isolate003, "Main thread exits to default after sufficient exits from multiply-entered isolate") {
   V8MONKEY_CHECK(EnterThriceReturnThrice(), "Returned to default after symmetric exits");
 }
 
 
-V8MONKEY_TEST(Isolate006, "Non-main thread exits to null after sufficient exits from multiply-entered isolate") {
-  V8Platform::Thread child(EnterThriceReturnThrice);
-  child.Run();
-  V8MONKEY_CHECK(child.Join(), "Returned to null after symmetric exits");
-}
-
-
-V8MONKEY_TEST(Isolate007, "Isolate entries stack for main thread") {
+V8MONKEY_TEST(Isolate004, "Isolate entries stack for main thread") {
   void* result = CheckIsolateStacking();
   V8MONKEY_CHECK(result, "Isolates returned to in correct sequence");
 }
 
 
-V8MONKEY_TEST(Isolate008, "Isolate entries stack for off-main thread") {
-  V8Platform::Thread child(CheckIsolateStacking);
-  child.Run();
-  V8MONKEY_CHECK(child.Join(), "Isolates returned to in correct sequence");
-}
-
-
-V8MONKEY_TEST(Isolate009, "Isolate::New returns a fresh isolate") {
+V8MONKEY_TEST(Isolate005, "Isolate::New returns a fresh isolate") {
   Isolate* defaultIsolate = Isolate::GetCurrent();
   Isolate* i = Isolate::New();
   V8MONKEY_CHECK(defaultIsolate != i, "New returned a fresh isolate");
@@ -292,7 +263,7 @@ V8MONKEY_TEST(Isolate009, "Isolate::New returns a fresh isolate") {
 }
 
 
-V8MONKEY_TEST(Isolate010, "Dispose refuses to delete default isolate") {
+V8MONKEY_TEST(Isolate006, "Dispose refuses to delete default isolate") {
   Isolate* defaultIsolate = Isolate::GetCurrent();
   defaultIsolate->Dispose();
 
@@ -305,7 +276,7 @@ V8MONKEY_TEST(Isolate010, "Dispose refuses to delete default isolate") {
 }
 
 
-V8MONKEY_TEST(Isolate011, "Isolate not deleted on Dispose if still in use") {
+V8MONKEY_TEST(Isolate007, "Isolate not deleted on Dispose if still in use") {
   Isolate* i = Isolate::New();
   i->Enter();
   V8::SetFatalErrorHandler(dummyFatalErrorHandler);
@@ -320,9 +291,131 @@ V8MONKEY_TEST(Isolate011, "Isolate not deleted on Dispose if still in use") {
 }
 
 
-V8MONKEY_TEST(Isolate012, "Attempt to dispose in-use isolate causes fatal error (main)") {
+V8MONKEY_TEST(Isolate008, "Attempt to dispose in-use isolate causes fatal error (main)") {
   void* result = CheckBadDisposeIsFatal();
   V8MONKEY_CHECK(result, "Disposing an in-use isolate is fatal");
+}
+
+
+V8MONKEY_TEST(Isolate009, "Embedder data is initially null") {
+  Isolate* i = Isolate::GetCurrent();
+  void* result = i->GetData();
+  V8MONKEY_CHECK(!result, "Data was null");
+}
+
+
+V8MONKEY_TEST(Isolate010, "Setting/getting data works as expected") {
+  Isolate* i = Isolate::GetCurrent();
+  i->SetData(i);
+  bool result = i->GetData() == i;
+  V8MONKEY_CHECK(result, "Data was correct");
+}
+
+
+V8MONKEY_TEST(Isolate011, "Embedder data is isolate specific") {
+  Isolate* i = Isolate::GetCurrent();
+  i->SetData(i);
+  Isolate* j = Isolate::New();
+  bool result = i->GetData() == i && j->GetData() == NULL;
+  V8MONKEY_CHECK(result, "Data was correct");
+  j->Dispose();
+}
+
+
+V8MONKEY_TEST(Scope001, "Creating and destroying a single scope leaves main in its initial state") {
+  V8MONKEY_CHECK(CheckSingleScopeRestoresInitialState(), "main thread returned to initial isolate after scope destruction");
+}
+
+
+V8MONKEY_TEST(Scope002, "GetCurrent() reports correct isolate after Scope construction (within Scope lifetime)") {
+  V8MONKEY_CHECK(GetCurrentCorrectAfterScopeConstruction(), "GetCurrent() was correct");
+}
+
+
+V8MONKEY_TEST(Scope003, "Scopes stack correctly for main with explicitly entered Isolates") {
+  V8MONKEY_CHECK(CheckScopesStackAfterExplicitEntry(), "Scope stacked correctly");
+}
+
+
+V8MONKEY_TEST(Scope004, "Multiple Scopes stack correctly for main thread") {
+  V8MONKEY_CHECK(CheckScopesStack(), "Scopes stacked correctly");
+}
+
+
+V8MONKEY_TEST(Dispose001, "Attempt to dispose V8 when in non-default isolate (main thread) triggers fatal error") {
+  void* result = CheckV8DisposeFromNonDefaultIsFatal();
+  V8MONKEY_CHECK(result, "Disposing V8 from a non-default isolate is fatal");
+
+  Isolate::GetCurrent()->Dispose();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Dispose002, "V8::Dispose returns true when successful") {
+  // Init enters the default isolate
+  V8::Initialize();
+  // Exit default isolate in preparation for disposal
+  Isolate::GetCurrent()->Exit();
+
+  bool result = V8::Dispose();
+  V8MONKEY_CHECK(result, "Disposing V8 returned true");
+}
+
+
+V8MONKEY_TEST(Dispose003, "V8::Dispose returns false when unsuccessful") {
+  V8::Initialize();
+  Isolate* i = Isolate::New();
+  i->Enter();
+
+  V8::SetFatalErrorHandler(dummyFatalErrorHandler);
+  bool result = V8::Dispose();
+
+  i->Exit();
+  i->Dispose();
+  Isolate::GetCurrent()->Exit();
+  Isolate::GetCurrent()->Dispose();
+
+  V8MONKEY_CHECK(!result, "Failed dispose returned false");
+}
+
+
+V8MONKEY_TEST(Dispose004, "Dispose without init works correctly from main") {
+  void* result = CheckV8DisposeWithoutInit();
+  V8MONKEY_CHECK(result, "Disposing V8 without init from main works");
+}
+
+
+/*
+ * Tests disabled after threading support disabled
+ *
+
+
+V8MONKEY_TEST(Isolate002, "Non-main thread reports Isolate::GetCurrent null when API not used") {
+  V8Platform::Thread child(ReturnCurrentIsolate);
+  child.Run();
+  Isolate* threadIsolate = static_cast<Isolate*>(child.Join());
+  V8MONKEY_CHECK(threadIsolate == NULL, "Thread Isolate::GetCurrent was null");
+}
+
+
+V8MONKEY_TEST(Isolate004, "Non-main thread remains in isolate if exited fewer times than entered") {
+  V8Platform::Thread child(EnterTwiceReturnOnce);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Still in isolate after asymmetric exits");
+}
+
+
+V8MONKEY_TEST(Isolate006, "Non-main thread exits to null after sufficient exits from multiply-entered isolate") {
+  V8Platform::Thread child(EnterThriceReturnThrice);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Returned to null after symmetric exits");
+}
+
+
+V8MONKEY_TEST(Isolate008, "Isolate entries stack for off-main thread") {
+  V8Platform::Thread child(CheckIsolateStacking);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Isolates returned to in correct sequence");
 }
 
 
@@ -344,46 +437,10 @@ V8MONKEY_TEST(Isolate014, "Attempt to dispose in-use isolate from another thread
 }
 
 
-V8MONKEY_TEST(Isolate015, "Embedder data is initially null") {
-  Isolate* i = Isolate::GetCurrent();
-  void* result = i->GetData();
-  V8MONKEY_CHECK(!result, "Data was null");
-}
-
-
-V8MONKEY_TEST(Isolate016, "Setting/getting data works as expected") {
-  Isolate* i = Isolate::GetCurrent();
-  i->SetData(i);
-  bool result = i->GetData() == i;
-  V8MONKEY_CHECK(result, "Data was correct");
-}
-
-
-V8MONKEY_TEST(Isolate017, "Embedder data is isolate specific") {
-  Isolate* i = Isolate::GetCurrent();
-  i->SetData(i);
-  Isolate* j = Isolate::New();
-  bool result = i->GetData() == i && j->GetData() == NULL;
-  V8MONKEY_CHECK(result, "Data was correct");
-  j->Dispose();
-}
-
-
-V8MONKEY_TEST(Scope001, "Creating and destroying a single scope leaves main in its initial state") {
-  V8MONKEY_CHECK(CheckSingleScopeRestoresInitialState(), "main thread returned to initial isolate after scope destruction");
-}
-
-
 V8MONKEY_TEST(Scope002, "Creating and destroying a single scope leaves thread in its initial state") {
   V8Platform::Thread child(CheckSingleScopeRestoresInitialState);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "thread returned to initial isolate after scope destruction");
-  
-}
-
-
-V8MONKEY_TEST(Scope003, "GetCurrent() reports correct isolate after Scope construction (within Scope lifetime)") {
-  V8MONKEY_CHECK(GetCurrentCorrectAfterScopeConstruction(), "GetCurrent() was correct");
 }
 
 
@@ -394,20 +451,10 @@ V8MONKEY_TEST(Scope004, "GetCurrent() reports correct isolate after Scope constr
 }
 
 
-V8MONKEY_TEST(Scope005, "Scopes stack correctly for main with explicitly entered Isolates") {
-  V8MONKEY_CHECK(CheckScopesStackAfterExplicitEntry(), "Scope stacked correctly");
-}
-
-
 V8MONKEY_TEST(Scope006, "Scopes stack correctly for thread with explicitly entered Isolates") {
   V8Platform::Thread child(CheckScopesStackAfterExplicitEntry);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "Scope stacked correctly");
-}
-
-
-V8MONKEY_TEST(Scope007, "Multiple Scopes stack correctly for main thread") {
-  V8MONKEY_CHECK(CheckScopesStack(), "Scopes stacked correctly");
 }
 
 
@@ -418,56 +465,10 @@ V8MONKEY_TEST(Scope008, "Multiple Scopes stack correctly for thread") {
 }
 
 
-V8MONKEY_TEST(Dispose001, "Attempt to dispose V8 when in non-default isolate (main thread) triggers fatal error") {
-  void* result = CheckV8DisposeFromNonDefaultIsFatal();
-  V8MONKEY_CHECK(result, "Disposing V8 from a non-default isolate is fatal");
-
-  Isolate::GetCurrent()->Dispose();
-  V8::Dispose();
-}
-
-
 V8MONKEY_TEST(Dispose002, "Attempt to dispose V8 when in non-default isolate (thread) triggers fatal error") {
   V8Platform::Thread child(CheckV8DisposeFromNonDefaultIsFatal);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "Disposing V8 from a non-default isolate is fatal");
-
-  Isolate::GetCurrent()->Dispose();
-  V8::Dispose();
-}
-
-
-V8MONKEY_TEST(Dispose003, "V8::Dispose returns true when successful") {
-  // Init enters the default isolate
-  V8::Initialize();
-  // Exit default isolate in preparation for disposal
-  Isolate::GetCurrent()->Exit();
-
-  bool result = V8::Dispose();
-  V8MONKEY_CHECK(result, "Disposing V8 returned true");
-}
-
-
-V8MONKEY_TEST(Dispose004, "V8::Dispose returns false when unsuccessful") {
-  V8::Initialize();
-  Isolate* i = Isolate::New();
-  i->Enter();
-
-  V8::SetFatalErrorHandler(dummyFatalErrorHandler);
-  bool result = V8::Dispose();
-
-  i->Exit();
-  i->Dispose();
-  Isolate::GetCurrent()->Exit();
-  Isolate::GetCurrent()->Dispose();
-
-  V8MONKEY_CHECK(!result, "Failed dispose returned false");
-}
-
-
-V8MONKEY_TEST(Dispose005, "Dispose without init works correctly from main") {
-  void* result = CheckV8DisposeWithoutInit();
-  V8MONKEY_CHECK(result, "Disposing V8 without init from main works");
 }
 
 
@@ -476,3 +477,4 @@ V8MONKEY_TEST(Dispose006, "Dispose without init works from thread if associated 
   child.Run();
   V8MONKEY_CHECK(child.Join(), "Disposing V8 without init from thread works in right circumstances");
 }
+*/

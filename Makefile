@@ -314,7 +314,7 @@ $(header_platform_deps) $(call variants, src/engine/init) $(call variants, src/r
 
 
 # Most files depend on the miscellaneous functions in the V8MonkeyCommon class
-$(v8objects) $(testlibobjects): src/v8monkey_common.h
+src/runtime/isolate.h $(v8objects) $(testlibobjects): src/v8monkey_common.h
 
 
 # Various files need the base_type definitions

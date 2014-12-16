@@ -19,6 +19,16 @@ namespace v8 {
   namespace V8Monkey {
     class EXPORT_FOR_TESTING_ONLY V8MonkeyCommon {
       public:
+        // Intended to be called only by the static initializer to ensure that all required TLS keys exist
+        static void InitTLSKeys();
+
+        // Intended to be called only by the static initializer to ensure that the default isolate exists, and that
+        // the thread running static initializers has that isolate pointer in TLS. Must be called after InitTLSKeys.
+        static void EnsureDefaultIsolate();
+
+        // Ensure TLS destructor for default isolate doesn't run after main thread exit
+        static void ClearOutMainThreadIsolateTLS();
+
         // Used by static destructor in init to ensure main thread's JSRuntime and JSContext are disposed of before
         // SpiderMonkey
         static void ForceRTCXDisposal();
@@ -27,6 +37,7 @@ namespace v8 {
         static void TriggerFatalError(const char* location, const char* message);
 
         // Ensure SpiderMonkey is initted independent of the API's calls to V8::Initialize
+        // XXX Is this still needed?
         static void EnsureSpiderMonkey();
 
       private:

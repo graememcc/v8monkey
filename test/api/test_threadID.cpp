@@ -26,6 +26,9 @@ V8MONKEY_TEST(ThreadID002, "Main thread gets thread id of 1 (explicit engine ini
 }
 
 
+/*
+ * Tests disabled after threading support disabled
+ *
 namespace {
   V8MONKEY_TEST_HELPER(ReturnOwnThreadID) {
     int threadID;
@@ -65,3 +68,5 @@ V8MONKEY_TEST(ThreadID004, "Child threads are assigned distinct ids") {
   V8MONKEY_CHECK(threadID2 > 1, "Child thread 2 assigned valid ID");
   V8MONKEY_CHECK(threadID1 != threadID2, "Child threads assigned distinct IDs");
 }
+
+*/

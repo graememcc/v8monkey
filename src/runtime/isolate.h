@@ -6,6 +6,7 @@
 #include "types/base_types.h"
 #include "platform.h"
 #include "test.h"
+#include "v8monkey_common.h"
 
 
 namespace v8 {
@@ -32,11 +33,12 @@ namespace v8 {
     // An internal variant of the public facing Isolate class
     class EXPORT_FOR_TESTING_ONLY InternalIsolate {
       public:
-        InternalIsolate() : fatalErrorHandler(NULL), threadData(NULL), embedderData(NULL), lockingThread(0) {
+        InternalIsolate() : isDisposed(false), isRegisteredForGC(false), fatalErrorHandler(NULL), threadData(NULL),
+                            embedderData(NULL), lockingThread(0) {
           handleScopeData.Initialize();
         }
 
-        ~InternalIsolate() {}
+        ~InternalIsolate();
 
         // Enter the given isolate
         void Enter();
@@ -55,9 +57,6 @@ namespace v8 {
 
         // Find the current InternalIsolate for the given thread
         static InternalIsolate* GetCurrent();
-
-        // Create the default isolate if necessary
-        static void CreateDefaultIsolate();
 
         // Reports whether any threads are active in this isolate
         bool ContainsThreads() { return threadData != NULL; }
@@ -129,6 +128,8 @@ namespace v8 {
             InternalIsolate* isolate;
         };
 
+        void RemoveGCRooter();
+
         // Mechanism for handlescopes to tell this isolate it needs to start rooting objects
         void SetNeedToRoot(bool needToRoot);
 
@@ -170,6 +171,16 @@ namespace v8 {
         static JSContext* GetJSContextForThread();
 
       private:
+        // Tell SpiderMonkey about this isolate
+        void AddGCRooter();
+
+        // Unfortunately needs to be public so the DestructList function can access it
+        // Has this isolate been disposed?
+        bool isDisposed;
+
+        // Have we told SpiderMonkey we're a rooter?
+        bool isRegisteredForGC;
+
         // Fatal error handler for this isolate
         FatalErrorCallback fatalErrorHandler;
 
@@ -188,10 +199,6 @@ namespace v8 {
         // GC Mutex
         V8Platform::Mutex handleScopeDataMutex;
 
-        // Each thread has a reference to its current isolate stored within the thread
-        static InternalIsolate* GetIsolateFromTLS();
-        static void SetIsolateInTLS(InternalIsolate* i);
-
         // In a single threaded application, there is no need to explicitly construct an isolate. V8 constructs a
         // "default" isolate automatically, and use it where necessary.
         static InternalIsolate* defaultIsolate;
@@ -208,6 +215,8 @@ namespace v8 {
         static void (*gcOnNotifierFn)(JSRuntime*, JSTraceDataOp, void*);
         static void (*gcOffNotifierFn)(JSRuntime*, JSTraceDataOp, void*);
         #endif
+
+        friend class V8MonkeyCommon;
     };
   }
 }

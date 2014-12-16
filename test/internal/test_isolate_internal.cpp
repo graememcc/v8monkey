@@ -405,29 +405,13 @@ V8MONKEY_TEST(IntIsolate007, "Initializing V8 implicitly enters default isolate 
 }
 
 
-V8MONKEY_TEST(IntIsolate008, "Initializing V8 implicitly enters default isolate (non-main thread)") {
-  TestUtils::AutoTestCleanup ac;
-  V8Platform::Thread child(InitializingEnteredDefault);
-  child.Run();
-  V8MONKEY_CHECK(child.Join(), "Default isolate was entered on thread as consequence of V8 init");
-}
-
-
-V8MONKEY_TEST(IntIsolate009, "Main thread can exit default isolate after initialization implicitly enters") {
+V8MONKEY_TEST(IntIsolate008, "Main thread can exit default isolate after initialization implicitly enters") {
   TestUtils::AutoTestCleanup ac;
   V8MONKEY_CHECK(CanExitDefaultAfterInit(), "Default isolate was exited successfully from main thread after consequence of V8 init");
 }
 
 
-V8MONKEY_TEST(IntIsolate010, "Initializing V8 implicitly enters default isolate (non-main thread)") {
-  TestUtils::AutoTestCleanup ac;
-  V8Platform::Thread child(CanExitDefaultAfterInit);
-  child.Run();
-  V8MONKEY_CHECK(child.Join(), "Default isolate was exited successfully from thread after consequence of V8 init");
-}
-
-
-V8MONKEY_TEST(IntIsolate011, "Isolate::GetCurrent() still reports default for main thread after explicit entry/exit") {
+V8MONKEY_TEST(IntIsolate009, "Isolate::GetCurrent() still reports default for main thread after explicit entry/exit") {
   TestUtils::AutoTestCleanup ac;
   Isolate* defaultIsolate = Isolate::GetCurrent();
   defaultIsolate->Enter();
@@ -436,9 +420,242 @@ V8MONKEY_TEST(IntIsolate011, "Isolate::GetCurrent() still reports default for ma
 }
 
 
-V8MONKEY_TEST(IntIsolate012, "Isolate::GetCurrent() still reports default for main thread after implicit entry / explicit exit") {
+V8MONKEY_TEST(IntIsolate010, "Isolate::GetCurrent() still reports default for main thread after implicit entry / explicit exit") {
   TestUtils::AutoTestCleanup ac;
   V8MONKEY_CHECK(ImplicitEnterExplicitExit(), "GetCurrent() still reports default");
+}
+
+
+V8MONKEY_TEST(IntIsolate011, "Current isolate unchanged if already in isolate prior to V8 init (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(InitAfterEnterStaysInIsolate(), "Isolate unchanged");
+}
+
+
+V8MONKEY_TEST(IntIsolate012, "Isolate reports empty when not entered") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* i = Isolate::New();
+  V8MONKEY_CHECK(!InternalIsolate::FromIsolate(i)->ContainsThreads(), "Empty isolate reports no threads active");
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate013, "Isolate reports non-empty when entered") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* i = Isolate::New();
+  i->Enter();
+  V8MONKEY_CHECK(InternalIsolate::FromIsolate(i)->ContainsThreads(), "Entered isolate reports threads active");
+}
+
+
+V8MONKEY_TEST(IntIsolate014, "IsLockedForThisThread reports false initially") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* i = Isolate::New();
+  V8MONKEY_CHECK(!InternalIsolate::FromIsolate(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate015, "IsLockedForThisThread reports true after locking") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* i = Isolate::New();
+  InternalIsolate::FromIsolate(i)->Lock();
+  V8MONKEY_CHECK(InternalIsolate::FromIsolate(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
+  InternalIsolate::FromIsolate(i)->Unlock();
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate016, "IsLockedForThisThread reports false after unlocking") {
+  TestUtils::AutoTestCleanup ac;
+
+  Isolate* i = Isolate::New();
+  InternalIsolate::FromIsolate(i)->Lock();
+  InternalIsolate::FromIsolate(i)->Unlock();
+
+  V8MONKEY_CHECK(!InternalIsolate::FromIsolate(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate017, "Associated runtime initially null (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeInitiallyNull(), "JSRuntime is null");
+}
+
+
+V8MONKEY_TEST(IntIsolate018, "Associated context initially null (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextInitiallyNull(), "JSContext is null");
+}
+
+
+V8MONKEY_TEST(IntIsolate019, "After explicit isolate entry, JSRuntime non-null (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeNonNullAfterEntry(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate020, "After explicit isolate entry, JSContext non-null (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextNonNullAfterEntry(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate021, "After explicit isolate entry, JSContext non-null (thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(ContextNonNullAfterEntry);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate022, "After implicit isolate entry, JSRuntime non-null (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeNonNullAfterImplicitEntry(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate023, "After implicit isolate entry, JSContext non-null (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextNonNullAfterImplicitEntry(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate024, "After isolate exit, JSRuntime unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeUnchangedAfterExit(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate025, "After isolate exit, JSContext unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextUnchangedAfterExit(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate026, "After isolate re-entry, JSRuntime unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeUnchangedAfterReentry(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate027, "After isolate re-entry, JSContext unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextUnchangedAfterReentry(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate028, "After exiting one isolate and entering another, JSRuntime unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeUnchangedAfterEnteringOther(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate029, "After exiting one isolate and entering another, JSContext unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextUnchangedAfterEnteringOther(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate030, "After exiting one isolate and entering another (stacking), JSRuntime unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(RuntimeUnchangedAfterEnteringOtherStack(), "JSRuntime not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate031, "After exiting one isolate and entering another (stacking), JSContext unchanged (main)") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(ContextUnchangedAfterEnteringOtherStack(), "JSContext not null");
+}
+
+
+V8MONKEY_TEST(IntIsolate032, "Entering an isolate registers for GC rooting") {
+  TestUtils::AutoTestCleanup ac;
+  InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+  Isolate* i = Isolate::New();
+
+  wasGCOnNotified = false;
+  i->Enter();
+
+  V8MONKEY_CHECK(wasGCOnNotified, "Notified SpiderMonkey about need to root");
+  InternalIsolate::SetGCNotifier(nullptr, nullptr);
+}
+
+
+V8MONKEY_TEST(IntIsolate033, "Exiting an isolate doesn't deregister an isolate from rooting") {
+  TestUtils::AutoTestCleanup ac;
+  InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+  Isolate* i = Isolate::New();
+  i->Enter();
+
+  wasGCOffNotified = false;
+  i->Exit();
+
+  V8MONKEY_CHECK(!wasGCOffNotified, "Exiting isolate doesn't deregister");
+  i->Dispose();
+
+  InternalIsolate::SetGCNotifier(nullptr, nullptr);
+}
+
+
+V8MONKEY_TEST(IntIsolate034, "Disposing an isolate deregisters it from rooting") {
+  TestUtils::AutoTestCleanup ac;
+  InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+  Isolate* i = Isolate::New();
+  i->Enter();
+  i->Exit();
+  wasGCOffNotified = false;
+  i->Dispose();
+
+  V8MONKEY_CHECK(wasGCOffNotified, "Exiting isolate doesn't deregister");
+  InternalIsolate::SetGCNotifier(nullptr, nullptr);
+}
+
+
+V8MONKEY_TEST(IntScope001, "Scopes enter isolates on main thread") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(CheckScopesEnter(), "Isolate was entered");
+}
+
+
+V8MONKEY_TEST(IntScope002, "Scopes exit isolates on destruction on main thread") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(CheckScopesExit(), "Isolate was exited");
+}
+
+
+V8MONKEY_TEST(IntScope003, "Scopes exit copes with multiple entries on main thread") {
+  TestUtils::AutoTestCleanup ac;
+  V8MONKEY_CHECK(CheckScopesHandleMultipleEntries(), "Isolate was not completely exited");
+}
+
+
+V8MONKEY_TEST(IntScope004, "Scopes can enter default isolate on main thread") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* defaultIsolate = Isolate::GetCurrent();
+  V8MONKEY_CHECK(CheckScopesEnterDefault(defaultIsolate), "Default isolate was entered");
+}
+
+
+/*
+ * Tests disabled after threading support disabled
+ *
+
+
+V8MONKEY_TEST(IntIsolate008, "Initializing V8 implicitly enters default isolate (non-main thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(InitializingEnteredDefault);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Default isolate was entered on thread as consequence of V8 init");
+}
+
+
+V8MONKEY_TEST(IntIsolate010, "Initializing V8 implicitly enters default isolate (non-main thread)") {
+  TestUtils::AutoTestCleanup ac;
+  V8Platform::Thread child(CanExitDefaultAfterInit);
+  child.Run();
+  V8MONKEY_CHECK(child.Join(), "Default isolate was exited successfully from thread after consequence of V8 init");
 }
 
 
@@ -459,63 +676,11 @@ V8MONKEY_TEST(IntIsolate014, "Isolate::GetCurrent() still reports default for th
 }
 
 
-V8MONKEY_TEST(IntIsolate015, "Current isolate unchanged if already in isolate prior to V8 init (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(InitAfterEnterStaysInIsolate(), "Isolate unchanged");
-}
-
-
 V8MONKEY_TEST(IntIsolate016, "Current isolate unchanged if already in isolate prior to V8 init (thread)") {
   TestUtils::AutoTestCleanup ac;
   V8Platform::Thread child(InitAfterEnterStaysInIsolate);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "Isolate unchanged");
-}
-
-
-V8MONKEY_TEST(IntIsolate017, "Isolate reports empty when not entered") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate* i = Isolate::New();
-  V8MONKEY_CHECK(!InternalIsolate::FromIsolate(i)->ContainsThreads(), "Empty isolate reports no threads active");
-  i->Dispose();
-}
-
-
-V8MONKEY_TEST(IntIsolate018, "Isolate reports non-empty when entered") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate* i = Isolate::New();
-  i->Enter();
-  V8MONKEY_CHECK(InternalIsolate::FromIsolate(i)->ContainsThreads(), "Entered isolate reports threads active");
-}
-
-
-V8MONKEY_TEST(IntIsolate019, "IsLockedForThisThread reports false initially") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate* i = Isolate::New();
-  V8MONKEY_CHECK(!InternalIsolate::FromIsolate(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
-  i->Dispose();
-}
-
-
-V8MONKEY_TEST(IntIsolate020, "IsLockedForThisThread reports true after locking") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate* i = Isolate::New();
-  InternalIsolate::FromIsolate(i)->Lock();
-  V8MONKEY_CHECK(InternalIsolate::FromIsolate(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
-  InternalIsolate::FromIsolate(i)->Unlock();
-  i->Dispose();
-}
-
-
-V8MONKEY_TEST(IntIsolate021, "IsLockedForThisThread reports false after locking") {
-  TestUtils::AutoTestCleanup ac;
-
-  Isolate* i = Isolate::New();
-  InternalIsolate::FromIsolate(i)->Lock();
-  InternalIsolate::FromIsolate(i)->Unlock();
-
-  V8MONKEY_CHECK(!InternalIsolate::FromIsolate(i)->IsLockedForThisThread(), "IsLockedForThisThread correct");
-  i->Dispose();
 }
 
 
@@ -533,23 +698,11 @@ V8MONKEY_TEST(IntIsolate022, "IsLockedForThisThread reports false from different
 }
 
 
-V8MONKEY_TEST(IntIsolate023, "Associated runtime initially null (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(RuntimeInitiallyNull(), "JSRuntime is null");
-}
-
-
 V8MONKEY_TEST(IntIsolate024, "Associated runtime initially null (thread)") {
   TestUtils::AutoTestCleanup ac;
   V8Platform::Thread child(RuntimeInitiallyNull);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "JSRuntime is null");
-}
-
-
-V8MONKEY_TEST(IntIsolate025, "Associated context initially null (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(ContextInitiallyNull(), "JSContext is null");
 }
 
 
@@ -561,37 +714,11 @@ V8MONKEY_TEST(IntIsolate026, "Associated context initially null (thread)") {
 }
 
 
-V8MONKEY_TEST(IntIsolate027, "After explicit isolate entry, JSRuntime non-null (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(RuntimeNonNullAfterEntry(), "JSRuntime not null");
-}
-
-
 V8MONKEY_TEST(IntIsolate028, "After explicit isolate entry, JSRuntime non-null (thread)") {
   TestUtils::AutoTestCleanup ac;
   V8Platform::Thread child(RuntimeNonNullAfterEntry);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "JSRuntime not null");
-}
-
-
-V8MONKEY_TEST(IntIsolate029, "After explicit isolate entry, JSContext non-null (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(ContextNonNullAfterEntry(), "JSContext not null");
-}
-
-
-V8MONKEY_TEST(IntIsolate030, "After explicit isolate entry, JSContext non-null (thread)") {
-  TestUtils::AutoTestCleanup ac;
-  V8Platform::Thread child(ContextNonNullAfterEntry);
-  child.Run();
-  V8MONKEY_CHECK(child.Join(), "JSContext not null");
-}
-
-
-V8MONKEY_TEST(IntIsolate031, "After implicit isolate entry, JSRuntime non-null (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(RuntimeNonNullAfterImplicitEntry(), "JSRuntime not null");
 }
 
 
@@ -603,23 +730,11 @@ V8MONKEY_TEST(IntIsolate032, "After implicit isolate entry, JSRuntime non-null (
 }
 
 
-V8MONKEY_TEST(IntIsolate033, "After implicit isolate entry, JSContext non-null (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(ContextNonNullAfterImplicitEntry(), "JSContext not null");
-}
-
-
 V8MONKEY_TEST(IntIsolate034, "After implicit isolate entry, JSContext non-null (thread)") {
   TestUtils::AutoTestCleanup ac;
   V8Platform::Thread child(ContextNonNullAfterImplicitEntry);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "JSContext not null");
-}
-
-
-V8MONKEY_TEST(IntIsolate035, "After isolate exit, JSRuntime unchanged (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(RuntimeUnchangedAfterExit(), "JSRuntime not null");
 }
 
 
@@ -631,23 +746,11 @@ V8MONKEY_TEST(IntIsolate036, "After isolate exit, JSRuntime unchanged (thread)")
 }
 
 
-V8MONKEY_TEST(IntIsolate037, "After isolate exit, JSContext unchanged (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(ContextUnchangedAfterExit(), "JSContext not null");
-}
-
-
 V8MONKEY_TEST(IntIsolate038, "After isolate exit, JSContext unchanged (thread)") {
   TestUtils::AutoTestCleanup ac;
   V8Platform::Thread child(ContextUnchangedAfterExit);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "JSContext not null");
-}
-
-
-V8MONKEY_TEST(IntIsolate039, "After isolate re-entry, JSRuntime unchanged (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(RuntimeUnchangedAfterReentry(), "JSRuntime not null");
 }
 
 
@@ -659,23 +762,11 @@ V8MONKEY_TEST(IntIsolate040, "After isolate re-entry, JSRuntime unchanged (threa
 }
 
 
-V8MONKEY_TEST(IntIsolate041, "After isolate re-entry, JSContext unchanged (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(ContextUnchangedAfterReentry(), "JSContext not null");
-}
-
-
 V8MONKEY_TEST(IntIsolate042, "After isolate re-entry, JSContext unchanged (thread)") {
   TestUtils::AutoTestCleanup ac;
   V8Platform::Thread child(ContextUnchangedAfterReentry);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "JSContext not null");
-}
-
-
-V8MONKEY_TEST(IntIsolate043, "After exiting one isolate and entering another, JSRuntime unchanged (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(RuntimeUnchangedAfterEnteringOther(), "JSRuntime not null");
 }
 
 
@@ -687,12 +778,6 @@ V8MONKEY_TEST(IntIsolate044, "After exiting one isolate and entering another, JS
 }
 
 
-V8MONKEY_TEST(IntIsolate045, "After exiting one isolate and entering another, JSContext unchanged (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(ContextUnchangedAfterEnteringOther(), "JSContext not null");
-}
-
-
 V8MONKEY_TEST(IntIsolate046, "After exiting one isolate and entering another, JSContext unchanged (thread)") {
   TestUtils::AutoTestCleanup ac;
   V8Platform::Thread child(ContextUnchangedAfterEnteringOther);
@@ -701,23 +786,11 @@ V8MONKEY_TEST(IntIsolate046, "After exiting one isolate and entering another, JS
 }
 
 
-V8MONKEY_TEST(IntIsolate047, "After exiting one isolate and entering another (stacking), JSRuntime unchanged (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(RuntimeUnchangedAfterEnteringOtherStack(), "JSRuntime not null");
-}
-
-
 V8MONKEY_TEST(IntIsolate048, "After exiting one isolate and entering another (stacking), JSRuntime unchanged (thread)") {
   TestUtils::AutoTestCleanup ac;
   V8Platform::Thread child(RuntimeUnchangedAfterEnteringOtherStack);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "JSRuntime not null");
-}
-
-
-V8MONKEY_TEST(IntIsolate049, "After exiting one isolate and entering another (stacking), JSContext unchanged (main)") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(ContextUnchangedAfterEnteringOtherStack(), "JSContext not null");
 }
 
 
@@ -791,45 +864,11 @@ V8MONKEY_TEST(IntIsolate054, "Child threads entering same isolate are assigned d
 }
 
 
-V8MONKEY_TEST(IntIsolate055, "Calling SetNeedToRoot with true correctly notifies the engine") {
-  TestUtils::AutoTestCleanup ac;
-  InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
-  wasGCOnNotified = false;
-  InternalIsolate::GetCurrent()->SetNeedToRoot(true);
-
-  V8MONKEY_CHECK(wasGCOnNotified, "Notified SpiderMonkey about need to root");
-  InternalIsolate::SetGCNotifier(nullptr, nullptr);
-}
-
-
-V8MONKEY_TEST(IntIsolate056, "Calling SetNeedToRoot with false correctly notifies the engine") {
-  TestUtils::AutoTestCleanup ac;
-  InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
-  wasGCOffNotified = false;
-  InternalIsolate::GetCurrent()->SetNeedToRoot(false);
-
-  V8MONKEY_CHECK(wasGCOffNotified, "Notified SpiderMonkey about need to root");
-  InternalIsolate::SetGCNotifier(nullptr, nullptr);
-}
-
-
-V8MONKEY_TEST(IntScope001, "Scopes enter isolates on main thread") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(CheckScopesEnter(), "Isolate was entered");
-}
-
-
 V8MONKEY_TEST(IntScope002, "Scopes enter isolates on thread") {
   TestUtils::AutoTestCleanup ac;
   V8Platform::Thread child(CheckScopesEnter);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "Isolate was entered");
-}
-
-
-V8MONKEY_TEST(IntScope003, "Scopes exit isolates on destruction on main thread") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(CheckScopesExit(), "Isolate was exited");
 }
 
 
@@ -841,24 +880,11 @@ V8MONKEY_TEST(IntScope004, "Scopes exit isolates on destruction on thread") {
 }
 
 
-V8MONKEY_TEST(IntScope005, "Scopes exit copes with multiple entries on main thread") {
-  TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(CheckScopesHandleMultipleEntries(), "Isolate was not completely exited");
-}
-
-
 V8MONKEY_TEST(IntScope006, "Scopes exit copes with multiple entries on thread") {
   TestUtils::AutoTestCleanup ac;
   V8Platform::Thread child(CheckScopesHandleMultipleEntries);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "Isolate was not completely exited");
-}
-
-
-V8MONKEY_TEST(IntScope007, "Scopes can enter default isolate on main thread") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate* defaultIsolate = Isolate::GetCurrent();
-  V8MONKEY_CHECK(CheckScopesEnterDefault(defaultIsolate), "Default isolate was entered");
 }
 
 
@@ -869,3 +895,5 @@ V8MONKEY_TEST(IntScope008, "Scopes can enter default isolate on thread") {
   child.Run(defaultIsolate);
   V8MONKEY_CHECK(child.Join(), "Default isolate was entered");
 }
+
+*/

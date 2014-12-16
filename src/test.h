@@ -61,6 +61,7 @@ namespace v8 {
     } \
   } while (0);
 
+
 // Define tests that check for implicit V8 initialization
 #define IMPLICIT_INIT_TESTS(stem, val1, val2, body) \
   namespace {  \

@@ -77,18 +77,37 @@ V8MONKEY_TEST(IntInit001, "After V8 initialization, current isolate still entere
 }
 
 
+V8MONKEY_TEST(IntInit002, "After V8 initialization, default isolate entered if not already entered (main)") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* defaultIsolate = Isolate::GetCurrent();
+  V8MONKEY_CHECK(DefaultIsolateGetsEntered(defaultIsolate), "Default was entered");
+}
+
+
+V8MONKEY_TEST(IntInit003, "After V8 initialization, default isolate remains entered if already entered (main)") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* defaultIsolate = Isolate::GetCurrent();
+  V8MONKEY_CHECK(DefaultIsolateRemainsEntered(defaultIsolate), "Default still entered");
+}
+
+
+V8MONKEY_TEST(IntInit004, "After V8 initialization, default isolate not re-entered if already entered (main)") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* defaultIsolate = Isolate::GetCurrent();
+  V8MONKEY_CHECK(DefaultIsolateNotReentered(defaultIsolate), "Default still entered");
+}
+
+
+/*
+ * Tests deleted due to abandoning multithreaded support
+ *
+
+
 V8MONKEY_TEST(IntInit002, "After V8 initialization, current isolate still entered if originally in non-default isolate (thread)") {
   TestUtils::AutoTestCleanup ac;
   V8Platform::Thread child(IsolateStaysEntered);
   child.Run();
   V8MONKEY_CHECK(child.Join(), "Entered isolate unchanged");
-}
-
-
-V8MONKEY_TEST(IntInit003, "After V8 initialization, default isolate entered if not already entered (main)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate* defaultIsolate = Isolate::GetCurrent();
-  V8MONKEY_CHECK(DefaultIsolateGetsEntered(defaultIsolate), "Default was entered");
 }
 
 
@@ -101,10 +120,12 @@ V8MONKEY_TEST(IntInit004, "After V8 initialization, default isolate entered if n
 }
 
 
-V8MONKEY_TEST(IntInit005, "After V8 initialization, default isolate remains entered if already entered (main)") {
+V8MONKEY_TEST(IntInit005, "After V8 initialization, default isolate not re-entered if already entered (thread)") {
   TestUtils::AutoTestCleanup ac;
   Isolate* defaultIsolate = Isolate::GetCurrent();
-  V8MONKEY_CHECK(DefaultIsolateRemainsEntered(defaultIsolate), "Default still entered");
+  V8Platform::Thread child(DefaultIsolateNotReentered);
+  child.Run(defaultIsolate);
+  V8MONKEY_CHECK(child.Join(), "Default still entered");
 }
 
 
@@ -116,18 +137,4 @@ V8MONKEY_TEST(IntInit006, "After V8 initialization, default isolate remains ente
   V8MONKEY_CHECK(child.Join(), "Default still entered");
 }
 
-
-V8MONKEY_TEST(IntInit007, "After V8 initialization, default isolate not re-entered if already entered (main)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate* defaultIsolate = Isolate::GetCurrent();
-  V8MONKEY_CHECK(DefaultIsolateNotReentered(defaultIsolate), "Default still entered");
-}
-
-
-V8MONKEY_TEST(IntInit008, "After V8 initialization, default isolate not re-entered if already entered (thread)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate* defaultIsolate = Isolate::GetCurrent();
-  V8Platform::Thread child(DefaultIsolateNotReentered);
-  child.Run(defaultIsolate);
-  V8MONKEY_CHECK(child.Join(), "Default still entered");
-}
+*/
