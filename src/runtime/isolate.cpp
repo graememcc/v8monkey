@@ -35,7 +35,7 @@
  * destructor shuts down SpiderMonkey has already ran).
  *
  * TODO: If the differences in the threading models prove insurmountable, then there are a lot of opportunities here
- *       and elsewhere for optimization.
+ *       and elsewhere for simplficication and possibly optimization.
  *
  * In terms of API implementation, we follow the lead of V8 here. The public-facing Isolate class is made of air; it
  * simply wraps pointers to the corresponding internal class.

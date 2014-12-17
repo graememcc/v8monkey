@@ -3,6 +3,13 @@
 #include "runtime/isolate.h"
 
 
+/*
+ * TODO: This code was originally written for the early attempt at supporting multithreading. Much of the code could
+ *       be simplified if multithreading cannot be reinstated. (Most of these operations should become NO-OPS).
+ *
+ */
+
+
 namespace v8 {
   bool Locker::active = false;
 

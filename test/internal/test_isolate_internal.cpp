@@ -13,6 +13,15 @@ using V8Monkey::InternalIsolate;
 using V8Monkey::TestUtils;
 
 
+
+/*
+ * TODO: As a relic of the attempt at multithreading, most tests delegate to a helper function for actual computation.
+ *       If multithreading doesn't return, those intermediate functions can be dropped, and the code moved in to the
+ *       main test.
+ *
+ */
+
+
 // XXX V8 Dispose where necessary
 namespace {
   InternalIsolate* CurrentAsInternal() {

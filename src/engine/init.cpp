@@ -17,6 +17,12 @@
 #include <stdlib.h>
 
 
+/*
+ * TODO: As with isolate.cpp, much of this code could likely be simplified if multithreaded isolates prove impossible
+ *
+ */
+
+
 namespace {
   // Was SpiderMonkey initted succesfully? This should only be read while holding the relevant mutex
   bool engineInitAttempted = false;
