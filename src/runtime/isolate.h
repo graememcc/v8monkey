@@ -130,9 +130,6 @@ namespace v8 {
 
         void RemoveGCRooter();
 
-        // Mechanism for handlescopes to tell this isolate it needs to start rooting objects
-        void SetNeedToRoot(bool needToRoot);
-
         // Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
         // "unlock" themselves to yield the isolate, we can't even be sure that threads will enter and exit in a LIFO
         // order-the ordering will be at the mercy of the locking mechanism. Thus we need some way of answering the

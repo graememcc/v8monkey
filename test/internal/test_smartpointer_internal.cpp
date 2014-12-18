@@ -12,48 +12,6 @@
 using namespace v8::V8Monkey;
 
 
-V8MONKEY_TEST(RefCount001, "Objects initially born with refcount 0") {
-   DummyV8MonkeyObject refCounted;
-
-  V8MONKEY_CHECK(refCounted.RefCount() == 0, "Initial refcount correct");
-}
-
-
-V8MONKEY_TEST(RefCount002, "AddRef increases refcount") {
-  DummyV8MonkeyObject refCounted;
-
-  refCounted.AddRef();
-  V8MONKEY_CHECK(refCounted.RefCount() == 1, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(RefCount003, "Release decreases refcount") {
-  DummyV8MonkeyObject refCounted;
-
-  refCounted.AddRef();
-  refCounted.AddRef();
-  refCounted.Release();
-
-  V8MONKEY_CHECK(refCounted.RefCount() == 1, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(RefCount004, "Refcount falling to zero deletes object") {
-  static bool deleted = true;
-  class RC004 : public V8MonkeyObject {
-    public:
-      RC004() {}
-      ~RC004() { deleted = true; }
-      void Trace(JSRuntime* runtime, JSTracer* tracer) {}
-  };
-  RC004* refCounted = new RC004;
-
-  refCounted->AddRef();
-  refCounted->Release();
-  V8MONKEY_CHECK(deleted, "Refcounted object destroyed");
-}
-
-
 V8MONKEY_TEST(SmartPtr001, "Construction bumps refcount") {
   DummyV8MonkeyObject* refCounted = new DummyV8MonkeyObject;
 

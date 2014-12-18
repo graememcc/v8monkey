@@ -23,6 +23,12 @@ namespace v8 {
   }
 
 
+  template<class T> class Persistent<T>;
+  class Value;
+
+  typedef void (*WeakReferenceCallback)(Persistent<Value> object, void* parameter);
+
+
   template <class T> class Handle {
     public:
       inline Handle() : val_(0) {}

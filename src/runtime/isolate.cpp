@@ -311,13 +311,9 @@ namespace v8 {
       ASSERT(!ContainsThreads(), "InternalIsolate::~InternalIsolate", "Threads still active");
       ASSERT(isDisposed || IsDefaultIsolate(this), "InternalIsolate::~InternalIsolate", "Isolate not disposed");
 
-      if (isRegisteredForGC) {
-        DeleteIsolateFromGCTLSList(this);
-      }
-
       // Ensure default isolate deregisters for SpiderMonkey GC rooting
       if (!isDisposed) {
-        this->Dispose();
+        Dispose();
       }
     }
 
@@ -408,10 +404,15 @@ namespace v8 {
       #else
         JS_RemoveExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
       #endif
+
+      DeleteIsolateFromGCTLSList(this);
+      isRegisteredForGC = false;
     }
 
 
     void InternalIsolate::Enter() {
+      isDisposed = false;
+
       // We need to ensure this thread has an ID. GetCurrentThreadId creates one if necessary
       int threadID = FetchOrAssignThreadId();
 
@@ -460,15 +461,13 @@ namespace v8 {
 
 
     void InternalIsolate::Dispose() {
-      if (isRegisteredForGC) {
-        DeleteIsolateFromGCTLSList(this);
-      }
-
-      // Don't dispose of the default isolate multiple times
-      // XXX: Need to force an ordering on static initialization somehow. Mainly our
-      // concern is getting the default isolate torn down before JS_Shutdown
+      // Don't dispose of the default isolate (or indeed any isolate) multiple times
       if (isDisposed) {
         return;
+      }
+
+      if (isRegisteredForGC) {
+        DeleteIsolateFromGCTLSList(this);
       }
 
       // Ensure we don't attempt to delete the default isolate multiple times
@@ -604,34 +603,6 @@ namespace v8 {
 
       tearDownCXAndRT(raw);
       Platform::StoreTLSData(rtcxKey, 0);
-    }
-
-
-    // Mechanism for handlescopes to tell this isolate it needs to start rooting objects
-    void InternalIsolate::SetNeedToRoot(bool needToRoot) {
-      EnsureRuntimeAndContext();
-
-      if (needToRoot) {
-      #ifdef V8MONKEY_INTERNAL_TEST
-        if (gcOnNotifierFn) {
-          gcOnNotifierFn(GetJSRuntimeForThread(), gcTracer, this);
-        } else {
-          JS_AddExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
-        }
-      #else
-        JS_AddExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
-      #endif
-      } else {
-      #ifdef V8MONKEY_INTERNAL_TEST
-        if (gcOffNotifierFn) {
-          gcOffNotifierFn(GetJSRuntimeForThread(), gcTracer, this);
-        } else {
-          JS_RemoveExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
-        }
-      #else
-        JS_RemoveExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
-      #endif
-      }
     }
 
 

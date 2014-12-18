@@ -318,7 +318,7 @@ src/runtime/isolate.h $(v8objects) $(testlibobjects): src/v8monkey_common.h
 
 
 # Various files need the base_type definitions
-src/runtime/isolate.h: src/types/base_types.h
+src/runtime/isolate.h $(call variants, src/runtime/isolate): src/types/base_types.h
 
 
 # HandleScopes and isolates use object blocks
@@ -361,7 +361,7 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 
 
 # The "internals" test harness is composed from the following
-internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock platform smartpointer threadID
+internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock platform refcount smartpointer threadID
 internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
@@ -421,7 +421,6 @@ api_isolate_deps = $(addprefix api/test_, isolate)
 internal_isolate_depstems = fatalerror handlescope init isolate locker threadID
 internal_isolate_deps = $(addsuffix _internal, $(addprefix internal/test_, $(internal_isolate_depstems)))
 $(addprefix $(outdir)/test/, $(addsuffix .o, $(api_isolate_deps) $(internal_isolate_deps))): src/runtime/isolate.h
-#$(outdir)/test/api/test_isolate.o $(outdir)/test/internal/test_fatalerror_internal.o $(outdir)/test/internal/test_isolate_internal.o $(outdir)/test/internal/test_locker_internal.o: src/runtime/isolate.h
 
 
 # Most internal test files require the TestUtils class
@@ -436,8 +435,8 @@ $(outdir)/test/internal/test_death_internal.o $(outdir)/test/internal/test_fatal
 $(outdir)/test/internal/test_handlescope_internal.o $(outdir)/test/internal/test_objectblock_internal.o: src/data_structures/objectblock.h
 
 
-# test_smartptr_internal depends on the base_type definitions
-test_basetypes_deps = destructlist handlescope objectblock smartpointer
+# some files depend on the base_type definitions
+test_basetypes_deps = destructlist handlescope isolate objectblock refcount smartpointer
 $(addprefix $(outdir)/test/internal/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
 
 

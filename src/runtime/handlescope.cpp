@@ -70,11 +70,6 @@ namespace {
     }
 
     if (hsd.limit == hsd.next) {
-      // If we're adding entries for the first time, the isolate needs to start talking to the garbage collector
-      if (hsd.limit == NULL) {
-        i->SetNeedToRoot(true);
-      }
-
       ObjectBlock<V8MonkeyObject>::Limits limits = ObjectBlock<V8MonkeyObject>::Extend(hsd.limit);
       hsd.limit = limits.limit;
       hsd.next = limits.top;
@@ -136,11 +131,6 @@ namespace v8 {
 
     HandleScopeData hsd = isolate->GetHandleScopeData();
     if (hsd.limit != prevLimit || hsd.next != prevNext) {
-      // If we're resetting to null, the isolate doesn't have to participate in rooting any more
-      if (prevLimit == NULL && prevNext == NULL) {
-        isolate->SetNeedToRoot(false);
-      }
-
       V8Monkey::ObjectBlock<V8MonkeyObject>::Delete(hsd.limit, hsd.next, prevNext, deleteRefCount);
     }
 

@@ -5,11 +5,14 @@
 #include "runtime/isolate.h"
 #include "platform.h"
 #include "test.h"
+#include "types/base_types.h"
 #include "V8MonkeyTest.h"
 
 
 using namespace v8;
 using V8Monkey::InternalIsolate;
+using V8Monkey::DummyV8MonkeyObject;
+using V8Monkey::DeletionObject;
 using V8Monkey::TestUtils;
 
 

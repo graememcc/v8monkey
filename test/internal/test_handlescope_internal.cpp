@@ -880,78 +880,7 @@ V8MONKEY_TEST(IntHandleScope034, "Transitioning from one empty handlescope to an
 }
 
 
-V8MONKEY_TEST(IntHandleScope035, "Adding first handle notifies SpiderMonkey about GC") {
-  TestUtils::AutoTestCleanup ac;
-
-  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
-  {
-    InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
-    wasGCOnNotified = false;
-    HandleScope h;
-    HandleScope::CreateHandle(d);
-    V8MONKEY_CHECK(wasGCOnNotified, "Adding first handle notifies");
-    InternalIsolate::SetGCNotifier(nullptr, nullptr);
-  }
-  traceFn = nullptr;
-}
-
-
-V8MONKEY_TEST(IntHandleScope036, "Adding later handles dont notify") {
-  TestUtils::AutoTestCleanup ac;
-
-  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
-  {
-    HandleScope h;
-    HandleScope::CreateHandle(d);
-
-    wasGCOnNotified = false;
-    InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
-    HandleScope::CreateHandle(d);
-
-    V8MONKEY_CHECK(!wasGCOnNotified, "Adding later handles don't notify");
-    InternalIsolate::SetGCNotifier(nullptr, nullptr);
-  }
-  traceFn = nullptr;
-}
-
-
-V8MONKEY_TEST(IntHandleScope037, "Removing last handle notifies SpiderMonkey about GC") {
-  TestUtils::AutoTestCleanup ac;
-
-  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
-  {
-    InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
-    HandleScope h;
-    HandleScope::CreateHandle(d);
-    wasGCOffNotified = false;
-  }
-  V8MONKEY_CHECK(wasGCOffNotified, "Removing last handle notifies");
-  InternalIsolate::SetGCNotifier(nullptr, nullptr);
-  traceFn = nullptr;
-}
-
-
-V8MONKEY_TEST(IntHandleScope038, "Removing handle other than last doesn't notify SpiderMonkey about GC") {
-  TestUtils::AutoTestCleanup ac;
-
-  DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
-  {
-    HandleScope h;
-    HandleScope::CreateHandle(d);
-    {
-      HandleScope i;
-      HandleScope::CreateHandle(d);
-      wasGCOffNotified = false;
-      InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
-    }
-    V8MONKEY_CHECK(!wasGCOffNotified, "Removing handle doesn't notify");
-    InternalIsolate::SetGCNotifier(nullptr, nullptr);
-    traceFn = nullptr;
-  }
-}
-
-
-V8MONKEY_TEST(IntHandleScope039, "Items contained in handlescopes traced correctly") {
+V8MONKEY_TEST(IntHandleScope035, "Items contained in handlescopes traced correctly") {
   TestUtils::AutoTestCleanup ac;
 
   static bool traced = false;
@@ -966,23 +895,25 @@ V8MONKEY_TEST(IntHandleScope039, "Items contained in handlescopes traced correct
   traceFn = nullptr;
   traceData = nullptr;
 
+  // Replace the call to SpiderMonkey with our fake function
+  InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+
+  Isolate::GetCurrent()->Enter();
   {
     HandleScope h;
-    // Replace the call to SpiderMonkey with our fake function
-    InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
 
     HandleScope::CreateHandle(t);
     traceFn(nullptr, traceData);
-
-    InternalIsolate::SetGCNotifier(nullptr, nullptr);
-    traceFn = nullptr;
   }
+
+  InternalIsolate::SetGCNotifier(nullptr, nullptr);
+  traceFn = nullptr;
 
   V8MONKEY_CHECK(traced, "Value was traced");
 }
 
 
-V8MONKEY_TEST(IntHandleScope040, "Closing HandleScope doesn't increase refcount of escaped value") {
+V8MONKEY_TEST(IntHandleScope036, "Closing HandleScope doesn't increase refcount of escaped value") {
   TestUtils::AutoTestCleanup ac;
 
   Local<DeletionObject> escaped;
@@ -1005,7 +936,7 @@ V8MONKEY_TEST(IntHandleScope040, "Closing HandleScope doesn't increase refcount 
 }
 
 
-V8MONKEY_TEST(IntHandleScope041, "CreateHandle triggers fatal error if no HandleScope constructed") {
+V8MONKEY_TEST(IntHandleScope037, "CreateHandle triggers fatal error if no HandleScope constructed") {
   Isolate* i = Isolate::New();
   i->Enter();
 
