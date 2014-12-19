@@ -168,8 +168,11 @@ runtimeobjects = $(addsuffix .o, $(runtimestems))
 threadstems = $(addprefix src/threads/, locker)
 threadobjects = $(addsuffix .o, $(threadstems))
 
-allstems = $(enginestems) $(runtimestems) $(threadstems)
-allobjects = $(engineobjects) $(runtimeobjects) $(threadobjects)
+typestems = $(addprefix src/types/, number value)
+typeobjects = $(addsuffix .o, $(typestems))
+
+allstems = $(enginestems) $(runtimestems) $(threadstems) $(typestems)
+allobjects = $(engineobjects) $(runtimeobjects) $(threadobjects) $(typeobjects)
 
 v8sources = $(addsuffix .cpp, $(allstems))
 v8objects = $(addprefix $(outdir)/, $(allobjects))
@@ -197,7 +200,7 @@ testsuites = $(addprefix $(outdir)/test/, $(testharnesses))
 
 
 # Where are object files placed when we build them in their various guises?
-srctree = engine runtime threads
+srctree = engine runtime threads types
 srcdirs = $(addprefix src/, $(srctree))
 objecthierarchy = $(addprefix $(outdir)/, $(srcdirs))
 internalobjecthierarchy = $(addprefix $(v8monkeyinternaldir)/, $(srcdirs))
@@ -236,9 +239,11 @@ $(toplevelhierarchy): | $(outdir)
 $(addprefix $(outdir)/, $(engineobjects)): | $(outdir)/src/engine
 $(addprefix $(outdir)/, $(runtimeobjects)): | $(outdir)/src/runtime
 $(addprefix $(outdir)/, $(threadobjects)): | $(outdir)/src/threads
+$(addprefix $(outdir)/, $(typeobjects)): | $(outdir)/src/types
 $(addprefix $(v8monkeyinternaldir)/, $(engineobjects)): | $(v8monkeyinternaldir)/src/engine
 $(addprefix $(v8monkeyinternaldir)/, $(runtimeobjects)): | $(v8monkeyinternaldir)/src/runtime
 $(addprefix $(v8monkeyinternaldir)/, $(threadobjects)): | $(v8monkeyinternaldir)/src/threads
+$(addprefix $(v8monkeyinternaldir)/, $(typeobjects)): | $(v8monkeyinternaldir)/src/types
 
 
 #**********************************************************************************************************************
@@ -297,7 +302,8 @@ $(call variants, src/engine/version) $(outdir)/test/api/test_version.o: CXXFLAGS
 
 # Several files depend on the JSAPI header
 jsapi_deps = $(call variants, src/engine/init) $(call variants, src/runtime/isolate)
-src/runtime/isolate.h src/types/base_types.h $(jsapi_deps): $(smheadersdir)/jsapi.h
+jsapitype_deps = $(call variants, src/types/number) $(call variants, src/types/value)
+src/runtime/isolate.h src/types/base_types.h $(jsapi_deps) $(jsapitype_deps): $(smheadersdir)/jsapi.h
 
 
 # init depends on the RAII autolock class
@@ -305,7 +311,7 @@ $(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/thr
 
 
 # Several files depend on isolate.h
-$(call variants, src/init) $(call variants, src/runtime/handlescope) $(call variants, src/runtime/isolate) $(call variants, src/threads/locker): src/runtime/isolate.h
+$(call variants, src/init) $(call variants, src/runtime/handlescope) $(call variants, src/runtime/isolate) $(call variants, src/types/value) $(call variants, src/threads/locker): src/runtime/isolate.h
 
 
 # Several files depend on platform capabilities
@@ -318,7 +324,12 @@ src/runtime/isolate.h $(v8objects) $(testlibobjects): src/v8monkey_common.h
 
 
 # Various files need the base_type definitions
-src/runtime/isolate.h $(call variants, src/runtime/isolate): src/types/base_types.h
+typedeps = $(call variants, src/types/number)
+src/runtime/isolate.h $(typedeps) ($(call variants, src/runtime/isolate): src/types/base_types.h
+
+
+# Various files need the value definition
+$(call variants, src/types/number) $(call variants, src/type/value): src/types/value_types.h
 
 
 # HandleScopes and isolates use object blocks
@@ -340,7 +351,7 @@ visibility_changes: src/test.h
 # Testsuites
 
 # The test harness is composed from the following
-teststems = death handlescope init isolate locker threadID version
+teststems = death handlescope init isolate locker number threadID version
 testfiles = $(addprefix test/api/test_, $(teststems))
 testsources = $(addsuffix .cpp, $(testfiles))
 testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))

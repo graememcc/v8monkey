@@ -3,6 +3,7 @@
 
 
 #include <stddef.h>
+#include <stdint.h>
 
 
 #ifndef APIEXPORT
@@ -23,8 +24,14 @@ namespace v8 {
   }
 
 
-  template<class T> class Persistent<T>;
+  template<class T> class Persistent;
   class Value;
+  class Number;
+  class Integer;
+  class Int32;
+  class Uint32;
+  class Isolate;
+
 
   typedef void (*WeakReferenceCallback)(Persistent<Value> object, void* parameter);
 
@@ -87,6 +94,7 @@ namespace v8 {
         return Local<S>::Cast(*this);
       }
 
+      // XXX Todo
       inline static Local<T> New(Handle<T> that);
   };
 
@@ -274,78 +282,83 @@ namespace v8 {
 
 
 
-/*
-  class Value : public Data {
+  class APIEXPORT Value : public Data {
     public:
-      inline bool IsUndefined() const;
+      bool IsUndefined() const;
 
-      inline bool IsNull() const;
+      bool IsNull() const;
 
-      V8EXPORT bool IsTrue() const;
+      bool IsTrue() const;
 
-      V8EXPORT bool IsFalse() const;
+      bool IsFalse() const;
 
-      inline bool IsString() const;
+      bool IsString() const;
 
-      V8EXPORT bool IsFunction() const;
+      bool IsFunction() const;
 
-      V8EXPORT bool IsArray() const;
+      bool IsArray() const;
 
-      V8EXPORT bool IsObject() const;
+      bool IsObject() const;
 
-      V8EXPORT bool IsBoolean() const;
+      bool IsBoolean() const;
 
-      V8EXPORT bool IsNumber() const;
+      bool IsNumber() const;
 
-      V8EXPORT bool IsExternal() const;
+      bool IsExternal() const;
 
-      V8EXPORT bool IsInt32() const;
+      bool IsInt32() const;
 
-      V8EXPORT bool IsUint32() const;
+      bool IsUint32() const;
 
-      V8EXPORT bool IsDate() const;
+      bool IsDate() const;
 
-      V8EXPORT bool IsBooleanObject() const;
+      bool IsBooleanObject() const;
 
-      V8EXPORT bool IsNumberObject() const;
+      bool IsNumberObject() const;
 
-      V8EXPORT bool IsStringObject() const;
+      bool IsStringObject() const;
 
-      V8EXPORT bool IsNativeError() const;
+      bool IsNativeError() const;
 
-      V8EXPORT bool IsRegExp() const;
+      bool IsRegExp() const;
 
-      V8EXPORT Local<Boolean> ToBoolean() const;
+/*
+      Local<Boolean> ToBoolean() const;
+*/
 
-      V8EXPORT Local<Number> ToNumber() const;
+      Local<Number> ToNumber() const;
 
-      V8EXPORT Local<String> ToString() const;
+/*
+      Local<String> ToString() const;
 
-      V8EXPORT Local<String> ToDetailString() const;
+      Local<String> ToDetailString() const;
 
-      V8EXPORT Local<Object> ToObject() const;
+      Local<Object> ToObject() const;
+*/
 
-      V8EXPORT Local<Integer> ToInteger() const;
+      Local<Integer> ToInteger() const;
 
-      V8EXPORT Local<Uint32> ToUint32() const;
+      Local<Uint32> ToUint32() const;
 
-      V8EXPORT Local<Int32> ToInt32() const;
+      Local<Int32> ToInt32() const;
 
-      V8EXPORT Local<Uint32> ToArrayIndex() const;
+      Local<Uint32> ToArrayIndex() const;
 
-      V8EXPORT bool BooleanValue() const;
+/*
+      bool BooleanValue() const;
 
-      V8EXPORT double NumberValue() const;
+      double NumberValue() const;
 
-      V8EXPORT int64_t IntegerValue() const;
+      int64_t IntegerValue() const;
 
-      V8EXPORT uint32_t Uint32Value() const;
+      uint32_t Uint32Value() const;
 
-      V8EXPORT int32_t Int32Value() const;
+      int32_t Int32Value() const;
 
-      V8EXPORT bool Equals(Handle<Value> that) const;
+      bool Equals(Handle<Value> that) const;
 
-      V8EXPORT bool StrictEquals(Handle<Value> that) const;
+      bool StrictEquals(Handle<Value> that) const;
+*/
 
     private:
       // XXX Needed?
@@ -358,19 +371,20 @@ namespace v8 {
       inline bool QuickIsString() const;
 
       // XXX Needed?
-      V8EXPORT bool FullIsUndefined() const;
+      bool FullIsUndefined() const;
 
       // XXX Needed?
-      V8EXPORT bool FullIsNull() const;
+      bool FullIsNull() const;
 
       // XXX Needed?
-      V8EXPORT bool FullIsString() const;
+      bool FullIsString() const;
   };
 
 
   class Primitive : public Value {};
 
 
+/*
   class APIEXPORT Boolean : public Primitive {
     public:
       bool Value() const;
@@ -380,47 +394,58 @@ namespace v8 {
 */
 
 
-  /*
-    class Number : public Primitive {
-      public:
-        V8EXPORT double Value() const;
-        V8EXPORT static Local<Number> New(double value);
-        static inline Number* Cast(v8::Value* obj);
-      private:
-        V8EXPORT Number();
-        V8EXPORT static void CheckCast(v8::Value* obj);
-    };
+  class APIEXPORT Number : public Primitive {
+    public:
+      double Value() const;
+
+      static Local<Number> New(double value);
+
+      static inline Number* Cast(v8::Value* obj);
+
+    private:
+      Number();
+
+      // XXX Needed?
+      static void CheckCast(v8::Value* obj);
+  };
 
 
-    class Integer : public Number {
-      public:
-        V8EXPORT static Local<Integer> New(int32_t value);
-        V8EXPORT static Local<Integer> NewFromUnsigned(uint32_t value);
-        V8EXPORT static Local<Integer> New(int32_t value, Isolate*);
-        V8EXPORT static Local<Integer> NewFromUnsigned(uint32_t value, Isolate*);
-        V8EXPORT int64_t Value() const;
-        static inline Integer* Cast(v8::Value* obj);
-      private:
-        V8EXPORT Integer();
-        V8EXPORT static void CheckCast(v8::Value* obj);
-    };
+  class APIEXPORT Integer : public Number {
+    public:
+      static Local<Integer> New(int32_t value);
+
+      static Local<Integer> NewFromUnsigned(uint32_t value);
+
+      static Local<Integer> New(int32_t value, Isolate*);
+
+      static Local<Integer> NewFromUnsigned(uint32_t value, Isolate*);
+
+      int64_t Value() const;
+
+      static inline Integer* Cast(v8::Value* obj);
+    private:
+      Integer();
+
+      // XXX Needed?
+      static void CheckCast(v8::Value* obj);
+  };
 
 
-    class Int32 : public Integer {
-      public:
-        V8EXPORT int32_t Value() const;
-      private:
-        V8EXPORT Int32();
-    };
+  class Int32 : public Integer {
+    public:
+      int32_t Value() const;
+    private:
+      Int32();
+  };
 
 
-    class Uint32 : public Integer {
-      public:
-        V8EXPORT uint32_t Value() const;
-      private:
-        V8EXPORT Uint32();
-    };
-  */
+  class APIEXPORT Uint32 : public Integer {
+    public:
+      uint32_t Value() const;
+    private:
+      Uint32();
+  };
+
 
   class APIEXPORT Isolate {
     public:
@@ -620,6 +645,15 @@ namespace v8 {
     return Local<T>(reinterpret_cast<T*>(InternalClose(reinterpret_cast<V8Monkey::V8MonkeyObject**>(*value))));
   }
 
+
+  Number* Number::Cast(v8::Value* obj) {
+    return static_cast<Number*>(obj);
+  }
+
+
+  Integer* Integer::Cast(v8::Value* obj) {
+    return static_cast<Integer*>(obj);
+  }
 }
 
 #endif

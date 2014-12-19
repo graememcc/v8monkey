@@ -374,6 +374,7 @@ namespace v8 {
         return;
       }
 
+JS_GC(GetJSRuntimeForThread());
       #ifdef V8MONKEY_INTERNAL_TEST
         if (gcOnNotifierFn) {
           gcOnNotifierFn(GetJSRuntimeForThread(), gcTracer, this);
@@ -607,6 +608,7 @@ namespace v8 {
 
 
     void InternalIsolate::Trace(JSTracer* tracer) {
+      printf("ISOLATE TRACE\n");
       TraceData* td = new TraceData;
       td->rt = GetJSRuntimeForThread();
       td->tracer = tracer;

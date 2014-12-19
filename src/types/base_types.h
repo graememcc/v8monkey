@@ -171,65 +171,65 @@ namespace v8 {
 
 
     /*
-     * The base class of all V8 API objects that do not wrap objects from SpiderMonkey, and hence do not require
-     * rooting for the SpiderMonkey garbage collector.
+     *  The base class of all objects that implement types for the V8 API
      *
      */
-    class EXPORT_FOR_TESTING_ONLY V8APIObject : public V8MonkeyObject {
+    class V8Value: public V8MonkeyObject {
       public:
-        virtual void Trace(JSRuntime* runtime, JSTracer* tracer) {
-          // NO-OP
-        }
+        virtual bool IsUndefined() const { return false; }
+        virtual bool IsNull() const { return false; }
+        virtual bool IsTrue() const { return false; }
+        virtual bool IsFalse() const { return false; }
+        virtual bool IsString() const { return false; }
+        virtual bool IsObject() const { return false; }
+        virtual bool IsBoolean() const { return false; }
+        virtual bool IsNumber() const { return false; }
+        virtual bool IsInt32() const { return false; }
+        virtual bool IsUint32() const { return false; }
+        virtual bool IsExternal() const { return false; }
+        virtual bool IsNativeError() const { return false; }
+        virtual bool IsFunction() const { return false; }
+        virtual bool IsArray() const { return false; }
+        virtual bool IsDate() const { return false; }
+        virtual bool IsBooleanObject() const { return false; }
+        virtual bool IsNumberObject() const { return false; }
+        virtual bool IsStringObject() const { return false; }
+        virtual bool IsRegExp() const { return false; }
+        /*
+        Local<Boolean> ToBoolean() const;
+
+        Local<Number> ToNumber() const;
+
+        Local<String> ToString() const;
+
+        Local<String> ToDetailString() const;
+
+        Local<Object> ToObject() const;
+
+        Local<Integer> ToInteger() const;
+
+        Local<Uint32> ToUint32() const;
+
+        Local<Int32> ToInt32() const;
+
+        Local<Uint32> ToArrayIndex() const;
+
+        bool BooleanValue() const;
+
+        double NumberValue() const;
+
+        int64_t IntegerValue() const;
+
+        uint32_t Uint32Value() const;
+
+        int32_t Int32Value() const;
+
+        bool Equals(Handle<Value> that) const;
+
+        bool StrictEquals(Handle<Value> that) const;
+        */
     };
 
-
-    /*
-     * The base class of all objects that wrap objects from SpiderMonkey.
-     *
-     */
-    class EXPORT_FOR_TESTING_ONLY SMObject : public V8MonkeyObject {};
-// Think maybe isNull etc should be here?
-
-
-    /*
-     * The base class of all objects that wrap objects from SpiderMonkey that are GCThings.
-     *
-     */
-    class EXPORT_FOR_TESTING_ONLY SMGCObject : public SMObject {};
-
-
-    /*
-     * The base class of all objects that wrap values from SpiderMonkey
-     *
-     */
-    class EXPORT_FOR_TESTING_ONLY SMValue: public SMObject {
-      public:
-        SMValue(JSRuntime* runtime, JS::Handle<JS::Value> val) : rt(runtime), jsValue(val) {}
-
-        // Needs more methods?f
-        virtual bool isNull() const;
-        virtual bool isUndefined() const;
-        virtual bool isBoolean() const;
-        virtual bool isTrue() const;
-        virtual bool isFalse() const;
-        virtual bool isInt32() const;
-        virtual bool isDouble() const;
-        virtual bool isNumber() const;
-        virtual bool isString() const;
-        virtual bool isObject() const;
-
-        void Trace(JSRuntime* runtime, JSTracer* tracer) {
-          if (runtime != rt) {
-            return;
-          }
-
-          JS_CallValueTracer(tracer, &jsValue, "V8Monkey manual rooting");
-        }
-
-      private:
-        JSRuntime* rt;
-        JS::Heap<JS::Value> jsValue;
-    };
 
     /*
      * A dummy implementation of V8MonkeyObject for testing purposes
