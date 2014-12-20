@@ -158,7 +158,7 @@ if (InternalIsolate::IsEntered(i)) {
 
     #ifdef V8MONKEY_INTERNAL_TEST
       bool TestUtils::IsV8Initialized() {
-        return engineInitAttempted;
+        return v8initted;
       }
 
 

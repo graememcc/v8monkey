@@ -186,6 +186,7 @@ V8MONKEY_TEST(RefCount013, "PersistentRelease decrements weakcount if weakened")
   refCounted.PersistentRelease(&refCounted);
 
   V8MONKEY_CHECK(refCounted.WeakCount() == 0, "Weakcount changed");
+  refCounted.PersistentRelease(&refCounted);
 }
 
 

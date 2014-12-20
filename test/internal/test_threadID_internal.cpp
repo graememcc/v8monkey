@@ -8,6 +8,6 @@
 using namespace v8;
 
 
-IMPLICIT_INIT_TESTS(IntThreadID, 001, 002, {
+ISOLATE_INIT_TESTS(IntThreadID, 001, 002, 003, {
   V8::GetCurrentThreadId();
 })

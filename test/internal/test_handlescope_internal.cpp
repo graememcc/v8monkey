@@ -937,6 +937,8 @@ V8MONKEY_TEST(IntHandleScope036, "Closing HandleScope doesn't increase refcount 
 
 
 V8MONKEY_TEST(IntHandleScope037, "CreateHandle triggers fatal error if no HandleScope constructed") {
+  TestUtils::AutoTestCleanup ac;
+
   Isolate* i = Isolate::New();
   i->Enter();
 
@@ -950,4 +952,76 @@ V8MONKEY_TEST(IntHandleScope037, "CreateHandle triggers fatal error if no Handle
   delete d;
   i->Exit();
   i->Dispose();
+}
+
+
+V8MONKEY_TEST(IntHandleScope038, "NumberOfHandles correct after creating handles (crossblock)") {
+  TestUtils::AutoTestCleanup ac;
+
+  // We test this here as we have access to the block count
+  HandleScope h;
+  for (int i = 0; i < blockSize + 1; i++) {
+    Local<Integer> l(Integer::New(42));
+  }
+  V8MONKEY_CHECK(HandleScope::NumberOfHandles() == blockSize + 1, "Number of handles correct");
+}
+
+
+ISOLATE_INIT_TESTS(IntHandleScope, 039, 040, 041, {
+  HandleScope h;
+  HandleScope::NumberOfHandles();
+})
+
+
+V8MONKEY_TEST(IntLocal001, "Assigning to a local from a handle of unknown provenance increases the refcount") {
+  TestUtils::AutoTestCleanup ac;
+
+  {
+    HandleScope h;
+    Local<Integer> l(Integer::New(123));
+    Handle<Integer> handle(l);
+
+    V8MonkeyObject* asObj = *(reinterpret_cast<V8MonkeyObject**>(*l));
+    int refCount = asObj->RefCount();
+    Local<Integer> l2 = Local<Integer>::New(handle);
+    V8MONKEY_CHECK(asObj->RefCount() == refCount + 1, "RefCount correct");
+  }
+}
+
+
+V8MONKEY_TEST(IntLocal002, "Assigning to a local from an empty handle works") {
+  TestUtils::AutoTestCleanup ac;
+
+  {
+    HandleScope h;
+    Handle<Integer> handle;
+    Local<Integer> l = Local<Integer>::New(handle);
+    V8MONKEY_CHECK(l.IsEmpty(), "Is empty");
+  }
+}
+
+
+V8MONKEY_TEST(IntLocal003, "Object wrapped in local doesn't die if handlescope still in scope") {
+  HandleScope h;
+  V8MonkeyObject* asObj;
+  {
+    Local<Integer> l(Integer::New(123));
+    asObj = *(reinterpret_cast<V8MonkeyObject**>(*l));
+  }
+  V8MONKEY_CHECK(asObj->RefCount() == 1, "Object didn't die when local died");
+}
+
+
+V8MONKEY_TEST(IntLocal004, "Object wrapped in local doesn't die if also contained in a parent handlescope") {
+  HandleScope h;
+  V8MonkeyObject* asObj;
+  {
+    Local<Integer> l(Integer::New(123));
+    asObj = *(reinterpret_cast<V8MonkeyObject**>(*l));
+    {
+      HandleScope i;
+      Local<Integer> l2(l);
+    }
+    V8MONKEY_CHECK(asObj->RefCount() == 1, "Object didn't die when handlescope died");
+  }
 }

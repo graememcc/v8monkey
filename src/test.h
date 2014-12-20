@@ -62,26 +62,32 @@ namespace v8 {
   } while (0);
 
 
-// Define tests that check for implicit V8 initialization
-#define IMPLICIT_INIT_TESTS(stem, val1, val2, body) \
-  namespace {  \
-    int stem##FatalErrorCheck = 0; \
-    void stem##FatalErrorHandler(const char* location, const char* message) { \
-      stem##FatalErrorCheck = 1; \
-    } \
-  } \
-  V8MONKEY_TEST(stem##val1, "Bails when V8 is dead") {\
-    v8::V8Monkey::TestUtils::AutoTestCleanup ac; \
-    v8::V8Monkey::TestUtils::SetHandlerAndKill(stem##FatalErrorHandler); \
-    stem##FatalErrorCheck = 0;\
-    body\
-    V8MONKEY_CHECK(stem##FatalErrorCheck != 0, "Errored out due to dead V8"); \
-  } \
-\
-  V8MONKEY_TEST(stem##val2, "Inits V8") {\
+// Define tests that check for implicit V8 initialization, and default isolate entry (i.e. check that an API call
+// exhibits the behaviour defined by EnsureInitializedForIsolate in V8
+#define ISOLATE_INIT_TESTS(stem, val1, val2, val3, body) \
+  V8MONKEY_TEST(stem##val1, "Inits V8") {\
     v8::V8Monkey::TestUtils::AutoTestCleanup ac; \
     body\
     V8MONKEY_CHECK(v8::V8Monkey::TestUtils::IsV8Initialized(), "V8 was implicitly initialized");\
+  }\
+  \
+  \
+  V8MONKEY_TEST(stem##val2, "Implicitly enters default isolate if necessary") {\
+    v8::V8Monkey::TestUtils::AutoTestCleanup ac;\
+  \
+    body\
+    V8MONKEY_CHECK(v8::V8Monkey::InternalIsolate::IsEntered(reinterpret_cast<v8::V8Monkey::InternalIsolate*>(v8::Isolate::GetCurrent())), "Correctly entered default isolate");\
+  }\
+  \
+  \
+  V8MONKEY_TEST(stem##val3, "Doesn't change isolate if already entered") {\
+    v8::V8Monkey::TestUtils::AutoTestCleanup ac;\
+    \
+    v8::Isolate* i = v8::Isolate::New();\
+    i->Enter();\
+    \
+    body\
+    V8MONKEY_CHECK(v8::V8Monkey::InternalIsolate::IsEntered(reinterpret_cast<v8::V8Monkey::InternalIsolate*>(i)), "Correctly stayed in isolate");\
   }
 #endif
 

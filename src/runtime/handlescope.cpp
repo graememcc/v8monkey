@@ -150,8 +150,12 @@ namespace v8 {
   }
 
 
-// XXX Test for trying to close twice. Should fail
   V8Monkey::V8MonkeyObject** HandleScope::InternalClose(V8Monkey::V8MonkeyObject** value) {
+    if (isClosed) {
+      V8Monkey::V8MonkeyCommon::TriggerFatalError("HandleScope::Close", "Cannot close twice");
+      return nullptr;
+    }
+
     V8Monkey::V8MonkeyObject* escaped = *value;
 
     // Null out the old value, to prevent iteration (and hence prevent refcount from being decremented)
@@ -176,5 +180,27 @@ namespace v8 {
     escaped->Release();
 
     return ptr;
+  }
+
+
+  int HandleScope::NumberOfHandles() {
+    using namespace V8Monkey;
+
+    // The V8 API specifies that this call implicitly inits V8
+    V8::Initialize();
+
+    // First, calculate how many full blocks do we have?
+    InternalIsolate* isolate = InternalIsolate::GetCurrent();
+    HandleScopeData hsd = isolate->GetHandleScopeData();
+    int fullBlocks = ObjectBlock<V8MonkeyObject>::NumberOfItems(hsd.limit);
+
+    if (hsd.limit == nullptr && hsd.next == nullptr) {
+      return fullBlocks;
+    }
+
+    // How much space is left in the current block?
+    int slotsRemaining = hsd.limit - hsd.next;
+
+    return fullBlocks + (ObjectBlock<V8Monkey::V8MonkeyObject>::BlockSize - slotsRemaining);
   }
 }
