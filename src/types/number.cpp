@@ -9,6 +9,8 @@
 #include "types/value_types.h"
 
 
+// XXX Ensure initialized/isdead checking
+// XXX Casting?
 namespace v8 {
   Local<Number> Number::New(double value) {
     // XXX Ensure initialized...
@@ -33,7 +35,6 @@ namespace v8 {
 
   Local<Integer> Integer::New(int32_t value) {
     // XXX Ensure initialized...
-    // XXX Isolate version
     JSRuntime* rt = V8Monkey::InternalIsolate::GetJSRuntimeForThread();
     JS::RootedValue numVal(rt, JS::NumberValue(value));
 
@@ -49,7 +50,6 @@ namespace v8 {
 
   Local<Integer> Integer::NewFromUnsigned(uint32_t value) {
     // XXX Ensure initialized...
-    // XXX Isolate version
     JSRuntime* rt = V8Monkey::InternalIsolate::GetJSRuntimeForThread();
 
     // Cast it to fool SpiderMonkey
@@ -103,6 +103,7 @@ namespace v8 {
     JS::RootedValue rooted(rt, smValue->GetRawValue());
 
     int32_t fromSpiderMonkey = rooted.toInt32();
+    return static_cast<int32_t>(fromSpiderMonkey);
   }
 
 

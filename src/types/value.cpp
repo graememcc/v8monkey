@@ -8,6 +8,8 @@
 #include "types/value_types.h"
 
 
+// XXX Ensure initialized/isdead checking
+// XXX Casting?
 namespace v8 {
   #define FORWARD_TO_INTERNAL(name) \
   bool Value::name() const {\

@@ -641,6 +641,17 @@ namespace v8 {
 
 
   template<class T>
+  Local<T> Local<T>::New(Handle<T> that) {
+    if (that.IsEmpty()) {
+      return Local<T>();
+    }
+
+    V8Monkey::V8MonkeyObject** internalObj = reinterpret_cast<V8Monkey::V8MonkeyObject**>(*that);
+    return Local<T>(reinterpret_cast<T*>(HandleScope::CreateHandle(*internalObj)));
+  }
+
+
+  template<class T>
   Local<T> HandleScope::Close(Handle<T> value) {
     return Local<T>(reinterpret_cast<T*>(InternalClose(reinterpret_cast<V8Monkey::V8MonkeyObject**>(*value))));
   }
