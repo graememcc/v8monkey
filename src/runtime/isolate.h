@@ -14,8 +14,8 @@ namespace v8 {
     class V8MonkeyObject;
 
 
-    // Container class for HandleScope information. Stored in the isolate, but manipulated by HandleScopes.
-    class HandleScopeData {
+    // Container class for Handle information. Stored in the isolate, but manipulated by HandleScopes and Persistents.
+    class HandleData {
      public:
       V8MonkeyObject** next;
 
@@ -36,6 +36,7 @@ namespace v8 {
         InternalIsolate() : isDisposed(false), isRegisteredForGC(false), fatalErrorHandler(NULL), threadData(NULL),
                             embedderData(NULL), lockingThread(0) {
           handleScopeData.Initialize();
+          persistentData.Initialize();
         }
 
         ~InternalIsolate();
@@ -63,6 +64,7 @@ namespace v8 {
 
         // Many API functions will implicitly enter the default isolate if required. To that end, this function returns
         // the current internal isolate if non-null, otherwise enters the default isolate and returns that
+        // XXX Look for opportunities to use this
         static InternalIsolate* EnsureInIsolate();
 
         // Has the current thread entered the given isolate?
@@ -94,34 +96,46 @@ namespace v8 {
         // Is the current thread the one that locked me?
         bool IsLockedForThisThread();
 
-        // Return a copy of the handle scope data for this isolate
-        HandleScopeData GetHandleScopeData();
+        // Return a copy of the handle scope data for this isolate. If manipulating this data, the caller must hold the
+        // GC Mutex
+        // XXX Check need to hold it in dispose/destructor
+        HandleData GetLocalHandleData();
 
-        // Copy the given HandleScopeData into our own
-        void SetHandleScopeData(HandleScopeData& hsd);
+        // Copy the given HandleData into our own. The caller must hold the GC Mutex.
+        // XXX Check need to hold it in dispose/destructor
+        void SetLocalHandleData(HandleData& hd);
 
-        // Get the GC Mutex for mutating HandleScopeData
-        void LockHSDMutex() {
-          handleScopeDataMutex.Lock();
+        // Return a copy of the persistent data for this isolate. If manipulating this data, the caller must hold the
+        // GC Mutex.
+        // XXX Check need to hold it in dispose/destructor
+        HandleData GetPersistentHandleData();
+
+        // Copy the given HandleData into our persistent data. The caller must hold the GC Mutex.
+        // XXX Check need to hold it in dispose/destructor
+        void SetPersistentHandleData(HandleData& hd);
+
+        // Get the GC Mutex for mutating HandleData
+        void LockGCMutex() {
+          GCMutex.Lock();
         }
 
-        // Unlock the GC Mutex for mutating HandleScopeData
-        void UnlockHSDMutex() {
-          handleScopeDataMutex.Unlock();
+        // Unlock the GC Mutex for mutating HandleData
+        void UnlockGCMutex() {
+          GCMutex.Unlock();
         }
 
         // GC Rooting
         void Trace(JSTracer* tracer);
 
         // RAII helper
-        class AutoHandleScopeDataMutex {
+        class AutoGCMutex {
           public:
-            AutoHandleScopeDataMutex(InternalIsolate* i) : isolate(i) {
-              isolate->LockHSDMutex();
+            AutoGCMutex(InternalIsolate* i) : isolate(i) {
+              isolate->LockGCMutex();
             }
 
-            ~AutoHandleScopeDataMutex() {
-              isolate->UnlockHSDMutex();
+            ~AutoGCMutex() {
+              isolate->UnlockGCMutex();
             }
 
           private:
@@ -154,10 +168,12 @@ namespace v8 {
           return reinterpret_cast<InternalIsolate*>(i);
         }
 
-        static void SetGCNotifier(void (*onNotifier)(JSRuntime*, JSTraceDataOp, void*), void (*offNotifier)(JSRuntime*, JSTraceDataOp, void*)) {
-          gcOnNotifierFn = onNotifier;
-          gcOffNotifierFn = offNotifier;
+        static void SetGCRegistrationHooks(void (*onNotifier)(JSRuntime*, JSTraceDataOp, void*), void (*offNotifier)(JSRuntime*, JSTraceDataOp, void*)) {
+          GCRegistrationHookFn = onNotifier;
+          GCDeregistrationHookFn = offNotifier;
         }
+
+        static void ForceGC();
 
         #endif
 
@@ -190,18 +206,21 @@ namespace v8 {
         // ID of the thread that has locked this isolate
         int lockingThread;
 
-        // Locking mutex
+        // Thread entry mutex
         V8Platform::Mutex lockingMutex;
 
         // GC Mutex
-        V8Platform::Mutex handleScopeDataMutex;
+        V8Platform::Mutex GCMutex;
 
         // In a single threaded application, there is no need to explicitly construct an isolate. V8 constructs a
         // "default" isolate automatically, and use it where necessary.
         static InternalIsolate* defaultIsolate;
 
-        // HandleScope data
-        HandleScopeData handleScopeData;
+        // HandleScope data for Locals
+        HandleData handleScopeData;
+
+        // HandleScope data for Persistents
+        HandleData persistentData;
 
         // Linked list manipulations
         ThreadData* FindOrCreateThreadData(int threadID, InternalIsolate* previousIsolate);
@@ -209,8 +228,8 @@ namespace v8 {
         void DeleteThreadData(ThreadData* data);
 
         #ifdef V8MONKEY_INTERNAL_TEST
-        static void (*gcOnNotifierFn)(JSRuntime*, JSTraceDataOp, void*);
-        static void (*gcOffNotifierFn)(JSRuntime*, JSTraceDataOp, void*);
+        static void (*GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);
+        static void (*GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);
         #endif
 
         friend class V8MonkeyCommon;

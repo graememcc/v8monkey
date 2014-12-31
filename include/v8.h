@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <stdio.h>
 
 #ifndef APIEXPORT
   #define APIEXPORT __attribute__ ((visibility("default")))
@@ -31,6 +32,7 @@ namespace v8 {
   class Int32;
   class Uint32;
   class Isolate;
+  class V8;
 
 
   typedef void (*WeakReferenceCallback)(Persistent<Value> object, void* parameter);
@@ -38,20 +40,20 @@ namespace v8 {
 
   template <class T> class Handle {
     public:
-      inline Handle() : val_(0) {}
+      inline Handle() : val(0) {}
 
-      inline explicit Handle(T* val) : val_(val) {}
+      inline explicit Handle(T* v) : val(v) {}
 
       template <class S> inline Handle(Handle<S> that)
-          : val_(reinterpret_cast<T*>(*that)) {}
+          : val(reinterpret_cast<T*>(*that)) {}
 
-      inline bool IsEmpty() const { return val_ == 0; }
+      inline bool IsEmpty() const { return val == 0; }
 
-      inline void Clear() { val_ = 0; }
+      inline void Clear() { val = 0; }
 
-      inline T* operator->() const { return val_; }
+      inline T* operator->() const { return val; }
 
-      inline T* operator*() const { return val_; }
+      inline T* operator*() const { return val; }
 
       template <class S> inline bool operator==(Handle<S> that) const {
         V8Monkey::V8MonkeyObject** a = reinterpret_cast<V8Monkey::V8MonkeyObject**>(**this);
@@ -73,8 +75,8 @@ namespace v8 {
         return Handle<S>::Cast(*this);
       }
 
-    private:
-      T* val_;
+    protected:
+      T* val;
   };
 
 
@@ -94,8 +96,81 @@ namespace v8 {
         return Local<S>::Cast(*this);
       }
 
-      // XXX Todo
       inline static Local<T> New(Handle<T> that);
+  };
+
+
+  template <class T> class Persistent : public Handle<T> {
+    public:
+      inline Persistent() {}
+
+      template <class S> inline Persistent(Persistent<S> that);
+
+      template <class S> inline Persistent(S* that);
+
+      template <class S> explicit inline Persistent(Handle<S> that);
+
+      // The copy-constructor and assignment operators don't appear in the original V8 header, but are required for
+      // ensuring the correctness of our ref-counting mechanism
+      inline Persistent(const Persistent<T>& that);
+
+      inline Persistent<T>& operator=(const Persistent<T>& that);
+
+      template <class S> inline Persistent<T>& operator=(const Persistent<S>& that);
+
+      template <class S> inline Persistent<T>& operator=(const Handle<S>& that);
+
+      template <class S> inline Persistent<T>& operator=(const S* that);
+
+      ~Persistent() {
+        Dispose();
+      }
+      
+      template <class S> static inline Persistent<T> Cast(Persistent<S> that) {
+        return Persistent<T>(T::Cast(*that));
+      }
+
+      template <class S> inline Persistent<S> As() {
+        return Persistent<S>::Cast(*this);
+      }
+
+      inline static Persistent<T> New(Handle<T> that);
+
+      inline void Dispose();
+
+      inline void MakeWeak(void* parameters, WeakReferenceCallback callback);
+
+      inline void ClearWeak();
+
+      inline void MarkIndependent() {
+        // TODO Object groups not implemented
+      }
+
+      inline bool IsIndependent() const {
+        // TODO Object groups not implemented
+        return false;
+      }
+
+      inline bool IsNearDeath() const;
+
+      inline bool IsWeak() const;
+
+      inline void SetWrapperClassId(uint16_t class_id) {
+        // TODO Profiling not implemented
+      }
+
+      inline uint16_t WrapperClassId() const {
+        // TODO Profiling not implemented
+        return 0;
+      }
+
+    private:
+      // XXX Needed?
+      friend class V8Monkey::V8MonkeyObject;
+
+      // XXX Needed?
+      friend class ImplementationUtilities;
+      friend class ObjectTemplate;
   };
 
 
@@ -630,13 +705,28 @@ namespace v8 {
 
       template <class T> friend class Handle;
       template <class T> friend class Local;
-      template <class T> friend class Persistent;
       friend class Context;
       */
       private:
         // This is just a utility class, so should not be constructible
         V8();
+
+        static V8Monkey::V8MonkeyObject** MakePersistent(V8Monkey::V8MonkeyObject** val);
+
+        static void DeletePersistent(V8Monkey::V8MonkeyObject** objSlot, V8Monkey::V8MonkeyObject* obj);
+
+        static bool IsPersistentWeak(V8Monkey::V8MonkeyObject** objSlot, V8Monkey::V8MonkeyObject* obj);
+
+        static bool IsPersistentNearDeath(V8Monkey::V8MonkeyObject* obj);
+
+        static void MakePersistentWeak(V8Monkey::V8MonkeyObject** objSlot, V8Monkey::V8MonkeyObject* obj,
+                                       void* parameters, WeakReferenceCallback callback);
+
+        static void ClearPersistentWeakness(V8Monkey::V8MonkeyObject** objSlot, V8Monkey::V8MonkeyObject* obj);
+
         static const char* version_string;
+
+        template <class T> friend class Persistent;
   };
 
 
@@ -654,6 +744,155 @@ namespace v8 {
   template<class T>
   Local<T> HandleScope::Close(Handle<T> value) {
     return Local<T>(reinterpret_cast<T*>(InternalClose(reinterpret_cast<V8Monkey::V8MonkeyObject**>(*value))));
+  }
+
+
+  template <class T> Persistent<T>::Persistent(const Persistent<T>& that) : Handle<T>() {
+    V8Monkey::V8MonkeyObject** obj = V8::MakePersistent(reinterpret_cast<V8Monkey::V8MonkeyObject**>(*that));
+    this->val = reinterpret_cast<T*>(obj);
+  }
+
+
+  template <class T> template <class S> Persistent<T>::Persistent(Persistent<S> that) : Handle<T>() {
+    V8Monkey::V8MonkeyObject** obj = V8::MakePersistent(reinterpret_cast<V8Monkey::V8MonkeyObject**>(*that));
+    this->val = reinterpret_cast<T*>(obj);
+  }
+
+
+  template <class T> template <class S> Persistent<T>::Persistent(S* that) : Handle<T>() {
+    V8Monkey::V8MonkeyObject** obj = V8::MakePersistent(reinterpret_cast<V8Monkey::V8MonkeyObject**>(that));
+    this->val = reinterpret_cast<T*>(obj);
+  }
+
+
+  template <class T> template <class S> Persistent<T>::Persistent(Handle<S> that) : Handle<T>() {
+    V8Monkey::V8MonkeyObject** obj = V8::MakePersistent(reinterpret_cast<V8Monkey::V8MonkeyObject**>(*that));
+    this->val = reinterpret_cast<T*>(obj);
+  }
+
+
+  template <class T> Persistent<T>& Persistent<T>::operator=(const Persistent<T>& that) {
+    // We need to be watchful for self-assignment here
+    if (that == *this) {
+      return *this;
+    }
+
+    printf("ASSIGNMENT FROM SAME TYPE OF PERSISTENT!\n");
+    // Delete our old pointer
+    Dispose();
+
+    // Unwrap the other persistent
+    V8Monkey::V8MonkeyObject** slot = reinterpret_cast<V8Monkey::V8MonkeyObject**>(that.val);
+    V8Monkey::V8MonkeyObject** newSlot = V8::MakePersistent(slot);
+
+    this->val = reinterpret_cast<T*>(newSlot);
+    return *this;
+  }
+
+
+  template <class T> template <class S> Persistent<T>& Persistent<T>::operator=(const Persistent<S>& that) {
+    printf("ASSIGNMENT FROM OTHER PERSISTENT!\n");
+    // Delete our old pointer
+    Dispose();
+
+    // Unwrap the other persistent
+    V8Monkey::V8MonkeyObject** slot = reinterpret_cast<V8Monkey::V8MonkeyObject**>(*that);
+    V8Monkey::V8MonkeyObject** newSlot = V8::MakePersistent(slot);
+
+    this->val = reinterpret_cast<T*>(newSlot);
+    return *this;
+  }
+
+
+  template <class T> template <class S> Persistent<T>& Persistent<T>::operator=(const Handle<S>& that) {
+    printf("ASSIGNMENT FROM HANDLE!\n");
+    // Delete our old pointer
+    Dispose();
+
+    // Unwrap the other handle
+    V8Monkey::V8MonkeyObject** slot = reinterpret_cast<V8Monkey::V8MonkeyObject**>(*that);
+    V8Monkey::V8MonkeyObject** newSlot = V8::MakePersistent(slot);
+
+    this->val = reinterpret_cast<T*>(newSlot);
+    return *this;
+  }
+
+
+  template <class T> template <class S> Persistent<T>& Persistent<T>::operator=(const S* that) {
+    // Cast away the const (we need to get at the underlying object) and get the underlying object
+    S* v8Obj = const_cast<S*>(that); 
+    V8Monkey::V8MonkeyObject** slot = reinterpret_cast<V8Monkey::V8MonkeyObject**>(v8Obj);
+
+    // Watch out for self-assignment!
+    V8Monkey::V8MonkeyObject** currentSlot = reinterpret_cast<V8Monkey::V8MonkeyObject**>(this->val);
+    if (slot == currentSlot) {
+      return *this;
+    }
+
+    printf("ASSIGNMENT FROM OTHER POINTER!\n");
+    // Delete our old pointer
+    Dispose();
+
+    V8Monkey::V8MonkeyObject** newSlot = V8::MakePersistent(slot);
+
+    this->val = reinterpret_cast<T*>(newSlot);
+    return *this;
+  }
+
+
+  template <class T> Persistent<T> Persistent<T>::New(Handle<T> that) {
+    return Persistent(that);
+  }
+
+
+  template <class T> void Persistent<T>::Dispose() {
+    V8Monkey::V8MonkeyObject** objSlot = reinterpret_cast<V8Monkey::V8MonkeyObject**>(this->val);
+
+    if (this->val == nullptr || *objSlot == nullptr) {
+      return;
+    }
+
+    V8::DeletePersistent(objSlot, *objSlot);
+  }
+
+
+  template <class T> void Persistent<T>::MakeWeak(void* parameters, WeakReferenceCallback callback) {
+    V8Monkey::V8MonkeyObject** objSlot = reinterpret_cast<V8Monkey::V8MonkeyObject**>(this->val);
+    if (this->val == nullptr || objSlot == nullptr) {
+      return;
+    }
+
+    V8::MakePersistentWeak(objSlot, *objSlot, parameters, callback);
+  }
+
+
+  template <class T> bool Persistent<T>::IsWeak() const {
+    V8Monkey::V8MonkeyObject** objSlot = reinterpret_cast<V8Monkey::V8MonkeyObject**>(this->val);
+    if (this->val == nullptr || *objSlot == nullptr) {
+      return false;
+    }
+
+    return V8::IsPersistentWeak(objSlot, *objSlot);
+  }
+
+
+  template <class T> bool Persistent<T>::IsNearDeath() const {
+    V8Monkey::V8MonkeyObject** objSlot = reinterpret_cast<V8Monkey::V8MonkeyObject**>(this->val);
+    if (this->val == nullptr || *objSlot == nullptr) {
+      return false;
+    }
+
+    return V8::IsPersistentNearDeath(*objSlot);
+  }
+
+
+  template <class T> void Persistent<T>::ClearWeak() {
+    V8Monkey::V8MonkeyObject** objSlot = reinterpret_cast<V8Monkey::V8MonkeyObject**>(this->val);
+    if (this->val == nullptr || *objSlot == nullptr) {
+      return;
+    }
+
+    V8::ClearPersistentWeakness(objSlot, *objSlot);
   }
 
 

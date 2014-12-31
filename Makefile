@@ -137,7 +137,9 @@ warnings = -Wall -Wextra -Wmissing-include-dirs
 # XXX Remove dependency flag (-MMD)
 # XXX Remove debug flag (-g)
 # XXX Remove -DDEBUG
-CXXFLAGS += -MMD -g -DDEBUG=1 $(warnings) $(includeopt) -fPIC -fvisibility=hidden -std=c++0x
+# XXX Remove suggest
+# XXX Remove conversion
+CXXFLAGS += -MMD -Wpedantic -Wsuggest-attribute=const -Wconversion -g -DDEBUG=1 $(warnings) $(includeopt) -fPIC -fvisibility=hidden -std=c++0x
 
 
 # Define a command that will produce a link command for the given library name
@@ -162,13 +164,13 @@ $(outdir)/%.o: %.cpp $(v8monkeyheadersdir)/v8.h
 enginestems = $(addprefix src/engine/, init version)
 engineobjects = $(addsuffix .o, $(enginestems))
 
-runtimestems = $(addprefix src/runtime/, isolate handlescope)
+runtimestems = $(addprefix src/runtime/, isolate handlescope persistent)
 runtimeobjects = $(addsuffix .o, $(runtimestems))
 
 threadstems = $(addprefix src/threads/, locker)
 threadobjects = $(addsuffix .o, $(threadstems))
 
-typestems = $(addprefix src/types/, number value)
+typestems = $(addprefix src/types/, number value v8monkeyobject)
 typeobjects = $(addsuffix .o, $(typestems))
 
 allstems = $(enginestems) $(runtimestems) $(threadstems) $(typestems)
@@ -324,7 +326,7 @@ src/runtime/isolate.h $(v8objects) $(testlibobjects): src/v8monkey_common.h
 
 
 # Various files need the base_type definitions
-typedeps = $(call variants, src/types/number)
+typedeps = $(call variants, src/types/number) $(call variants, src/types/v8monkeyobject)
 src/runtime/isolate.h $(typedeps) ($(call variants, src/runtime/isolate): src/types/base_types.h
 
 
@@ -372,7 +374,7 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 
 
 # The "internals" test harness is composed from the following
-internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock platform refcount smartpointer threadID
+internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock persistent platform refcount smartpointer threadID
 internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
@@ -429,7 +431,7 @@ $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 
 # Various files depend on isolate.h
 api_isolate_deps = $(addprefix api/test_, isolate)
-internal_isolate_depstems = fatalerror handlescope init isolate locker threadID
+internal_isolate_depstems = fatalerror handlescope init isolate locker persistent threadID
 internal_isolate_deps = $(addsuffix _internal, $(addprefix internal/test_, $(internal_isolate_depstems)))
 $(addprefix $(outdir)/test/, $(addsuffix .o, $(api_isolate_deps) $(internal_isolate_deps))): src/runtime/isolate.h
 
@@ -443,11 +445,11 @@ $(outdir)/test/internal/test_death_internal.o $(outdir)/test/internal/test_fatal
 
 
 # Not unexpectedly, test_objectblock_internal depends on the header
-$(outdir)/test/internal/test_handlescope_internal.o $(outdir)/test/internal/test_objectblock_internal.o: src/data_structures/objectblock.h
+$(outdir)/test/internal/test_handlescope_internal.o $(outdir)/test/internal/test_objectblock_internal.o $(outdir)/test/internal/test_persistent_internal.o: src/data_structures/objectblock.h
 
 
 # some files depend on the base_type definitions
-test_basetypes_deps = destructlist handlescope isolate objectblock refcount smartpointer
+test_basetypes_deps = destructlist handlescope isolate objectblock persistent refcount smartpointer
 $(addprefix $(outdir)/test/internal/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
 
 
@@ -543,8 +545,8 @@ clobber:
 
 
 valgrind: $(testsuites)
-	valgrind --tool=memcheck --leak-check=full --log-file=mem_api --trace-children=yes $(outdir)/test/run_v8monkey_tests
-	valgrind --tool=memcheck --leak-check=full --log-file=mem_internal --trace-children=yes $(outdir)/test/run_v8monkey_internal_tests
+	valgrind --tool=memcheck --leak-check=full --log-file=mem_api --trace-children=yes --gen-suppressions=all $(outdir)/test/run_v8monkey_tests
+	valgrind --tool=memcheck --leak-check=full --log-file=mem_internal --trace-children=yes  --suppressions=$(CURDIR)/int_suppress.supp --gen-suppressions=all $(outdir)/test/run_v8monkey_internal_tests
 	valgrind --tool=helgrind --log-file=thread_api --trace-children=yes $(outdir)/test/run_v8monkey_tests
 	valgrind --tool=helgrind --log-file=thread_internal --trace-children=yes $(outdir)/test/run_v8monkey_internal_tests
 

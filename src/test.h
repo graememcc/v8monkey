@@ -76,7 +76,7 @@ namespace v8 {
     v8::V8Monkey::TestUtils::AutoTestCleanup ac;\
   \
     body\
-    V8MONKEY_CHECK(v8::V8Monkey::InternalIsolate::IsEntered(reinterpret_cast<v8::V8Monkey::InternalIsolate*>(v8::Isolate::GetCurrent())), "Correctly entered default isolate");\
+    V8MONKEY_CHECK(v8::V8Monkey::InternalIsolate::IsEntered(v8::V8Monkey::InternalIsolate::FromIsolate(v8::Isolate::GetCurrent())), "Correctly entered default isolate");\
   }\
   \
   \
@@ -87,7 +87,7 @@ namespace v8 {
     i->Enter();\
     \
     body\
-    V8MONKEY_CHECK(v8::V8Monkey::InternalIsolate::IsEntered(reinterpret_cast<v8::V8Monkey::InternalIsolate*>(i)), "Correctly stayed in isolate");\
+    V8MONKEY_CHECK(v8::V8Monkey::InternalIsolate::IsEntered(v8::V8Monkey::InternalIsolate::FromIsolate(i)), "Correctly stayed in isolate");\
   }
 #endif
 

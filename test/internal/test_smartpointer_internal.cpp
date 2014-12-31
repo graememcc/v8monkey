@@ -76,32 +76,20 @@ V8MONKEY_TEST(SmartPtr006, "Copying bumps value's refcount") {
 
 
 V8MONKEY_TEST(SmartPtr007, "Assigning to self doesn't delete") {
-  static bool deleted = false;
-  class SP007 : public V8MonkeyObject {
-    public:
-      SP007() {}
-      ~SP007() { deleted = true; }
-      void Trace(JSRuntime* runtime, JSTracer* tracer) {}
-  };
-  SP007* refCounted = new SP007;
+  bool deleted = false;
+  DeletionObject* refCounted = new DeletionObject(&deleted);
 
-  SmartPtr<SP007> sp(refCounted);
+  SmartPtr<DeletionObject> sp(refCounted);
   sp = sp;
   V8MONKEY_CHECK(!deleted, "Refcounted object not deleted");
 }
 
 
 V8MONKEY_TEST(SmartPtr008, "Assigning to self from raw pointer doesn't delete") {
-  static bool deleted = false;
-  class SP008 : public V8MonkeyObject {
-    public:
-      SP008() {}
-      ~SP008() { deleted = true; }
-      void Trace(JSRuntime* runtime, JSTracer* tracer) {}
-  };
-  SP008* refCounted = new SP008;
+  bool deleted = false;
+  DeletionObject* refCounted = new DeletionObject(&deleted);
 
-  SmartPtr<SP008> sp(refCounted);
+  SmartPtr<DeletionObject> sp(refCounted);
   sp = refCounted;
   V8MONKEY_CHECK(!deleted, "Refcounted object not deleted");
 }

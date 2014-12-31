@@ -290,19 +290,19 @@ namespace {
   }
 
 
-  static bool wasGCOnNotified = false;
+  static bool wasRegisteredForGC = false;
 
 
-  void gcOnNotifier(JSRuntime* rt, JSTraceDataOp op, void* data) {
-    wasGCOnNotified = true;
+  void GCRegistrationHook(JSRuntime* rt, JSTraceDataOp op, void* data) {
+    wasRegisteredForGC = true;
   }
 
 
-  static bool wasGCOffNotified = false;
+  static bool wasDeregisteredFromGC = false;
 
 
-  void gcOffNotifier(JSRuntime* rt, JSTraceDataOp op, void* data) {
-    wasGCOffNotified = true;
+  void GCDeregistrationHook(JSRuntime* rt, JSTraceDataOp op, void* data) {
+    wasDeregisteredFromGC = true;
   }
 
 
@@ -584,44 +584,44 @@ V8MONKEY_TEST(IntIsolate031, "After exiting one isolate and entering another (st
 
 V8MONKEY_TEST(IntIsolate032, "Entering an isolate registers for GC rooting") {
   TestUtils::AutoTestCleanup ac;
-  InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+  InternalIsolate::SetGCRegistrationHooks(GCRegistrationHook, GCDeregistrationHook);
   Isolate* i = Isolate::New();
 
-  wasGCOnNotified = false;
+  wasRegisteredForGC = false;
   i->Enter();
 
-  V8MONKEY_CHECK(wasGCOnNotified, "Notified SpiderMonkey about need to root");
-  InternalIsolate::SetGCNotifier(nullptr, nullptr);
+  V8MONKEY_CHECK(wasRegisteredForGC, "Notified SpiderMonkey about need to root");
+  InternalIsolate::SetGCRegistrationHooks(nullptr, nullptr);
 }
 
 
 V8MONKEY_TEST(IntIsolate033, "Exiting an isolate doesn't deregister an isolate from rooting") {
   TestUtils::AutoTestCleanup ac;
-  InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+  InternalIsolate::SetGCRegistrationHooks(GCRegistrationHook, GCDeregistrationHook);
   Isolate* i = Isolate::New();
   i->Enter();
 
-  wasGCOffNotified = false;
+  wasDeregisteredFromGC = false;
   i->Exit();
 
-  V8MONKEY_CHECK(!wasGCOffNotified, "Exiting isolate doesn't deregister");
+  V8MONKEY_CHECK(!wasDeregisteredFromGC, "Exiting isolate doesn't deregister");
   i->Dispose();
 
-  InternalIsolate::SetGCNotifier(nullptr, nullptr);
+  InternalIsolate::SetGCRegistrationHooks(nullptr, nullptr);
 }
 
 
 V8MONKEY_TEST(IntIsolate034, "Disposing an isolate deregisters it from rooting") {
   TestUtils::AutoTestCleanup ac;
-  InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+  InternalIsolate::SetGCRegistrationHooks(GCRegistrationHook, GCDeregistrationHook);
   Isolate* i = Isolate::New();
   i->Enter();
   i->Exit();
-  wasGCOffNotified = false;
+  wasDeregisteredFromGC = false;
   i->Dispose();
 
-  V8MONKEY_CHECK(wasGCOffNotified, "Exiting isolate doesn't deregister");
-  InternalIsolate::SetGCNotifier(nullptr, nullptr);
+  V8MONKEY_CHECK(wasDeregisteredFromGC, "Exiting isolate doesn't deregister");
+  InternalIsolate::SetGCRegistrationHooks(nullptr, nullptr);
 }
 
 

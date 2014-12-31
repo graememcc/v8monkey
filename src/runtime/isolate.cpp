@@ -56,9 +56,9 @@ namespace {
 
 
   // Thread-local storage keys for isolate related thread data
-  TLSKey* threadIDKey = NULL;
-  TLSKey* isolateKey = NULL;
-  TLSKey* rtcxKey = NULL;
+  TLSKey* threadIDKey = nullptr;
+  TLSKey* isolateKey = nullptr;
+  TLSKey* rtcxKey = nullptr;
 
 
   v8::V8Monkey::InternalIsolate* GetIsolateFromTLS() {
@@ -212,8 +212,8 @@ namespace {
   }
 
 
-  // Interface to isolate tracing for the SpiderMonkey garbage collector. Each isolate that has tracable roots stored
-  // in handlescopes will call JS_AddExtraGCRoots with this function, to participate in rooting.
+  // Interface to isolate tracing for the SpiderMonkey garbage collector. Each isolate will call this function on
+  // entry, in order to trace the values contained in HandleScopes and Persistents
   void gcTracer(JSTracer* tracer, void* data) {
     v8::V8Monkey::InternalIsolate* i = reinterpret_cast<v8::V8Monkey::InternalIsolate*>(data);
     i->Trace(tracer);
@@ -231,8 +231,24 @@ namespace {
 
   // Interface to isolate tracing for the ObjectBlock iteration function
   void traceV8MonkeyObject(V8MonkeyObject* object, void* data) {
+    if (!object) {
+      return;
+    }
+
     TraceData* td = reinterpret_cast<TraceData*>(data);
     object->Trace(td->rt, td->tracer);
+  }
+
+
+  // Hook for the ObjectBlock deletion code to process remaining persistent handles
+  void persistentTearDown(V8MonkeyObject* obj) {
+    if (!obj) {
+      return;
+    }
+
+    // We must use PersistentRelease, as we don't know if it was strong or weak-refcounted
+    // We use nullptr in lieu of a slot to indicate this was triggered by isolate deletion
+    obj->PersistentRelease(nullptr);
   }
 }
 
@@ -318,7 +334,7 @@ namespace v8 {
     }
 
 
-    // Searches the linked list, and finds the ThreadData object for the given thread ID, or returns NULL
+    // Searches the linked list, and finds the ThreadData object for the given thread ID, or returns nullptr
     InternalIsolate::ThreadData* InternalIsolate::FindThreadData(int threadID) {
       ThreadData* data = threadData;
 
@@ -339,7 +355,7 @@ namespace v8 {
       }
 
       // Need to create new ThreadData. We will insert it at the head of the list
-      ThreadData* td = new ThreadData(threadID, previousIsolate, NULL, threadData);
+      ThreadData* td = new ThreadData(threadID, previousIsolate, nullptr, threadData);
       if (threadData) {
         threadData->prev = td;
       }
@@ -370,14 +386,16 @@ namespace v8 {
 
 
     void InternalIsolate::AddGCRooter() {
+      AutoGCMutex(this);
+
       if (isRegisteredForGC) {
         return;
       }
 
 JS_GC(GetJSRuntimeForThread());
       #ifdef V8MONKEY_INTERNAL_TEST
-        if (gcOnNotifierFn) {
-          gcOnNotifierFn(GetJSRuntimeForThread(), gcTracer, this);
+        if (GCRegistrationHookFn) {
+          GCRegistrationHookFn(GetJSRuntimeForThread(), gcTracer, this);
         } else {
           JS_AddExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
         }
@@ -391,14 +409,16 @@ JS_GC(GetJSRuntimeForThread());
 
 
     void InternalIsolate::RemoveGCRooter() {
+      AutoGCMutex(this);
+
       if (!isRegisteredForGC) {
         return;
       }
 
       // Deregister this isolate from SpiderMonkey
       #ifdef V8MONKEY_INTERNAL_TEST
-        if (gcOffNotifierFn) {
-          gcOffNotifierFn(GetJSRuntimeForThread(), gcTracer, this);
+        if (GCDeregistrationHookFn) {
+          GCDeregistrationHookFn(GetJSRuntimeForThread(), gcTracer, this);
         } else {
           JS_RemoveExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
         }
@@ -471,8 +491,21 @@ JS_GC(GetJSRuntimeForThread());
         DeleteIsolateFromGCTLSList(this);
       }
 
+      // Although we have just unhooked ourselves from the garbage collector, there might already be a GC running
+      AutoGCMutex(this);
+
       // Ensure we don't attempt to delete the default isolate multiple times
       isDisposed = true;
+
+      // Release any remaining objects if their persistents haven't cleaned them up, as we won't be tracing them after
+      // this
+      // We assume if one value in persistentData is non-null then they both are, i.e. handles exist
+      if (persistentData.limit != nullptr) {
+        // All HandleScopes should be gone at this point. If we're going away, it'll be dangling-pointer-tastic
+        ASSERT(handleScopeData.limit == nullptr && handleScopeData.next == nullptr, "Isolate::Dispose",
+               "HandleScopes not destroyed!");
+        ObjectBlock<V8MonkeyObject>::Delete(persistentData.limit, persistentData.next, nullptr, persistentTearDown);
+      }
 
       if (this != defaultIsolate) {
         delete this;
@@ -522,7 +555,7 @@ JS_GC(GetJSRuntimeForThread());
       // Note: we can't simply grab the isolate* from TLS, as main will have a non-null value, even when it hasn't
       // entered the isolate
       int threadID = FetchOrAssignThreadId();
-      return i->FindThreadData(threadID) != NULL;
+      return i->FindThreadData(threadID) != nullptr;
     }
 
 
@@ -551,7 +584,7 @@ JS_GC(GetJSRuntimeForThread());
     InternalIsolate* InternalIsolate::EnsureInIsolate() {
       InternalIsolate* current = GetCurrent();
       int threadID = FetchOrAssignThreadId();
-      if (current && current->FindThreadData(threadID) != NULL) {
+      if (current && current->FindThreadData(threadID) != nullptr) {
         return current;
       }
 
@@ -563,13 +596,23 @@ JS_GC(GetJSRuntimeForThread());
     }
 
 
-    HandleScopeData InternalIsolate::GetHandleScopeData() {
+    HandleData InternalIsolate::GetLocalHandleData() {
       return handleScopeData;
     }
 
 
-    void InternalIsolate::SetHandleScopeData(HandleScopeData& hsd) {
-      handleScopeData = hsd;
+    void InternalIsolate::SetLocalHandleData(HandleData& hd) {
+      handleScopeData = hd;
+    }
+
+
+    HandleData InternalIsolate::GetPersistentHandleData() {
+      return persistentData;
+    }
+
+
+    void InternalIsolate::SetPersistentHandleData(HandleData& hd) {
+      persistentData = hd;
     }
 
 
@@ -608,26 +651,36 @@ JS_GC(GetJSRuntimeForThread());
 
 
     void InternalIsolate::Trace(JSTracer* tracer) {
+      // Don't allow API mutation of the handle structures when we're tracing them
+      AutoGCMutex(this);
+
       printf("ISOLATE TRACE\n");
       TraceData* td = new TraceData;
       td->rt = GetJSRuntimeForThread();
       td->tracer = tracer;
 
-      // Don't allow mutation of handle scope data whilst iterating over it
-      handleScopeDataMutex.Lock();
+      // Trace Local handles from HandleScopes
       ObjectBlock<V8MonkeyObject>::Iterate(handleScopeData.limit, handleScopeData.next, traceV8MonkeyObject, td);
-      handleScopeDataMutex.Unlock();
+
+      // Trace Persistent handles
+      ObjectBlock<V8MonkeyObject>::Iterate(persistentData.limit, persistentData.next, traceV8MonkeyObject, td);
+
       delete td;
     }
 
 
-    InternalIsolate* InternalIsolate::defaultIsolate = NULL;
+    InternalIsolate* InternalIsolate::defaultIsolate = nullptr;
 
 
     #ifdef V8MONKEY_INTERNAL_TEST
 
-    void (*InternalIsolate::gcOnNotifierFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
-    void (*InternalIsolate::gcOffNotifierFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
+    void (*InternalIsolate::GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
+    void (*InternalIsolate::GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
+
+
+    void InternalIsolate::ForceGC() {
+      JS_GC(GetJSRuntimeForThread());
+    }
 
 
     // XXX Can we fix these up to look out for construction?

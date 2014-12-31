@@ -20,48 +20,42 @@ namespace {
   const int blockSize = ObjectBlock<DummyV8MonkeyObject>::BlockSize;
 
 
-  static bool wasGCOnNotified = false;
-
-
   static JSTraceDataOp traceFn = nullptr;
   static void* traceData = nullptr;
 
 
-  void gcOnNotifier(JSRuntime* rt, JSTraceDataOp op, void* data) {
-    wasGCOnNotified = true;
+  void GCRegistrationHook(JSRuntime* rt, JSTraceDataOp op, void* data) {
     traceFn = op;
     traceData = data;
   }
 
 
-  static bool wasGCOffNotified = false;
 
-
-  void gcOffNotifier(JSRuntime* rt, JSTraceDataOp op, void* data) {
-    wasGCOffNotified = true;
+  void GCDeregistrationHook(JSRuntime* rt, JSTraceDataOp op, void* data) {
+    // NOP
   }
 }
 
 
-V8MONKEY_TEST(IntHandleScope001, "InternalIsolate HandleScopeData next initially null") {
+V8MONKEY_TEST(IntHandleScope001, "InternalIsolate HandleData next initially null") {
   TestUtils::AutoTestCleanup ac;
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next == nullptr, "HandleScopeData next initially null");
+  V8MONKEY_CHECK(hd.next == nullptr, "HandleData next initially null");
 }
 
 
-V8MONKEY_TEST(IntHandleScope002, "InternalIsolate HandleScopeData limit initially null") {
+V8MONKEY_TEST(IntHandleScope002, "InternalIsolate HandleData limit initially null") {
   TestUtils::AutoTestCleanup ac;
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.limit == nullptr, "HandleScopeData limit initially null");
+  V8MONKEY_CHECK(hd.limit == nullptr, "HandleData limit initially null");
 }
 
 
-V8MONKEY_TEST(IntHandleScope003, "InternalIsolate HandleScopeData changes after handle creation (null case)") {
+V8MONKEY_TEST(IntHandleScope003, "InternalIsolate HandleData changes after handle creation (null case)") {
   TestUtils::AutoTestCleanup ac;
   HandleScope h;
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
@@ -69,14 +63,14 @@ V8MONKEY_TEST(IntHandleScope003, "InternalIsolate HandleScopeData changes after 
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
 
   HandleScope::CreateHandle(d);
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next != nullptr, "HandleScopeData next changed after first handle created");
-  V8MONKEY_CHECK(hsd.limit != nullptr, "HandleScopeData limit changed after first handle created");
+  V8MONKEY_CHECK(hd.next != nullptr, "HandleData next changed after first handle created");
+  V8MONKEY_CHECK(hd.limit != nullptr, "HandleData limit changed after first handle created");
 }
 
 
-V8MONKEY_TEST(IntHandleScope004, "InternalIsolate HandleScopeData changes after handle creation (usual case)") {
+V8MONKEY_TEST(IntHandleScope004, "InternalIsolate HandleData changes after handle creation (usual case)") {
   TestUtils::AutoTestCleanup ac;
   HandleScope h;
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
@@ -84,39 +78,39 @@ V8MONKEY_TEST(IntHandleScope004, "InternalIsolate HandleScopeData changes after 
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
 
   HandleScope::CreateHandle(d);
-  HandleScopeData hsd = i->GetHandleScopeData();
-  V8MonkeyObject** prevNext = hsd.next;
+  HandleData hd = i->GetLocalHandleData();
+  V8MonkeyObject** prevNext = hd.next;
 
   DummyV8MonkeyObject* e = new DummyV8MonkeyObject;
   HandleScope::CreateHandle(e);
 
-  hsd = i->GetHandleScopeData();
-  V8MONKEY_CHECK(hsd.next != prevNext, "HandleScopeData next changed after another handle created");
+  hd = i->GetLocalHandleData();
+  V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after another handle created");
 }
 
 
-V8MONKEY_TEST(IntHandleScope005, "InternalIsolate HandleScopeData changes after handle creation (block full case)") {
+V8MONKEY_TEST(IntHandleScope005, "InternalIsolate HandleData changes after handle creation (block full case)") {
   TestUtils::AutoTestCleanup ac;
   HandleScope h;
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
-  HandleScopeData hsd = i->GetHandleScopeData();
-  V8MonkeyObject** prevNext = hsd.next;
-  V8MonkeyObject** prevLimit = hsd.limit;
+  HandleData hd = i->GetLocalHandleData();
+  V8MonkeyObject** prevNext = hd.next;
+  V8MonkeyObject** prevLimit = hd.limit;
 
   for (int j = 0; j < blockSize + 2; j++) {
     HandleScope::CreateHandle(new DummyV8MonkeyObject);
-    HandleScopeData hsd = i->GetHandleScopeData();
+    HandleData hd = i->GetLocalHandleData();
 
-    V8MONKEY_CHECK(hsd.next != prevNext, "HandleScopeData next changed after another handle created");
+    V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after another handle created");
     if (j == 0 || j == blockSize) {
-      V8MONKEY_CHECK(hsd.limit != prevLimit, "HandleScopeData limit changed after another handle created");
+      V8MONKEY_CHECK(hd.limit != prevLimit, "HandleData limit changed after another handle created");
     } else {
-      V8MONKEY_CHECK(hsd.limit == prevLimit, "HandleScopeData limit not changed after another handle created");
+      V8MONKEY_CHECK(hd.limit == prevLimit, "HandleData limit not changed after another handle created");
     }
 
-    prevNext = hsd.next;
-    prevLimit = hsd.limit;
+    prevNext = hd.next;
+    prevLimit = hd.limit;
   }
 }
 
@@ -210,7 +204,7 @@ V8MONKEY_TEST(IntHandleScope010, "Refcount correct when handle to object created
 }
 
 
-V8MONKEY_TEST(IntHandleScope011, "InternalIsolate HandleScopeData restored correctly after handlescope deletion") {
+V8MONKEY_TEST(IntHandleScope011, "InternalIsolate HandleData restored correctly after handlescope deletion") {
   TestUtils::AutoTestCleanup ac;
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
@@ -220,14 +214,14 @@ V8MONKEY_TEST(IntHandleScope011, "InternalIsolate HandleScopeData restored corre
     HandleScope::CreateHandle(d);
   }
 
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next == nullptr, "HandleScopeData next restored");
-  V8MONKEY_CHECK(hsd.limit == nullptr, "HandleScopeData limit restored");
+  V8MONKEY_CHECK(hd.next == nullptr, "HandleData next restored");
+  V8MONKEY_CHECK(hd.limit == nullptr, "HandleData limit restored");
 }
 
 
-V8MONKEY_TEST(IntHandleScope012, "InternalIsolate HandleScopeData restored correctly after handlescope deletion (2)") {
+V8MONKEY_TEST(IntHandleScope012, "InternalIsolate HandleData restored correctly after handlescope deletion (2)") {
   TestUtils::AutoTestCleanup ac;
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
@@ -238,14 +232,14 @@ V8MONKEY_TEST(IntHandleScope012, "InternalIsolate HandleScopeData restored corre
     }
   }
 
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next == nullptr, "HandleScopeData next restored");
-  V8MONKEY_CHECK(hsd.limit == nullptr, "HandleScopeData limit restored");
+  V8MONKEY_CHECK(hd.next == nullptr, "HandleData next restored");
+  V8MONKEY_CHECK(hd.limit == nullptr, "HandleData limit restored");
 }
 
 
-V8MONKEY_TEST(IntHandleScope013, "HandleScopeData restored correctly from multiple handlescope deletions (1)") {
+V8MONKEY_TEST(IntHandleScope013, "HandleData restored correctly from multiple handlescope deletions (1)") {
   TestUtils::AutoTestCleanup ac;
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
@@ -254,27 +248,27 @@ V8MONKEY_TEST(IntHandleScope013, "HandleScopeData restored correctly from multip
     DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
     HandleScope::CreateHandle(d);
 
-    HandleScopeData hsd = i->GetHandleScopeData();
-    V8MonkeyObject** next = hsd.next;
-    V8MonkeyObject** limit = hsd.limit;
+    HandleData hd = i->GetLocalHandleData();
+    V8MonkeyObject** next = hd.next;
+    V8MonkeyObject** limit = hd.limit;
     {
       HandleScope j;
       HandleScope::CreateHandle(d);
     }
 
-    hsd = i->GetHandleScopeData();
-    V8MONKEY_CHECK(hsd.next == next, "Second HandleScopeData next restored");
-    V8MONKEY_CHECK(hsd.limit == limit, "Second HandleScopeData limit restored");
+    hd = i->GetLocalHandleData();
+    V8MONKEY_CHECK(hd.next == next, "Second HandleData next restored");
+    V8MONKEY_CHECK(hd.limit == limit, "Second HandleData limit restored");
   }
 
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next == nullptr, "First HandleScopeData next restored");
-  V8MONKEY_CHECK(hsd.limit == nullptr, "First HandleScopeData limit restored");
+  V8MONKEY_CHECK(hd.next == nullptr, "First HandleData next restored");
+  V8MONKEY_CHECK(hd.limit == nullptr, "First HandleData limit restored");
 }
 
 
-V8MONKEY_TEST(IntHandleScope014, "HandleScopeData restored correctly from multiple handlescope deletions (2)") {
+V8MONKEY_TEST(IntHandleScope014, "HandleData restored correctly from multiple handlescope deletions (2)") {
   TestUtils::AutoTestCleanup ac;
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
@@ -283,9 +277,9 @@ V8MONKEY_TEST(IntHandleScope014, "HandleScopeData restored correctly from multip
     DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
     HandleScope::CreateHandle(d);
 
-    HandleScopeData hsd = i->GetHandleScopeData();
-    V8MonkeyObject** next = hsd.next;
-    V8MonkeyObject** limit = hsd.limit;
+    HandleData hd = i->GetLocalHandleData();
+    V8MonkeyObject** next = hd.next;
+    V8MonkeyObject** limit = hd.limit;
     {
       HandleScope j;
       for (int k = 0; k < blockSize + 2; k++) {
@@ -293,15 +287,15 @@ V8MONKEY_TEST(IntHandleScope014, "HandleScopeData restored correctly from multip
       }
     }
 
-    hsd = i->GetHandleScopeData();
-    V8MONKEY_CHECK(hsd.next == next, "Second HandleScopeData next restored");
-    V8MONKEY_CHECK(hsd.limit == limit, "Second HandleScopeData limit restored");
+    hd = i->GetLocalHandleData();
+    V8MONKEY_CHECK(hd.next == next, "Second HandleData next restored");
+    V8MONKEY_CHECK(hd.limit == limit, "Second HandleData limit restored");
   }
 
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next == nullptr, "First HandleScopeData next restored");
-  V8MONKEY_CHECK(hsd.limit == nullptr, "First HandleScopeData limit restored");
+  V8MONKEY_CHECK(hd.next == nullptr, "First HandleData next restored");
+  V8MONKEY_CHECK(hd.limit == nullptr, "First HandleData limit restored");
 }
 
 
@@ -421,10 +415,10 @@ V8MONKEY_TEST(IntHandleScope020, "Closing HandleScope adjusts previous pointers 
   TestUtils::AutoTestCleanup ac;
 
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next == nullptr, "Sanity check (1)");
-  V8MONKEY_CHECK(hsd.limit == nullptr, "Sanity check (2)");
+  V8MONKEY_CHECK(hd.next == nullptr, "Sanity check (1)");
+  V8MONKEY_CHECK(hd.limit == nullptr, "Sanity check (2)");
 
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
   Local<DummyV8MonkeyObject> escaped;
@@ -443,10 +437,10 @@ V8MONKEY_TEST(IntHandleScope020, "Closing HandleScope adjusts previous pointers 
   }
 
   i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  hsd = i->GetHandleScopeData();
+  hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next != nullptr, "HandleScopeData next changed after escaping");
-  V8MONKEY_CHECK(hsd.limit != nullptr, "HandleScopeData limit changed after escaping");
+  V8MONKEY_CHECK(hd.next != nullptr, "HandleData next changed after escaping");
+  V8MONKEY_CHECK(hd.limit != nullptr, "HandleData limit changed after escaping");
 }
 
 
@@ -455,10 +449,10 @@ V8MONKEY_TEST(IntHandleScope021, "Closing HandleScope adjusts previous pointers 
   TestUtils::AutoTestCleanup ac;
 
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next == nullptr, "Sanity check (1)");
-  V8MONKEY_CHECK(hsd.limit == nullptr, "Sanity check (2)");
+  V8MONKEY_CHECK(hd.next == nullptr, "Sanity check (1)");
+  V8MONKEY_CHECK(hd.limit == nullptr, "Sanity check (2)");
 
   DummyV8MonkeyObject* d = new DummyV8MonkeyObject;
   DummyV8MonkeyObject* e = new DummyV8MonkeyObject;
@@ -480,10 +474,10 @@ V8MONKEY_TEST(IntHandleScope021, "Closing HandleScope adjusts previous pointers 
   }
 
   i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  hsd = i->GetHandleScopeData();
+  hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next != nullptr, "HandleScopeData next changed after escaping");
-  V8MONKEY_CHECK(hsd.limit != nullptr, "HandleScopeData limit changed after escaping");
+  V8MONKEY_CHECK(hd.next != nullptr, "HandleData next changed after escaping");
+  V8MONKEY_CHECK(hd.limit != nullptr, "HandleData limit changed after escaping");
 }
 
 
@@ -602,10 +596,10 @@ V8MONKEY_TEST(IntHandleScope026, "Closing HandleScope adjusts previous pointers 
   HandleScope::CreateHandle(d);
 
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MonkeyObject** prevNext = hsd.next;
-  V8MonkeyObject** limit = hsd.limit;
+  V8MonkeyObject** prevNext = hd.next;
+  V8MonkeyObject** limit = hd.limit;
 
   DummyV8MonkeyObject* e = new DummyV8MonkeyObject;
   Local<DummyV8MonkeyObject> escaped;
@@ -620,10 +614,10 @@ V8MONKEY_TEST(IntHandleScope026, "Closing HandleScope adjusts previous pointers 
     escaped = i.Close(handle);
   }
 
-  hsd = i->GetHandleScopeData();
+  hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next != prevNext, "HandleScopeData next changed after escaping");
-  V8MONKEY_CHECK(hsd.limit == limit, "HandleScopeData limit unchanged after escaping");
+  V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after escaping");
+  V8MONKEY_CHECK(hd.limit == limit, "HandleData limit unchanged after escaping");
 }
 
 
@@ -636,10 +630,10 @@ V8MONKEY_TEST(IntHandleScope027, "Closing HandleScope adjusts previous pointers 
   HandleScope::CreateHandle(d);
 
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MonkeyObject** prevNext = hsd.next;
-  V8MonkeyObject** limit = hsd.limit;
+  V8MonkeyObject** prevNext = hd.next;
+  V8MonkeyObject** limit = hd.limit;
 
   DummyV8MonkeyObject* e = new DummyV8MonkeyObject;
   Local<DummyV8MonkeyObject> escaped;
@@ -655,10 +649,10 @@ V8MONKEY_TEST(IntHandleScope027, "Closing HandleScope adjusts previous pointers 
     escaped = i.Close(handle);
   }
 
-  hsd = i->GetHandleScopeData();
+  hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next != prevNext, "HandleScopeData next changed after escaping");
-  V8MONKEY_CHECK(hsd.limit == limit, "HandleScopeData limit unchanged after escaping");
+  V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after escaping");
+  V8MONKEY_CHECK(hd.limit == limit, "HandleData limit unchanged after escaping");
 }
 
 
@@ -798,10 +792,10 @@ V8MONKEY_TEST(IntHandleScope032, "Closing HandleScope adjusts previous pointers 
   }
 
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MonkeyObject** prevNext = hsd.next;
-  V8MonkeyObject** limit = hsd.limit;
+  V8MonkeyObject** prevNext = hd.next;
+  V8MonkeyObject** limit = hd.limit;
 
   DummyV8MonkeyObject* e = new DummyV8MonkeyObject;
   Local<DummyV8MonkeyObject> escaped;
@@ -817,10 +811,10 @@ V8MONKEY_TEST(IntHandleScope032, "Closing HandleScope adjusts previous pointers 
     escaped = i.Close(handle);
   }
 
-  hsd = i->GetHandleScopeData();
+  hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next != prevNext, "HandleScopeData next changed after escaping");
-  V8MONKEY_CHECK(hsd.limit != limit, "HandleScopeData limit unchanged after escaping");
+  V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after escaping");
+  V8MONKEY_CHECK(hd.limit != limit, "HandleData limit unchanged after escaping");
 }
 
 
@@ -837,10 +831,10 @@ V8MONKEY_TEST(IntHandleScope033, "Closing HandleScope adjusts previous pointers 
   }
 
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MonkeyObject** prevNext = hsd.next;
-  V8MonkeyObject** limit = hsd.limit;
+  V8MonkeyObject** prevNext = hd.next;
+  V8MonkeyObject** limit = hd.limit;
 
   DummyV8MonkeyObject* e = new DummyV8MonkeyObject;
   Local<DummyV8MonkeyObject> escaped;
@@ -857,10 +851,10 @@ V8MONKEY_TEST(IntHandleScope033, "Closing HandleScope adjusts previous pointers 
     escaped = i.Close(handle);
   }
 
-  hsd = i->GetHandleScopeData();
+  hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next != prevNext, "HandleScopeData next changed after escaping");
-  V8MONKEY_CHECK(hsd.limit != limit, "HandleScopeData limit unchanged after escaping");
+  V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after escaping");
+  V8MONKEY_CHECK(hd.limit != limit, "HandleData limit unchanged after escaping");
 }
 
 
@@ -873,30 +867,23 @@ V8MONKEY_TEST(IntHandleScope034, "Transitioning from one empty handlescope to an
   }
 
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScopeData hsd = i->GetHandleScopeData();
+  HandleData hd = i->GetLocalHandleData();
 
-  V8MONKEY_CHECK(hsd.next == nullptr, "Moving from empty handlescope to empty handlescope works");
-  V8MONKEY_CHECK(hsd.limit == nullptr, "Moving from empty handlescope to empty handlescope works");
+  V8MONKEY_CHECK(hd.next == nullptr, "Moving from empty handlescope to empty handlescope works");
+  V8MONKEY_CHECK(hd.limit == nullptr, "Moving from empty handlescope to empty handlescope works");
 }
 
 
 V8MONKEY_TEST(IntHandleScope035, "Items contained in handlescopes traced correctly") {
   TestUtils::AutoTestCleanup ac;
 
-  static bool traced = false;
-  class TraceFake : public V8MonkeyObject {
-    public:
-      TraceFake() {}
-      ~TraceFake() {}
-      void Trace(JSRuntime* runtime, JSTracer* tracer) {traced = true; }
-  };
-
-  TraceFake* t = new TraceFake;
+  bool traced = false;
+  TraceFake* t = new TraceFake(&traced);
   traceFn = nullptr;
   traceData = nullptr;
 
   // Replace the call to SpiderMonkey with our fake function
-  InternalIsolate::SetGCNotifier(gcOnNotifier, gcOffNotifier);
+  InternalIsolate::SetGCRegistrationHooks(GCRegistrationHook, GCDeregistrationHook);
 
   Isolate::GetCurrent()->Enter();
   {
@@ -906,7 +893,7 @@ V8MONKEY_TEST(IntHandleScope035, "Items contained in handlescopes traced correct
     traceFn(nullptr, traceData);
   }
 
-  InternalIsolate::SetGCNotifier(nullptr, nullptr);
+  InternalIsolate::SetGCRegistrationHooks(nullptr, nullptr);
   traceFn = nullptr;
 
   V8MONKEY_CHECK(traced, "Value was traced");

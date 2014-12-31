@@ -129,7 +129,7 @@ namespace {
     // We will have entered the default isolate courtesy of SetFatalErrorHandler 
     Isolate::GetCurrent()->Exit();
 
-    return reinterpret_cast<void*>(V8::IsDead() && errorCaught != 0);
+    return reinterpret_cast<void*>(result);
   }
 
 

@@ -62,8 +62,9 @@ namespace v8 {
             return;
           }
 
-          printf("SM Tracing");
+          printf("SM Tracing\n");
           JS_CallValueTracer(tracer, &jsValue, "V8Monkey manual rooting");
+          printf("Done value trace. Returning\n");
         }
 
         NumberTags numberTag;

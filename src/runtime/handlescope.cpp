@@ -59,24 +59,24 @@ namespace {
                                            bool shouldAddRef) {
     using namespace v8::V8Monkey;
 
-    InternalIsolate::AutoHandleScopeDataMutex lock(i);
+    InternalIsolate::AutoGCMutex lock(i);
 
-    HandleScopeData hsd = i->GetHandleScopeData();
+    HandleData hd = i->GetLocalHandleData();
 
     // We must have a handlescope to create handles in. This is an API error.
-    if (hsd.level == 0) {
+    if (hd.level == 0) {
       V8MonkeyCommon::TriggerFatalError("HandleScope", "Cannot create handle without handlescope");
       return nullptr;
     }
 
-    if (hsd.limit == hsd.next) {
-      ObjectBlock<V8MonkeyObject>::Limits limits = ObjectBlock<V8MonkeyObject>::Extend(hsd.limit);
-      hsd.limit = limits.limit;
-      hsd.next = limits.top;
+    if (hd.limit == hd.next) {
+      ObjectBlock<V8MonkeyObject>::Limits limits = ObjectBlock<V8MonkeyObject>::Extend(hd.limit);
+      hd.limit = limits.limit;
+      hd.next = limits.top;
     }
 
-    V8MonkeyObject** ptr = hsd.next++;
-    InternalIsolate::GetCurrent()->SetHandleScopeData(hsd);
+    V8MonkeyObject** ptr = hd.next++;
+    InternalIsolate::GetCurrent()->SetLocalHandleData(hd);
 
     obj->AddRef();
     *ptr = obj;
@@ -92,21 +92,21 @@ namespace v8 {
     // It is assumed that the currently entered isolate is the one in which the handlescope was created, as
     // data could be stomped on otherwise. (V8 asserts this in debug builds, but doesn't enforce it).
     V8Monkey::InternalIsolate* i = V8Monkey::InternalIsolate::GetCurrent();
-    V8Monkey::HandleScopeData hsd = i->GetHandleScopeData();
+    V8Monkey::HandleData hd = i->GetLocalHandleData();
 
     isolate = i;
-    prevNext = hsd.next;
-    prevLimit = hsd.limit;
+    prevNext = hd.next;
+    prevLimit = hd.limit;
 
     {
-      V8Monkey::InternalIsolate::AutoHandleScopeDataMutex lock(isolate);
-      hsd.level++;
-      i->SetHandleScopeData(hsd);
+      V8Monkey::InternalIsolate::AutoGCMutex lock(isolate);
+      hd.level++;
+      i->SetLocalHandleData(hd);
     }
 
     // It is an API error to construct a HandleScope if threads are active and the isolate is not locked
     // We test down here as a concession to the testing framework, which will catch the error and still try to destroy
-    // the handlescope. The handlescope will now have valid data to write back to the HandleScopeData object.
+    // the handlescope. The handlescope will now have valid data to write back to the HandleData object.
     if (Locker::IsActive() && !i->IsLockedForThisThread()) {
       V8Monkey::V8MonkeyCommon::TriggerFatalError("HandleScope::HandleScope", "A lock must be held for this isolate");
     }
@@ -127,17 +127,17 @@ namespace v8 {
 
     ASSERT(InternalIsolate::GetCurrent() == isolate, "HandleScope::Leave", "Isolates don't match");
 
-    InternalIsolate::AutoHandleScopeDataMutex lock(isolate);
+    InternalIsolate::AutoGCMutex lock(isolate);
 
-    HandleScopeData hsd = isolate->GetHandleScopeData();
-    if (hsd.limit != prevLimit || hsd.next != prevNext) {
-      V8Monkey::ObjectBlock<V8MonkeyObject>::Delete(hsd.limit, hsd.next, prevNext, deleteRefCount);
+    HandleData hd = isolate->GetLocalHandleData();
+    if (hd.limit != prevLimit || hd.next != prevNext) {
+      V8Monkey::ObjectBlock<V8MonkeyObject>::Delete(hd.limit, hd.next, prevNext, deleteRefCount);
     }
 
-    hsd.limit = prevLimit;
-    hsd.next = prevNext;
+    hd.limit = prevLimit;
+    hd.next = prevNext;
 
-    InternalIsolate::GetCurrent()->SetHandleScopeData(hsd);
+    InternalIsolate::GetCurrent()->SetLocalHandleData(hd);
 
     isClosed = true;
   }
@@ -161,7 +161,7 @@ namespace v8 {
     // Null out the old value, to prevent iteration (and hence prevent refcount from being decremented)
     {
       // XXX Have another crack at the mutex reference
-      V8Monkey::InternalIsolate::AutoHandleScopeDataMutex lock(isolate);
+      V8Monkey::InternalIsolate::AutoGCMutex lock(isolate);
       *value = nullptr;
     }
 
@@ -191,15 +191,15 @@ namespace v8 {
 
     // First, calculate how many full blocks do we have?
     InternalIsolate* isolate = InternalIsolate::GetCurrent();
-    HandleScopeData hsd = isolate->GetHandleScopeData();
-    int fullBlocks = ObjectBlock<V8MonkeyObject>::NumberOfItems(hsd.limit);
+    HandleData hd = isolate->GetLocalHandleData();
+    int fullBlocks = ObjectBlock<V8MonkeyObject>::NumberOfItems(hd.limit);
 
-    if (hsd.limit == nullptr && hsd.next == nullptr) {
+    if (hd.limit == nullptr && hd.next == nullptr) {
       return fullBlocks;
     }
 
     // How much space is left in the current block?
-    int slotsRemaining = hsd.limit - hsd.next;
+    int slotsRemaining = hd.limit - hd.next;
 
     return fullBlocks + (ObjectBlock<V8Monkey::V8MonkeyObject>::BlockSize - slotsRemaining);
   }
