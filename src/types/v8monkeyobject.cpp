@@ -8,15 +8,10 @@
 namespace v8 {
   namespace V8Monkey {
 
-    /*
-     * The base class of all internal refcounted objects (i.e. anything that can be stored in a Local or Persistent
-     * handle).
-     *
-     */
-
     V8MonkeyObject::~V8MonkeyObject() {
       // Tear down the callback list if required. In some rare circumstances, it might be non-empty (for example if
-      // an isolate is disposed before a weak Persistent that wraps an object created in that Isolate).
+      // an isolate is disposed before a weak Persistent that wraps an object created in that Isolate). Hence, it is
+      // unsafe to assume the slot is still alive, so we don't zero it here
       if (callbackList) {
         WeakRefListElem* current = callbackList;
 
@@ -31,7 +26,7 @@ namespace v8 {
 
     // Provides object level support for Persistent weak-references. The goal here is to adjust the refcounts, and
     // note the callback (if any) that should be invoked during garbage collection when there are only weak
-    // references remaining
+    // references remaining.
     void V8MonkeyObject::MakeWeak(V8MonkeyObject** slotPtr, void* parameters, WeakReferenceCallback callback) {
       WeakRefListElem* cbListElem = FindForSlot(slotPtr);
 
@@ -63,7 +58,7 @@ namespace v8 {
 
 
     // Undo the effects of a MakeWeak call, after first checking that the given slot has been weakened. (This is
-    // effectively a no-op in those cases).
+    // a no-op when called with a slot that hasn't weakened us).
     void V8MonkeyObject::ClearWeakness(V8MonkeyObject** slotPtr) {
       WeakRefListElem* cbListElem = FindForSlot(slotPtr);
 
@@ -76,6 +71,10 @@ namespace v8 {
       RemoveFromWeakList(cbListElem);
       ++refCount;
       --weakCount;
+
+      if (isNearDeath) {
+        isNearDeath = false;
+      }
     }
 
 
@@ -100,9 +99,10 @@ namespace v8 {
     // Essentially, we have to decide whether the given Persistent is a weak ref or not, and decrement the correct
     // reference counter. If a Persistent calls MakeWeak, then when deleting a reference, it must call this function
     // instead of Release. (It is safe to call this function even when MakeWeak has not been called.)
-    // 
-    // The Persistent should supply its slot pointer, as this will be cleared to avoid later null-dereferences when
-    // the owning Isolate is deleted. (Note: isolates should also use this function, passing in a null slot pointer).
+    //
+    // The Persistent should supply its slot pointer, as this will be cleared to avoid dereferencing null later when
+    // the owning Isolate is traced or deleted. (Note: isolates should also use this function in their own teardown,
+    // passing in a null slot pointer).
     void V8MonkeyObject::PersistentRelease(V8MonkeyObject** slotPtr) {
       if (slotPtr == nullptr) {
         IsolateRelease();
@@ -120,7 +120,7 @@ namespace v8 {
         RemoveFromWeakList(cbListElem);
         counter = &weakCount;
       }
-          
+
       RemoveRef(slotPtr, counter);
     }
 
@@ -138,44 +138,36 @@ namespace v8 {
     //       reference. In some cases this could avoid a weak reference callback being invoked if it is already
     //       clear that we are not going to be destroyed. Would this break any assumptions for API users?
 
-    // XXX Need to add a method for post-trace deletion
     bool V8MonkeyObject::ShouldTrace() {
       // If there are strong references, then the answer is an unequivocal yes
       if (refCount > 0) {
         return true;
       }
 
-/*
-XXX Deleteme?
-      if (!callbackList) {
-        return false;
-      }
-*/
-
       // Weak callbacks are free to invoke Dispose. If all the callbacks did so, then the last one would trigger
       // destruction, and then we're in no-mans land. Let's temporarily bump the refcount to ensure that doesn't
       // happen.
-      // XXX Do we really need this? Creating a Persistent below will bump the refcount anyway
       refCount++;
 
       WeakRefListElem* current = callbackList;
       if (current) {
-        // In the V8 API, the callback takes a Persistent<Value>. Of course, a Value* is just a dressed-up
-        // V8MonkeyObject**, so if we could get our hands on the address of something that points to us, we're
-        // golden. We manufacture a fake double pointer, and use that to create a persistent. Handle equality
-        // checks will work as expected, as those are based on equality of the underlying V8MonkeyObject*.
-        // XXX Add a test for that
-        V8MonkeyObject* fakeSlot = this;
-            
-        Persistent<Value> p(reinterpret_cast<Value*>(&fakeSlot));
-
-        // The only time a global node has the "near death" state in V8 is when the weak callbacks are called in
-        // PostGarbageCollectionProcessing. We emulate that behaviour here.
-        isNearDeath = true;
-
         while (current) {
           WeakRefListElem* next = current->next;
           if (current->callback) {
+            // In the V8 API, the callback takes a Persistent<Value>. Of course, a Value* is just a dressed-up
+            // V8MonkeyObject**, so if we could get our hands on the address of something that points to us, we're
+            // golden. Fortunately, each WeakRefListElem contains the slot pointer relevant to that callback. We
+            // manufacture a handle, which in turn let's us abuse the API and create a persistent. Handle equality
+            // checks will work as expected, as those are based on equality of the underlying V8MonkeyObject*.
+            Handle<Value> h(reinterpret_cast<Value*>(current->slotPtr));
+            Persistent<Value> p(h);
+
+            // The only time a global node has the "near death" state in V8 is when the weak callbacks are called in
+            // PostGarbageCollectionProcessing. We emulate that behaviour here. Note that we must reset IsNearDeath
+            // each time round the loop, as a particular callback may clear weakness, which in turn should cause
+            // IsNearDeath() to report false
+            isNearDeath = true;
+
             current->callback(p, current->params);
           }
           current = next;
@@ -186,12 +178,34 @@ XXX Deleteme?
 
       // We added a refCount above, so undo that now. The callbacks may have disposed/deleted us, so we should use
       // RemoveRef as opposed to simply decrementing, to trigger destruction if appropriate.
-      // 
-      // Given we might be about to die, we should note the correct refcount now, to avoid touching a dead object
+      //
+      // Given we might be about to die, we should note the correct refcounts now, to avoid touching a dead object
       // afterwards.
-      // XXX Slot clearing
       int rc = refCount - 1;
+      int wc = weakCount;
+
       RemoveRef(nullptr, &refCount);
+
+      if (rc == 0 && wc > 0) {
+        // We're not dead yet, due to the weak references. However, this means that the callbacks didn't strengthen us,
+        // so we should go ahead and die
+        WeakRefListElem* callbackEntry = callbackList;
+        while (callbackEntry) {
+          // Stash the information we need from the WeakRefListElem. It won't exist after the PersistentRelease call
+          WeakRefListElem* next = callbackEntry->next;
+          V8MonkeyObject** slotPtr = callbackEntry->slotPtr;
+
+          PersistentRelease(slotPtr);
+
+          if (next && slotPtr) {
+            // If next is non-null then there are more weakrefs to delete. RemoveRef only zeroes the last, so we need
+            // to manually zero the rest
+            *slotPtr = nullptr;
+          }
+
+          callbackEntry = next;
+        }
+      }
 
       return rc > 0;
     }
@@ -269,7 +283,7 @@ XXX Deleteme?
       if (weakCount > 0) {
         counter = &weakCount;
       }
-      
+
       RemoveRef(nullptr, counter);
     }
   }

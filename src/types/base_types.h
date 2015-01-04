@@ -15,6 +15,12 @@ namespace v8 {
      * The base class of all internal refcounted objects (i.e. anything that can be stored in a Local or Persistent
      * handle).
      *
+     * As noted in the comments in persistent.cpp, there is some machinery here to implement weak handles for
+     * for Persistents, which ultimately can only be implemented when SpiderMonkey root tracing occurs. The key point
+     * is that all derived classes must call ShouldTrace in their Trace implementation. If they participate in
+     * SpiderMonkey root tracing, they should only call the relevant SpiderMonkey tracing method if ShouldTrace returns
+     * true. If ShouldTrace returns false, callers should assume the object has been destructed.
+     *
      */
 
     class EXPORT_FOR_TESTING_ONLY V8MonkeyObject {
@@ -33,7 +39,7 @@ namespace v8 {
           RemoveRef(nullptr, &refCount);
         }
 
-        // Support for weak Persistent handles. See v8monkeyobject.cpp for details
+        // Support for weak Persistent handles. See persistent.cpp/v8monkeyobject.cpp for details
         void MakeWeak(V8MonkeyObject** slotPtr, void* parameters, WeakReferenceCallback callback);
         void ClearWeakness(V8MonkeyObject** slotPtr);
         bool IsWeak(V8MonkeyObject** slotPtr);
@@ -174,7 +180,11 @@ namespace v8 {
 
         int index;
 
-        void Trace(JSRuntime* runtime, JSTracer* tracer) {}
+        void Trace(JSRuntime* runtime, JSTracer* tracer) {
+          // Some tests require that this object participate in tracing for the deletion semantics
+          ShouldTrace();
+        }
+
       private:
         bool* ptr;
     };

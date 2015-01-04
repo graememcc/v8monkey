@@ -392,7 +392,6 @@ namespace v8 {
         return;
       }
 
-JS_GC(GetJSRuntimeForThread());
       #ifdef V8MONKEY_INTERNAL_TEST
         if (GCRegistrationHookFn) {
           GCRegistrationHookFn(GetJSRuntimeForThread(), gcTracer, this);
@@ -498,8 +497,8 @@ JS_GC(GetJSRuntimeForThread());
       isDisposed = true;
 
       // Release any remaining objects if their persistents haven't cleaned them up, as we won't be tracing them after
-      // this
-      // We assume if one value in persistentData is non-null then they both are, i.e. handles exist
+      // this.
+      // We assume if one field in persistentData is non-null then they both are, i.e. handles exist
       if (persistentData.limit != nullptr) {
         // All HandleScopes should be gone at this point. If we're going away, it'll be dangling-pointer-tastic
         ASSERT(handleScopeData.limit == nullptr && handleScopeData.next == nullptr, "Isolate::Dispose",
@@ -654,7 +653,6 @@ JS_GC(GetJSRuntimeForThread());
       // Don't allow API mutation of the handle structures when we're tracing them
       AutoGCMutex(this);
 
-      printf("ISOLATE TRACE\n");
       TraceData* td = new TraceData;
       td->rt = GetJSRuntimeForThread();
       td->tracer = tracer;

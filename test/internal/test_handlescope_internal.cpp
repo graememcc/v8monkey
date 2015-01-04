@@ -18,22 +18,6 @@ namespace {
 
 
   const int blockSize = ObjectBlock<DummyV8MonkeyObject>::BlockSize;
-
-
-  static JSTraceDataOp traceFn = nullptr;
-  static void* traceData = nullptr;
-
-
-  void GCRegistrationHook(JSRuntime* rt, JSTraceDataOp op, void* data) {
-    traceFn = op;
-    traceData = data;
-  }
-
-
-
-  void GCDeregistrationHook(JSRuntime* rt, JSTraceDataOp op, void* data) {
-    // NOP
-  }
 }
 
 
@@ -879,22 +863,14 @@ V8MONKEY_TEST(IntHandleScope035, "Items contained in handlescopes traced correct
 
   bool traced = false;
   TraceFake* t = new TraceFake(&traced);
-  traceFn = nullptr;
-  traceData = nullptr;
-
-  // Replace the call to SpiderMonkey with our fake function
-  InternalIsolate::SetGCRegistrationHooks(GCRegistrationHook, GCDeregistrationHook);
 
   Isolate::GetCurrent()->Enter();
   {
     HandleScope h;
 
     HandleScope::CreateHandle(t);
-    traceFn(nullptr, traceData);
+    InternalIsolate::ForceGC();
   }
-
-  InternalIsolate::SetGCRegistrationHooks(nullptr, nullptr);
-  traceFn = nullptr;
 
   V8MONKEY_CHECK(traced, "Value was traced");
 }

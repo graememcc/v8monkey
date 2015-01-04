@@ -16,1302 +16,327 @@ namespace {
   const int blockSize = ObjectBlock<DummyV8MonkeyObject>::BlockSize;
 
 
-  static JSTraceDataOp traceFn = nullptr;
-  static void* traceData = nullptr;
+  bool weakCallbackCalled = false;
+  void* weakCallbackParams = nullptr;
 
-
-  void GCRegistrationHook(JSRuntime* rt, JSTraceDataOp op, void* data) {
-    traceFn = op;
-    traceData = data;
+  // A weak callback that will set weakCallbackCalled when called
+  void weakCallbackChecker(Persistent<Value> p, void* parameter) {
+    weakCallbackCalled = true;
+    weakCallbackParams = parameter;
   }
 
 
-  void GCDeregistrationHook(JSRuntime* rt, JSTraceDataOp op, void* data) {
-    // NOP
-  }
-
-  bool weakCB1Called = false;
-  void* weakCB1Params = nullptr;
-  void weakCB1(Persistent<Value> object, void* params) {
-    printf("WeakCB1\n");
-    weakCB1Called = true;
-    weakCB1Params = params;
+  // A weak callback that strengthens the persistent
+  void strengthenCallback(Persistent<Value> p, void* parameter) {
+    p.ClearWeak();
   }
 
 
-  void strengthenCallback(Persistent<Value> object, void* params) {
-    printf("strengthenCB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    p->ClearWeak();
+  // A weak callback that disposes the persistent
+  void disposeCallback(Persistent<Value> p, void* parameter) {
+    p.Dispose();
   }
 
 
-  void disposeParamCallback(Persistent<Value> object, void* params) {
-    printf("disposeCB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    p->Dispose();
-  }
-
-
-  void deleteCallback(Persistent<Value> object, void* params) {
-    printf("deleteCB params %p\n", params);
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    V8MonkeyObject* obj = *reinterpret_cast<V8MonkeyObject**>(**p);
-    printf("p %p RC: %d WC %d\n", p, obj->RefCount(), obj->WeakCount());
-    delete p;
-    printf("p %p RC: %d WC %d\n", p, obj->RefCount(), obj->WeakCount());
-  }
-
-
-  void disposeTempCallback(Persistent<Value> object, void* params) {
-    printf("disposeTempCB\n");
-    object.Dispose();
+  // A weak callback that expects its parameter to be a Persistent<Value> pointer, which is then deleted
+  void deleteCallback(Persistent<Value> p, void* parameter) {
+    Persistent<Value>* p2 = reinterpret_cast<Persistent<Value>*>(parameter);
+    delete p2;
   }
 
 
   bool isNearDeath = false;
-  void NearDeathParamChecker(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    isNearDeath = p->IsNearDeath();
-  }
 
-
-  void NearDeathTempChecker(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    isNearDeath = object.IsNearDeath();
-  }
-
-
-  void NearDeathClearParamChecker(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    p->ClearWeak();
-    isNearDeath = p->IsNearDeath();
-  }
-
-
-  void NearDeathClearTempChecker(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    object.ClearWeak();
-    isNearDeath = object.IsNearDeath();
-  }
-
-
-  void NearDeathClearTempCheckParam(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    object.ClearWeak();
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    isNearDeath = p->IsNearDeath();
-  }
-
-
-  void NearDeathClearParamCheckTemp(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    p->ClearWeak();
-    isNearDeath = object.IsNearDeath();
-  }
-
-
-  bool isWeak = false;
-  void IsWeakTempChecker(Persistent<Value> object, void* params) {
-    printf("IsWe CB\n");
-    isWeak = object.IsWeak();
-  }
-
-
-  void IsWeakClearParamChecker(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    p->ClearWeak();
-    isWeak = p->IsWeak();
-  }
-
-
-  void IsWeakClearTempChecker(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    object.ClearWeak();
-    isWeak = object.IsWeak();
-  }
-
-
-  void IsWeakClearTempCheckParam(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    object.ClearWeak();
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    isWeak = p->IsWeak();
-  }
-
-
-  void IsWeakClearParamCheckTemp(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    p->ClearWeak();
-    isWeak = object.IsWeak();
-  }
-
-
-  void IsWeakClearReParam(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    p->ClearWeak();
-    p->MakeWeak(p, IsWeakClearReParam);
-    isWeak = p->IsWeak();
-  }
-
-
-  void IsNearDeathClearReParam(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    p->ClearWeak();
-    p->MakeWeak(p, IsNearDeathClearReParam);
-    isNearDeath = p->IsNearDeath();
-  }
-
-
-  void IsWeakClearReTemp(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    object.ClearWeak();
-    object.MakeWeak(params, IsWeakClearReTemp);
-    isWeak = object.IsWeak();
-  }
-
-
-  void IsNearDeathClearReTemp(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    object.ClearWeak();
-    object.MakeWeak(params, IsNearDeathClearReTemp);
-    isNearDeath = object.IsNearDeath();
-  }
-
-
-  void IsWeakClearReParamParamTemp(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    p->ClearWeak();
-    p->MakeWeak(p, IsWeakClearReParamParamTemp);
-    isWeak = object.IsWeak();
-  }
-
-
-  void IsNearDeathClearReParamParamTemp(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    p->ClearWeak();
-    p->MakeWeak(p, IsNearDeathClearReParamParamTemp);
-    isNearDeath = object.IsNearDeath();
-  }
-
-
-  void IsWeakClearReParamTempParam(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    p->ClearWeak();
-    object.MakeWeak(p, IsWeakClearReParamTempParam);
-    isWeak = p->IsWeak();
-  }
-
-
-  void IsNearDeathClearReParamTempParam(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    p->ClearWeak();
-    object.MakeWeak(p, IsNearDeathClearReParamTempParam);
-    isNearDeath = p->IsNearDeath();
-  }
-
-
-  void IsWeakClearReTempTempParam(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    object.ClearWeak();
-    object.MakeWeak(p, IsWeakClearReTempTempParam);
-    isWeak = p->IsWeak();
-  }
-
-
-  void IsNearDeathClearReTempTempParam(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    object.ClearWeak();
-    object.MakeWeak(p, IsNearDeathClearReTempTempParam);
-    isNearDeath = p->IsNearDeath();
-  }
-
-
-  void IsWeakClearReTempParamTemp(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    object.ClearWeak();
-    p->MakeWeak(p, IsWeakClearReTempParamTemp);
-    isWeak = object.IsWeak();
-  }
-
-
-  void IsNearDeathClearReTempParamTemp(Persistent<Value> object, void* params) {
-    printf("IsNeDe CB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    object.ClearWeak();
-    p->MakeWeak(p, IsNearDeathClearReTempParamTemp);
-    isNearDeath = object.IsNearDeath();
+  // A weak callback that notes the result of calling IsNearDeath on the supplied persistent
+  void NearDeathChecker(Persistent<Value> p, void* parameter) {
+    isNearDeath = p.IsNearDeath();
   }
 
 
   bool wasEqual = false;
-  void EqualityChecker(Persistent<Value> object, void* params) {
-    printf("EQCB\n");
-    Persistent<Integer>* p = reinterpret_cast<Persistent<Integer>*>(params);
-    wasEqual = *p == object;
+
+  // A weak callback that expects its parameter to be a Persistent<Value> pointer, which is then checked for equality
+  void EqualityChecker(Persistent<Value> p, void* parameter) {
+    Persistent<Value>* p2 = reinterpret_cast<Persistent<Value>*>(parameter);
+    wasEqual = p == *p2;
   }
 
 
-  bool wasZeroed = false;
-  void TempDisposeChecker(Persistent<Value> object, void* params) {
-    printf("WZCB\n");
-    Persistent<Integer> p = *(reinterpret_cast<Persistent<Integer>*>(params));
-    v8::V8Monkey::V8MonkeyObject** slot = reinterpret_cast<V8MonkeyObject**>(*p);
-    object.Dispose();
-    wasZeroed = *slot == nullptr;
+  // A weak callback that clears weakness, and checks the result of IsNearDeath
+  void ClearWeakNearDeathChecker(Persistent<Value> p, void* parameter) {
+    p.ClearWeak();
+    isNearDeath = p.IsNearDeath();
+  }
+
+
+  bool isWeak = false;
+
+  // A weak callback that notes the result of calling IsWeak on the supplied persistent
+  void IsWeakChecker(Persistent<Value> p, void* parameter) {
+    isWeak = p.IsWeak();
+  }
+
+
+  // A weak callback that clears weakness, and checks the result of IsWeak
+  void ClearWeakIsWeakChecker(Persistent<Value> p, void* parameter) {
+    p.ClearWeak();
+    isWeak = p.IsWeak();
+  }
+
+
+  // A weak callback that clears weakness, reweakens, and checks the result of IsNearDeath
+  void IsNearDeathClearAndReweakenChecker(Persistent<Value> p, void* parameter) {
+    p.ClearWeak();
+    p.MakeWeak(nullptr, IsNearDeathClearAndReweakenChecker);
+    isNearDeath = p.IsNearDeath();
+  }
+
+
+  // A weak callback that clears weakness, reweakens, and checks the result of IsWeak
+  void IsWeakClearAndReweakenChecker(Persistent<Value> p, void* parameter) {
+    p.ClearWeak();
+    p.MakeWeak(nullptr, IsWeakClearAndReweakenChecker);
+    isWeak = p.IsWeak();
   }
 }
 
 
+// Macro that performs the grunt-work of creating a Persistent from realistic data, specifically a Local. The Local
+// will fall out of scope, making the Persistent the only handle holding a reference to the object.
+#define PERSISTENT_TEST(num, message) \
+  V8MONKEY_TEST(IntPersistent##num, message) {\
+    TestUtils::AutoTestCleanup ac; \
+ \
+    Isolate::GetCurrent()->Enter(); \
+    Persistent<Integer> p; \
+ \
+    { \
+      HandleScope h; \
+ \
+      Local<Value> l(Integer::New(123)); \
+      p = Persistent<Integer>::New(l); \
+ \
+    }
+
+
 V8MONKEY_TEST(IntPersistent001, "InternalIsolate Persistent HandleData next initially null") {
   TestUtils::AutoTestCleanup ac;
+  Isolate::GetCurrent()->Enter();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleData hd = i->GetPersistentHandleData();
 
+  HandleData hd = i->GetPersistentHandleData();
   V8MONKEY_CHECK(hd.next == nullptr, "HandleData next initially null");
 }
 
 
 V8MONKEY_TEST(IntPersistent002, "InternalIsolate Persistent HandleData limit initially null") {
   TestUtils::AutoTestCleanup ac;
+  Isolate::GetCurrent()->Enter();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleData hd = i->GetPersistentHandleData();
 
+  HandleData hd = i->GetPersistentHandleData();
   V8MONKEY_CHECK(hd.limit == nullptr, "HandleData limit initially null");
 }
 
 
-V8MONKEY_TEST(IntPersistent003, "InternalIsolate Persistent HandleData changes after persistent creation (from pointer, null case)") {
-  TestUtils::AutoTestCleanup ac;
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScope h;
-  
-  Persistent<Integer> p(*(Integer::New(123)));
-  HandleData hd = i->GetPersistentHandleData();
-
-  V8MONKEY_CHECK(hd.next != nullptr, "HandleData next changed after first persistent created");
-  V8MONKEY_CHECK(hd.limit != nullptr, "HandleData limit changed after first persistent created");
-}
-
-
-V8MONKEY_TEST(IntPersistent004, "InternalIsolate Persistent HandleData changes after persistent creation (from pointer, usual case)") {
-  TestUtils::AutoTestCleanup ac;
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScope h;
-
-  Persistent<Integer> p(*(Integer::New(123)));
-  HandleData hd = i->GetPersistentHandleData();
-  V8MonkeyObject** prevNext = hd.next;
-
-  Persistent<Integer> p2(*(Integer::New(456)));
-
-  hd = i->GetPersistentHandleData();
-  V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after another persistent created");
-}
-
-
-V8MONKEY_TEST(IntPersistent005, "InternalIsolate Persistent HandleData changes after persistent creation (from pointer, block full case)") {
-  TestUtils::AutoTestCleanup ac;
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScope h;
-
-  HandleData hd = i->GetPersistentHandleData();
-  V8MonkeyObject** prevNext = hd.next;
-  V8MonkeyObject** prevLimit = hd.limit;
-
-  for (int j = 0; j < blockSize + 2; j++) {
-    Persistent<Integer> p(*(Integer::New(123)));
-    hd = i->GetPersistentHandleData();
-
-    V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after another handle created");
-    if (j == 0 || j == blockSize) {
-      V8MONKEY_CHECK(hd.limit != prevLimit, "HandleData limit changed after another handle created");
-    } else {
-      V8MONKEY_CHECK(hd.limit == prevLimit, "HandleData limit not changed after another handle created");
-    }
-
-    prevNext = hd.next;
-    prevLimit = hd.limit;
-  }
-}
-
-
-V8MONKEY_TEST(IntPersistent006, "InternalIsolate Persistent HandleData changes after persistent creation (from local, null case)") {
-  TestUtils::AutoTestCleanup ac;
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScope h;
-  
-  Persistent<Integer> p(Integer::New(123));
-  HandleData hd = i->GetPersistentHandleData();
-
-  V8MONKEY_CHECK(hd.next != nullptr, "HandleData next changed after first persistent created");
-  V8MONKEY_CHECK(hd.limit != nullptr, "HandleData limit changed after first persistent created");
-}
-
-
-V8MONKEY_TEST(IntPersistent007, "InternalIsolate Persistent HandleData changes after persistent creation (from local, usual case)") {
-  TestUtils::AutoTestCleanup ac;
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScope h;
-
-  Persistent<Integer> p(*(Integer::New(123)));
-  HandleData hd = i->GetPersistentHandleData();
-  V8MonkeyObject** prevNext = hd.next;
-
-  Persistent<Integer> p2(Integer::New(456));
-
-  hd = i->GetPersistentHandleData();
-  V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after another persistent created");
-}
-
-
-V8MONKEY_TEST(IntPersistent008, "InternalIsolate Persistent HandleData changes after persistent creation (from local, block full case)") {
-  TestUtils::AutoTestCleanup ac;
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScope h;
-
-  HandleData hd = i->GetPersistentHandleData();
-  V8MonkeyObject** prevNext = hd.next;
-  V8MonkeyObject** prevLimit = hd.limit;
-
-  for (int j = 0; j < blockSize + 2; j++) {
-    Persistent<Integer> p(Integer::New(123));
-    hd = i->GetPersistentHandleData();
-
-    V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after another handle created");
-    if (j == 0 || j == blockSize) {
-      V8MONKEY_CHECK(hd.limit != prevLimit, "HandleData limit changed after another handle created");
-    } else {
-      V8MONKEY_CHECK(hd.limit == prevLimit, "HandleData limit not changed after another handle created");
-    }
-
-    prevNext = hd.next;
-    prevLimit = hd.limit;
-  }
-}
-
-
-V8MONKEY_TEST(IntPersistent009, "InternalIsolate Persistent HandleData changes after persistent creation (from persistent, usual case)") {
-  TestUtils::AutoTestCleanup ac;
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScope h;
-
-  Persistent<Integer> p(Integer::New(123));
-  HandleData hd = i->GetPersistentHandleData();
-  V8MonkeyObject** prevNext = hd.next;
-
-  Persistent<Integer> p2(p);
-  hd = i->GetPersistentHandleData();
-
-  V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after another persistent created");
-}
-
-
-V8MONKEY_TEST(IntPersistent010, "InternalIsolate Persistent HandleData changes after persistent creation (from persistent, block full case)") {
-  TestUtils::AutoTestCleanup ac;
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
-  HandleScope h;
-
-  Local<Integer> l(Integer::New(123));
-  Persistent<Integer> p(l);
-
-  HandleData hd = i->GetPersistentHandleData();
-  V8MonkeyObject** prevNext = hd.next;
-  V8MonkeyObject** prevLimit = hd.limit;
-
-  for (int j = 0; j < blockSize + 2; j++) {
-    Persistent<Integer> p2(p);
-    hd = i->GetPersistentHandleData();
-
-    V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after another handle created");
-    if (j == blockSize - 1) {
-      V8MONKEY_CHECK(hd.limit != prevLimit, "HandleData limit changed after another handle created");
-    } else {
-      V8MONKEY_CHECK(hd.limit == prevLimit, "HandleData limit not changed after another handle created");
-    }
-
-    prevNext = hd.next;
-    prevLimit = hd.limit;
-  }
-}
-
-
-V8MONKEY_TEST(IntPersistent011, "Persistent refcount changes after persistent creation (from pointer)") {
-  TestUtils::AutoTestCleanup ac;
-  HandleScope h;
-
-  Local<Integer> l = Integer::New(123);
-  int refCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
-
-  Persistent<Integer> p(*l);
-  int newRefCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
-
-  V8MONKEY_CHECK(newRefCount == refCount + 1, "Refcount bumped");
-}
-
-
-V8MONKEY_TEST(IntPersistent012, "Persistent refcount changes after persistent creation (from local)") {
-  TestUtils::AutoTestCleanup ac;
-  HandleScope h;
-
-  Local<Integer> l = Integer::New(123);
-  int refCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
-  Persistent<Integer> p(l);
-  int newRefCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
-
-  V8MONKEY_CHECK(newRefCount == refCount + 1, "Refcount bumped");
-}
-
-
-V8MONKEY_TEST(IntPersistent013, "Persistent refcount changes after persistent creation (from persistent)") {
-  TestUtils::AutoTestCleanup ac;
-  HandleScope h;
-
-  Persistent<Integer> p(Integer::New(123));
-  int refCount = (*reinterpret_cast<V8MonkeyObject**>(*p))->RefCount();
-  Persistent<Integer> p2(p);
-  int newRefCount = (*reinterpret_cast<V8MonkeyObject**>(*p))->RefCount();
-
-  V8MONKEY_CHECK(newRefCount == refCount + 1, "Refcount bumped");
-}
-
-
-V8MONKEY_TEST(IntPersistent014, "Persistent refcount changes after persistent destruction") {
-  TestUtils::AutoTestCleanup ac;
-  HandleScope h;
-
-  Local<Integer> l = Integer::New(123);
-  int refCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
-
-  {
-    Persistent<Integer> p(*l);
-  }
-
-  int newRefCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
-
-  V8MONKEY_CHECK(newRefCount == refCount, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent015, "Persistent refcount changes after persistent disposal") {
-  TestUtils::AutoTestCleanup ac;
-  HandleScope h;
-
-  Local<Integer> l = Integer::New(123);
-  int refCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
-  Persistent<Integer> p(*l);
-  p.Dispose();
-
-  int newRefCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
-
-  V8MONKEY_CHECK(newRefCount == refCount, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent016, "OK to dispose empty persistent") {
-  TestUtils::AutoTestCleanup ac;
-  HandleScope h;
-
-  Persistent<Integer> p;
-  p.Dispose();
-
-  V8MONKEY_CHECK(true, "Didn't crash");
-}
-
-
-V8MONKEY_TEST(IntPersistent017, "IsWeak reports correct value normally") {
-  TestUtils::AutoTestCleanup ac;
-  HandleScope h;
-
-  Local<Integer> l = Integer::New(123);
-  Persistent<Integer> p(*l);
-
-  V8MONKEY_CHECK(!p.IsWeak(), "IsWeak correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent018, "IsWeak reports correct value after weakening") {
-  TestUtils::AutoTestCleanup ac;
-  HandleScope h;
-
-  Local<Integer> l = Integer::New(123);
-  Persistent<Integer> p(*l);
-  p.MakeWeak(nullptr, nullptr);
-
-  V8MONKEY_CHECK(p.IsWeak(), "IsWeak correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent019, "Possible to call IsWeak on empty") {
-  TestUtils::AutoTestCleanup ac;
-  HandleScope h;
-
-  Persistent<Integer> p;
-  p.IsWeak();
-
-  V8MONKEY_CHECK(true, "Didn't crash");
-}
-
-
-V8MONKEY_TEST(IntPersistent020, "Possible to call MakeWeak on empty") {
-  TestUtils::AutoTestCleanup ac;
-  HandleScope h;
-
-  Persistent<Integer> p;
-  p.MakeWeak(nullptr, nullptr);
-
-  V8MONKEY_CHECK(true, "Didn't crash");
-}
-
-
-V8MONKEY_TEST(IntPersistent021, "IsWeak reports correct value after clearing weakness") {
-  TestUtils::AutoTestCleanup ac;
-  HandleScope h;
-
-  Local<Integer> l = Integer::New(123);
-  Persistent<Integer> p(*l);
-  p.MakeWeak(nullptr, nullptr);
-  p.ClearWeak();
-
-  V8MONKEY_CHECK(!p.IsWeak(), "IsWeak correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent022, "Items contained in persistents traced correctly") {
-  TestUtils::AutoTestCleanup ac;
-
-  bool traced = false;
-  TraceFake* t = new TraceFake(&traced);
-  traceFn = nullptr;
-  traceData = nullptr;
-
-  // Replace the call to SpiderMonkey with our fake function
-  InternalIsolate::SetGCRegistrationHooks(GCRegistrationHook, GCDeregistrationHook);
-
-  Isolate::GetCurrent()->Enter();
-  {
-    Persistent<Value> p(reinterpret_cast<Value*>(&t));
-    traceFn(nullptr, traceData);
-  }
-
-  // Deregister our fake gc notifiers
-  InternalIsolate::SetGCRegistrationHooks(nullptr, nullptr);
-  traceFn = nullptr;
-
-  V8MONKEY_CHECK(traced, "Value was traced");
-}
-
-
-V8MONKEY_TEST(IntPersistent023, "Tracing copes with zeroed slot in handle data") {
-  TestUtils::AutoTestCleanup ac;
-
-  bool traced = false;
-  TraceFake* bogus = nullptr;
-  TraceFake* t = new TraceFake(&traced);
-  traceFn = nullptr;
-  traceData = nullptr;
-
-  // Replace the call to SpiderMonkey with our fake function
-  InternalIsolate::SetGCRegistrationHooks(GCRegistrationHook, GCDeregistrationHook);
-
-  Isolate::GetCurrent()->Enter();
-  {
-    Persistent<Value> zero(reinterpret_cast<Value*>(&bogus));
-    Persistent<Value> p(reinterpret_cast<Value*>(&t));
-    traceFn(nullptr, traceData);
-  }
-
-  // Deregister our fake gc notifiers
-  InternalIsolate::SetGCRegistrationHooks(nullptr, nullptr);
-  traceFn = nullptr;
-
-  V8MONKEY_CHECK(traced, "Legitimate value was traced");
-}
-
-
-V8MONKEY_TEST(IntPersistent024, "Containing slot zeroed after disposal") {
+V8MONKEY_TEST(IntPersistent003, "InternalIsolate Persistent HandleData changes after persistent creation (null case)") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l = Integer::New(123);
-  Persistent<Integer> p(*l);
-
-  V8MonkeyObject** slot = reinterpret_cast<V8MonkeyObject**>(*p);
-  V8MONKEY_CHECK(*slot != 0, "Sanity check");
-  p.Dispose();
-
-  V8MONKEY_CHECK(*slot == 0, "Slot was zeroed");
-}
-
-
-V8MONKEY_TEST(IntPersistent025, "Slot zeroed, but object still alive if still held alive elsewhere after disposal") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  bool deleted = false;
-
-  // Fake a local
-  DeletionObject* dummy = new DeletionObject(&deleted);
-  V8MonkeyObject** slot = HandleScope::CreateHandle(dummy);
-  Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
-  Local<Value> l(dummySlotAsValue);
-  Persistent<Value> p(*l);
-
-  V8MonkeyObject** persistentSlot = reinterpret_cast<V8MonkeyObject**>(*p);
-  V8MONKEY_CHECK(*persistentSlot != 0, "Sanity check");
-  p.Dispose();
-
-  V8MONKEY_CHECK(*persistentSlot == 0, "Slot was zeroed");
-  V8MONKEY_CHECK(!deleted, "Object wasn't deleted");
-}
-
-
-V8MONKEY_TEST(IntPersistent026, "Containing slot zeroed after destruction") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l = Integer::New(123);
-  V8MonkeyObject** slot;
-  {
-    Persistent<Integer> p(*l);
-    slot = reinterpret_cast<V8MonkeyObject**>(*p);
-    V8MONKEY_CHECK(*slot != 0, "Sanity check");
-  }
-
-  V8MONKEY_CHECK(*slot == 0, "Slot was zeroed");
-}
-
-
-V8MONKEY_TEST(IntPersistent027, "Slot zeroed, but object still alive if still held alive elsewhere after destruction") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  bool deleted = false;
-
-  // Fake a local
-  DeletionObject* dummy = new DeletionObject(&deleted);
-  V8MonkeyObject** slot = HandleScope::CreateHandle(dummy);
-  Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
-  Local<Value> l(dummySlotAsValue);
-  V8MonkeyObject** persistentSlot;
-  {
-    Persistent<Value> p(*l);
-    persistentSlot = reinterpret_cast<V8MonkeyObject**>(*p);
-    V8MONKEY_CHECK(*persistentSlot != 0, "Sanity check");
-  }
-
-  V8MONKEY_CHECK(*persistentSlot == 0, "Slot was zeroed");
-  V8MONKEY_CHECK(!deleted, "Object wasn't deleted");
-}
-
-
-V8MONKEY_TEST(IntPersistent028, "OK to delete disposed persistent") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l = Integer::New(123);
-  V8MonkeyObject** slot;
-  {
-    Persistent<Integer> p(*l);
-    slot = reinterpret_cast<V8MonkeyObject**>(*p);
-    p.Dispose();
-  }
-
-  V8MONKEY_CHECK(true, "Didn't crash");
-}
-
-
-V8MONKEY_TEST(IntPersistent029, "Objects deleted on isolate teardown") {
-  TestUtils::AutoTestCleanup ac;
-  bool deleted = false;
-
-  Isolate* i = Isolate::New();
-  i->Enter();
-  V8MonkeyObject** slot;
-  Persistent<Value>* p;
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;
-    // Fake a local
-    DeletionObject* dummy = new DeletionObject(&deleted);
-    V8MonkeyObject** slot = HandleScope::CreateHandle(dummy);
-    Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
-    Local<Value> l(dummySlotAsValue);
-    p = new Persistent<Value>(*l);
+    Local<Integer> l = Integer::New(123);
+    Persistent<Integer> p = Persistent<Integer>::New(l);
+    HandleData hd = i->GetPersistentHandleData();
+
+    V8MONKEY_CHECK(hd.next != nullptr, "HandleData next changed after another persistent created");
+    V8MONKEY_CHECK(hd.next != nullptr, "HandleData limit changed after another persistent created");
   }
-
-  // At this point, the local has gone out of scope, but not the persistent, so there is still 1 reference to the object
-  V8MONKEY_CHECK(!deleted, "Sanity check");
-
-  i->Exit();
-  i->Dispose();
-
-  V8MONKEY_CHECK(deleted, "Object was deleted on isolate teardown");
-  // We deliberately leak p here. At this point it contains a dangling pointer
 }
 
 
-// XXX FIX ORDER
-V8MONKEY_TEST(IntPersistent030, "Assigning value from another persistent decrements old refcount if strong (1)") {
+V8MONKEY_TEST(IntPersistent004, "InternalIsolate Persistent HandleData changes after persistent creation (usual case)") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
-  HandleScope h;
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
+  {
+    HandleScope h;
+    Local<Integer> l = Integer::New(123);
+    Persistent<Integer> p = Persistent<Integer>::New(l);
+    HandleData hd = i->GetPersistentHandleData();
+    V8MonkeyObject** prevNext = hd.next;
+    Persistent<Integer> p2 = Persistent<Integer>::New(l);
+    hd = i->GetPersistentHandleData();
 
-  Persistent<Integer> rc1(*l1);
-  Persistent<Integer> rc2(*l2);
-
-  printf("Should be from same\n");
-  rc1 = rc2;
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == 1, "Refcount correct");
+    V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after another persistent created");
+  }
 }
 
 
-V8MONKEY_TEST(IntPersistent031, "Assigning value from another persistent decrements old refcount if strong (2)") {
+V8MONKEY_TEST(IntPersistent005, "InternalIsolate Persistent HandleData changes after persistent creation (full block case)") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
-  HandleScope h;
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
+  {
+    HandleScope h;
+    Local<Integer> l = Integer::New(123);
+    HandleData hd = i->GetPersistentHandleData();
+    V8MonkeyObject** prevNext = hd.next;
+    V8MonkeyObject** prevLimit = hd.limit;
 
-  Persistent<Value> rc1(*l1);
-  Persistent<Integer> rc2(*l2);
+    for (int j = 0; j < blockSize + 2; j++) {
+      Persistent<Integer> p = Persistent<Integer>::New(l);
+      hd = i->GetPersistentHandleData();
 
-  printf("Should be from other\n");
-  rc1 = rc2;
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == 1, "Refcount correct");
+      V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after another handle created");
+      if (j == 0 || j == blockSize) {
+        V8MONKEY_CHECK(hd.limit != prevLimit, "HandleData limit changed after another handle created");
+      } else {
+        V8MONKEY_CHECK(hd.limit == prevLimit, "HandleData limit not changed after another handle created");
+      }
+
+      prevNext = hd.next;
+      prevLimit = hd.limit;
+    }
+  }
 }
 
 
-V8MONKEY_TEST(IntPersistent032, "Assigning value from another persistent decrements old refcount if strong (3)") {
+V8MONKEY_TEST(IntPersistent006, "InternalIsolate Persistent HandleData doesn't change when constructing from pointer") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
-  HandleScope h;
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
+  {
+    HandleScope h;
 
-  Persistent<Integer> rc1(*l1);
+    Local<Integer> l = Integer::New(123);
+    Persistent<Integer> p(*l);
+    HandleData hd = i->GetPersistentHandleData();
 
-  printf("Should be from handle\n");
-  rc1 = l2;
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == 1, "Refcount correct");
+    V8MONKEY_CHECK(hd.next == nullptr, "HandleData unchanged after first persistent created");
+    V8MONKEY_CHECK(hd.limit == nullptr, "HandleData unchanged after first persistent created");
+  }
 }
 
 
-V8MONKEY_TEST(IntPersistent033, "Assigning value from another persistent decrements old refcount if strong (4)") {
+V8MONKEY_TEST(IntPersistent007, "InternalIsolate Persistent HandleData doesn't change when constructing from local") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
-  HandleScope h;
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
+  {
+    HandleScope h;
 
-  Persistent<Value> rc1(*l1);
+    Local<Integer> l = Integer::New(123);
+    Persistent<Integer> p(l);
+    HandleData hd = i->GetPersistentHandleData();
 
-  printf("Should be from handle\n");
-  rc1 = l2;
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == 1, "Refcount correct");
+    V8MONKEY_CHECK(hd.next == nullptr, "HandleData unchanged after first persistent created");
+    V8MONKEY_CHECK(hd.limit == nullptr, "HandleData unchanged after first persistent created");
+  }
 }
 
 
-V8MONKEY_TEST(IntPersistent034, "Assigning value from another persistent decrements old refcount if strong (5)") {
+V8MONKEY_TEST(IntPersistent008, "InternalIsolate Persistent HandleData doesn't change when constructing from persistent") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
-  HandleScope h;
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
+  {
+    HandleScope h;
 
-  Persistent<Integer> rc1(*l1);
+    Local<Integer> l = Integer::New(123);
+    Persistent<Integer> p = Persistent<Integer>::New(l);
+    HandleData hd = i->GetPersistentHandleData();
+    V8MonkeyObject** prevNext = hd.next;
+    Persistent<Integer> p2(p);
+    hd = i->GetPersistentHandleData();
 
-  printf("Should be from pointer\n");
-  rc1 = *l2;
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == 1, "Refcount correct");
+    V8MONKEY_CHECK(hd.next == prevNext, "HandleData unchanged after first persistent created");
+  }
 }
 
 
-V8MONKEY_TEST(IntPersistent035, "Assigning value from another persistent decrements old refcount if strong (6)") {
+V8MONKEY_TEST(IntPersistent009, "Persistent refcount changes after persistent creation") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
-  HandleScope h;
 
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
+  {
+    HandleScope h;
 
-  Persistent<Value> rc1(*l1);
+    Local<Integer> l = Integer::New(123);
+    int refCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
 
-  printf("Should be from pointer\n");
-  rc1 = *l2;
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == 1, "Refcount correct");
+    Persistent<Integer> p = Persistent<Integer>::New(l);
+    int newRefCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
+
+    V8MONKEY_CHECK(newRefCount == refCount + 1, "Refcount bumped");
+  }
 }
 
 
-V8MONKEY_TEST(IntPersistent036, "Assigning value from another persistent decrements old refcount if weak (1)") {
+V8MONKEY_TEST(IntPersistent010, "Persistent refcount doesn't change after persistent construction") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
-  HandleScope h;
 
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
+  {
+    HandleScope h;
 
-  Persistent<Integer> rc1(*l1);
-  Persistent<Integer> rc2(*l2);
-  rc1.MakeWeak(nullptr, nullptr);
+    Local<Integer> l = Integer::New(123);
 
-  printf("Should be from same\n");
-  rc1 = rc2;
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->WeakCount(), underlyingObject2->WeakCount());
-  V8MONKEY_CHECK(underlyingObject->WeakCount() == 0, "Refcount correct");
+    Persistent<Integer> p = Persistent<Integer>::New(l);
+    int refCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
+    Persistent<Integer> p2(p);
+    int newRefCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
+
+    V8MONKEY_CHECK(newRefCount == refCount, "Refcount bumped");
+  }
 }
 
 
-V8MONKEY_TEST(IntPersistent037, "Assigning value from another persistent decrements old refcount if weak (2)") {
+V8MONKEY_TEST(IntPersistent011, "Persistent refcount unchanged after persistent destruction") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
-  HandleScope h;
 
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
+  {
+    HandleScope h;
 
-  Persistent<Value> rc1(*l1);
-  Persistent<Integer> rc2(*l2);
-  rc1.MakeWeak(nullptr, nullptr);
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->WeakCount(), underlyingObject2->WeakCount());
+    Local<Integer> l = Integer::New(123);
+    int refCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
 
-  rc1 = rc2;
-  underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->WeakCount(), underlyingObject2->WeakCount());
-  V8MONKEY_CHECK(underlyingObject->WeakCount() == 0, "Refcount correct");
+    {
+      Persistent<Integer> p = Persistent<Integer>::New(l);
+    }
+
+    int newRefCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
+    V8MONKEY_CHECK(newRefCount == refCount + 1, "Refcount correct");
+  }
 }
 
 
-V8MONKEY_TEST(IntPersistent038, "Assigning value from another persistent increments refcount (1)") {
+V8MONKEY_TEST(IntPersistent012, "Persistent refcount changes after persistent disposal") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
-  HandleScope h;
 
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
+  {
+    HandleScope h;
 
-  Persistent<Integer> rc1(*l1);
-  Persistent<Integer> rc2(*l2);
+    Local<Integer> l = Integer::New(123);
+    int refCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
+    Persistent<Integer> p = Persistent<Integer>::New(l);
+    p.Dispose();
 
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  int refCount = underlyingObject->RefCount();
-
-  printf("Should be from same\n");
-  rc1 = rc2;
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount + 1, "Refcount correct");
+    int newRefCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
+    V8MONKEY_CHECK(newRefCount == refCount, "Refcount correct");
+  }
 }
 
 
-V8MONKEY_TEST(IntPersistent039, "Assigning value from another persistent increments refcount (2)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
-
-  Persistent<Value> rc1(*l1);
-  Persistent<Integer> rc2(*l2);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  int refCount = underlyingObject->RefCount();
-
-  printf("Should be from other\n");
-  rc1 = rc2;
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount + 1, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent040, "Assigning value from another persistent increments refcount (3)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
-
-  Persistent<Integer> rc1(*l1);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  int refCount = underlyingObject->RefCount();
-
-  printf("Should be from handle\n");
-  rc1 = l2;
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount + 1, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent041, "Assigning value from another persistent increments refcount (4)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
-
-  Persistent<Value> rc1(*l1);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  int refCount = underlyingObject->RefCount();
-
-  printf("Should be from handle\n");
-  rc1 = l2;
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount + 1, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent042, "Assigning value from another persistent increments refcount (5)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
-
-  Persistent<Integer> rc1(*l1);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  int refCount = underlyingObject->RefCount();
-
-  printf("Should be from pointer\n");
-  rc1 = *l2;
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount + 1, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent043, "Assigning value from another persistent increments refcount (6)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
-
-  Persistent<Value> rc1(*l1);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  int refCount = underlyingObject->RefCount();
-
-  printf("Should be from pointer\n");
-  rc1 = *l2;
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount + 1, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent044, "Assigning value from persistent increments strong refcount when old was weak (1)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
-
-  Persistent<Integer> rc1(*l1);
-  Persistent<Integer> rc2(*l2);
-  rc1.MakeWeak(nullptr, nullptr);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  int refCount = underlyingObject->RefCount();
-
-  printf("Should be from same\n");
-  rc1 = rc2;
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->WeakCount(), underlyingObject2->WeakCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount + 1, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent045, "Assigning value from persistent increments strong refcount when old was weak (2)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
-
-  Persistent<Value> rc1(*l1);
-  Persistent<Integer> rc2(*l2);
-  rc1.MakeWeak(nullptr, nullptr);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  int refCount = underlyingObject->RefCount();
-
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->WeakCount(), underlyingObject2->WeakCount());
-
-  rc1 = rc2;
-  printf("Refcounts are %d and %d\n", underlyingObject->WeakCount(), underlyingObject2->WeakCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount + 1, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent046, "Assignee weak refcount unchanged if assigned to weak persistent (1)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
-
-  Persistent<Integer> rc1(*l1);
-  Persistent<Integer> rc2(*l2);
-  rc1.MakeWeak(nullptr, nullptr);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  int weakCount = underlyingObject->WeakCount();
-
-  printf("Should be from same\n");
-  rc1 = rc2;
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->WeakCount(), underlyingObject2->WeakCount());
-  V8MONKEY_CHECK(underlyingObject->WeakCount() == weakCount, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent047, "Assignee weak refcount unchanged if assigned to weak persistent (2)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
-
-  Persistent<Value> rc1(*l1);
-  Persistent<Integer> rc2(*l2);
-  rc1.MakeWeak(nullptr, nullptr);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  int weakCount = underlyingObject->WeakCount();
-
-  printf("Should be from other\n");
-  rc1 = rc2;
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->WeakCount(), underlyingObject2->WeakCount());
-  V8MONKEY_CHECK(underlyingObject->WeakCount() == weakCount, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent048, "Assignee strengthened if weak (1)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
-
-  Persistent<Integer> rc1(*l1);
-  Persistent<Integer> rc2(*l2);
-  rc2.MakeWeak(nullptr, nullptr);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  int refCount = underlyingObject->RefCount();
-
-  printf("Should be from same\n");
-  rc1 = rc2;
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->WeakCount(), underlyingObject2->WeakCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount + 1, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent049, "Assignee strengthened if ref (2)") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-  Local<Integer> l2 = Integer::New(456);
-
-  Persistent<Value> rc1(*l1);
-  Persistent<Integer> rc2(*l2);
-  rc2.MakeWeak(nullptr, nullptr);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  int refCount = underlyingObject->RefCount();
-
-  printf("Should be from other\n");
-  rc1 = rc2;
-  V8MonkeyObject* underlyingObject2 = *(reinterpret_cast<V8MonkeyObject**>(*l2));
-  printf("Refcounts are %d and %d\n", underlyingObject->RefCount(), underlyingObject2->RefCount());
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount + 1, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent050, "Assigning to self doesn't change strong refcount") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-
-  Persistent<Value> rc1(*l1);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  int refCount = underlyingObject->RefCount();
-
-  printf("Should be from same\n");
-  rc1 = rc1;
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent051, "Assigning to self doesn't change weak refcount") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-
-  Persistent<Value> rc1(*l1);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  int weakCount = underlyingObject->WeakCount();
-
-  printf("Should be from same\n");
-  rc1 = rc1;
-  V8MONKEY_CHECK(underlyingObject->WeakCount() == weakCount, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent052, "Assigning to self from slot pointer doesn't change strong refcount") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-
-  Persistent<Value> rc1(*l1);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  int refCount = underlyingObject->RefCount();
-
-  printf("Should be from pointer\n");
-  rc1 = *rc1;
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent053, "Assigning to self from slot pointer doesn't change weak refcount") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-
-  Persistent<Value> rc1(*l1);
-
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  int weakCount = underlyingObject->WeakCount();
-
-  printf("Should be from pointer\n");
-  rc1 = *rc1;
-  V8MONKEY_CHECK(underlyingObject->WeakCount() == weakCount, "Refcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent054, "Assigning to self doesn't strengthen weak persistent") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-
-  Persistent<Value> rc1(*l1);
-  rc1.MakeWeak(nullptr, nullptr);
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  int refCount = underlyingObject->RefCount();
-  int weakCount = underlyingObject->WeakCount();
-
-  printf("Should be from same\n");
-  rc1 = rc1;
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount, "Refcount correct");
-  V8MONKEY_CHECK(underlyingObject->WeakCount() == weakCount, "Weakcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent055, "Assigning to self from pointer doesn't strengthen weak persistent") {
-  TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
-
-  Local<Integer> l1 = Integer::New(123);
-
-  Persistent<Value> rc1(*l1);
-  rc1.MakeWeak(nullptr, nullptr);
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*l1));
-  int refCount = underlyingObject->RefCount();
-  int weakCount = underlyingObject->WeakCount();
-
-  printf("Should be from pointer\n");
-  rc1 = *rc1;
-  V8MONKEY_CHECK(underlyingObject->RefCount() == refCount, "Refcount correct");
-  V8MONKEY_CHECK(underlyingObject->WeakCount() == weakCount, "Weakcount correct");
-}
-
-
-V8MONKEY_TEST(IntPersistent056, "Assigning to self doesn't delete") {
+V8MONKEY_TEST(IntPersistent013, "Assigning to self doesn't delete") {
   TestUtils::AutoTestCleanup ac;
 
   Isolate::GetCurrent()->Enter();
@@ -1328,7 +353,7 @@ V8MONKEY_TEST(IntPersistent056, "Assigning to self doesn't delete") {
     slot = HandleScope::CreateHandle(dummy);
     Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
     Local<Value> l(dummySlotAsValue);
-    p = l;
+    p = Persistent<Integer>::New(l);
 
     // When we exit this block, h will go out of scope, and p will hold the only ref to dummy
   }
@@ -1340,7 +365,7 @@ V8MONKEY_TEST(IntPersistent056, "Assigning to self doesn't delete") {
 }
 
 
-V8MONKEY_TEST(IntPersistent057, "Assigning to self from pointer doesn't delete") {
+V8MONKEY_TEST(IntPersistent014, "Assigning to self from pointer doesn't delete") {
   TestUtils::AutoTestCleanup ac;
 
   Isolate::GetCurrent()->Enter();
@@ -1357,7 +382,7 @@ V8MONKEY_TEST(IntPersistent057, "Assigning to self from pointer doesn't delete")
     slot = HandleScope::CreateHandle(dummy);
     Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
     Local<Value> l(dummySlotAsValue);
-    p = l;
+    p = Persistent<Integer>::New(l);
 
     // When we exit this block, h will go out of scope, and p will hold the only ref to dummy
   }
@@ -1369,227 +394,223 @@ V8MONKEY_TEST(IntPersistent057, "Assigning to self from pointer doesn't delete")
 }
 
 
-// XXX Explanatory comment
-// XXX Rename
-#define CALLBACKTEST(num, message) \
-  V8MONKEY_TEST(IntPersistent##num, message) {\
-    TestUtils::AutoTestCleanup ac; \
- \
-    Isolate::GetCurrent()->Enter(); \
-    Persistent<Value> p; \
- \
-    { \
-      HandleScope h; \
- \
-      Local<Value> l(Integer::New(123)); \
-      p = l; \
- \
+PERSISTENT_TEST(015, "Equality holds for construction from other persistent") {
+  Persistent<Integer> p2(p);
+
+  V8MONKEY_CHECK(p2 == p, "Equality holds");
+}}
+
+
+PERSISTENT_TEST(016, "Equality holds for construction from other persistent's pointer") {
+  Persistent<Integer> p2(*p);
+
+  V8MONKEY_CHECK(p2 == p, "Equality holds");
+}}
+
+
+PERSISTENT_TEST(017, "Equality holds for new persistent created via Persistent::New") {
+  Persistent<Integer> p2 = Persistent<Integer>::New(p);
+
+  V8MONKEY_CHECK(p2 == p, "Equality holds");
+}}
+
+
+V8MONKEY_TEST(IntPersistent018, "Possible to create from empty local") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate::GetCurrent()->Enter();
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
+
+  {
+    HandleScope h;
+
+    Local<Integer> l;
+    Persistent<Integer> p = Persistent<Integer>::New(l);
+    HandleData hd = i->GetPersistentHandleData();
+
+    V8MONKEY_CHECK(hd.next == nullptr, "Empty persistent created");
+  }
+}
+
+
+V8MONKEY_TEST(IntPersistent019, "OK to dispose empty persistent") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate::GetCurrent()->Enter();
+
+  Persistent<Integer> p;
+  p.Dispose();
+
+  V8MONKEY_CHECK(true, "Didn't crash");
+}
+
+
+V8MONKEY_TEST(IntPersistent020, "OK to delete disposed persistent") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate::GetCurrent()->Enter();
+
+  {
+    HandleScope h;
+
+    Local<Integer> l = Integer::New(123);
+    {
+      Persistent<Integer> p = Persistent<Integer>::New(l);
+      p.Dispose();
     }
 
+    // On exiting the block, the disposed persistent will be deleted
+    V8MONKEY_CHECK(true, "Didn't crash");
+  }
+}
 
-CALLBACKTEST(058, "Weak callback called during tracing") {
-  p.MakeWeak(nullptr, weakCB1);
-  weakCB1Called = false;
 
-  InternalIsolate::ForceGC();
+PERSISTENT_TEST(021, "Containing slot zeroed after disposal") {
+  V8MonkeyObject** slot = reinterpret_cast<V8MonkeyObject**>(*p);
+  V8MONKEY_CHECK(*slot != 0, "Sanity check");
+  p.Dispose();
 
-  V8MONKEY_CHECK(weakCB1Called, "Weak callback called");
+  V8MONKEY_CHECK(*slot == 0, "Slot was zeroed");
 }}
 
 
-CALLBACKTEST(059, "Weak callback called not called if strengthened") {
-  p.MakeWeak(nullptr, weakCB1);
+V8MONKEY_TEST(IntPersistent022, "Slot zeroed, but object still alive if still held alive elsewhere after disposal") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate::GetCurrent()->Enter();
+
+  {
+    HandleScope h;
+
+    bool deleted = false;
+
+    // Create a DeletionObject, and manually morph it into a fake Value
+    DeletionObject* dummy = new DeletionObject(&deleted);
+    V8MonkeyObject** slot = HandleScope::CreateHandle(dummy);
+    Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
+    Local<Value> l(dummySlotAsValue);
+
+    Persistent<Integer> p = Persistent<Integer>::New(l);
+    V8MonkeyObject** persistentSlot = reinterpret_cast<V8MonkeyObject**>(*p);
+    V8MONKEY_CHECK(*persistentSlot != 0, "Sanity check");
+    p.Dispose();
+
+    V8MONKEY_CHECK(*persistentSlot == 0, "Slot was zeroed");
+    V8MONKEY_CHECK(!deleted, "Object wasn't deleted");
+  }
+}
+
+
+V8MONKEY_TEST(IntPersistent023, "Containing slot not zeroed after destruction") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate::GetCurrent()->Enter();
+
+  {
+    HandleScope h;
+
+    Local<Integer> l = Integer::New(123);
+    V8MonkeyObject** slot;
+
+    {
+      Persistent<Integer> p = Persistent<Integer>::New(l);
+      slot = reinterpret_cast<V8MonkeyObject**>(*p);
+    }
+
+    V8MONKEY_CHECK(*slot != 0, "Slot not zeroed");
+  }
+}
+
+
+V8MONKEY_TEST(IntPersistent024, "Object still alive if held alive elsewhere after destruction") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate::GetCurrent()->Enter();
+
+  {
+    HandleScope h;
+
+    bool deleted = false;
+
+    // Create a DeletionObject, and manually morph it into a fake Value
+    DeletionObject* dummy = new DeletionObject(&deleted);
+    V8MonkeyObject** slot = HandleScope::CreateHandle(dummy);
+    Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
+    Local<Value> l(dummySlotAsValue);
+    V8MonkeyObject** persistentSlot;
+
+    {
+      Persistent<Value> p(*l);
+      persistentSlot = reinterpret_cast<V8MonkeyObject**>(*p);
+      V8MONKEY_CHECK(*persistentSlot != 0, "Sanity check");
+    }
+
+    V8MONKEY_CHECK(!deleted, "Object wasn't deleted");
+  }
+}
+
+
+PERSISTENT_TEST(025, "IsWeak reports correct value normally") {
+  V8MONKEY_CHECK(!p.IsWeak(), "IsWeak correct");
+}}
+
+
+PERSISTENT_TEST(026, "IsWeak reports correct value after weakening") {
+  p.MakeWeak(nullptr, nullptr);
+
+  V8MONKEY_CHECK(p.IsWeak(), "IsWeak correct");
+}}
+
+
+V8MONKEY_TEST(IntPersistent027, "Possible to call IsWeak on empty") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate::GetCurrent()->Enter();
+
+  Persistent<Integer> p;
+
+  V8MONKEY_CHECK(!p.IsWeak(), "IsWeak correct");
+}
+
+
+PERSISTENT_TEST(028, "IsWeak reports correct value for persistent created from another persistent (1)") {
+  Persistent<Integer> p2(p);
+  V8MONKEY_CHECK(!p2.IsWeak(), "IsWeak correct");
+}}
+
+
+PERSISTENT_TEST(029, "IsWeak reports correct value for persistent created from another persistent (2)") {
+  Persistent<Integer> p2(p);
+  p.MakeWeak(nullptr, nullptr);
+  V8MONKEY_CHECK(p2.IsWeak(), "IsWeak correct");
+}}
+
+
+PERSISTENT_TEST(030, "IsWeak reports correct value after clearing weakness") {
+  p.MakeWeak(nullptr, nullptr);
   p.ClearWeak();
-  weakCB1Called = false;
 
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(!weakCB1Called, "Weak callback not called");
+  V8MONKEY_CHECK(!p.IsWeak(), "IsWeak correct");
 }}
 
 
-CALLBACKTEST(060, "OK to clear weakness in callback") {
-  p.MakeWeak(&p, strengthenCallback);
+PERSISTENT_TEST(031, "IsWeak reports correct value for persistent created from another (3)") {
+  Persistent<Integer> p2(p);
+  p.MakeWeak(nullptr, nullptr);
+  p.ClearWeak();
 
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(true, "Didn't crash");
+  V8MONKEY_CHECK(!p.IsWeak(), "IsWeak correct");
 }}
 
 
-CALLBACKTEST(061, "Refcount correct after weak callback sequence") {
-  Persistent<Value> q = p;
-  p.MakeWeak(&p, strengthenCallback);
-  q.MakeWeak(&q, weakCB1);
-
-  // We have just created two persistents pointing at the same object, which should have 2 weakrefs. After the GC, we
-  // should have 1 strong ref and 1 weak ref (the temporary created for passing to the callbacks might temporarily add
-  // a reference, but this should be removed once the GC ends)
-  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*p));
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(underlyingObject->RefCount() == 1, "RefCount correct");
-  V8MONKEY_CHECK(underlyingObject->WeakCount() == 1, "WeakCount correct");
-}}
-
-
-CALLBACKTEST(062, "OK to dispose via real persistent in callback") {
-  // Our callback will receive a pointer to the persistent p. It will dispose through that pointer.
-  p.MakeWeak(&p, disposeParamCallback);
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(true, "Didn't crash");
-}}
-
-
-CALLBACKTEST(063, "Disposing in callback via real persistent does not affect other weak references (1)") {
-  // This test and the next test both possible orderings
-  Persistent<Value> q = p;
-  q.MakeWeak(&q, weakCB1);
-  p.MakeWeak(&p, disposeParamCallback);
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(true, "Didn't crash");
-}}
-
-
-CALLBACKTEST(064, "Disposing in callback via real persistent does not affect other weak references (2)") {
-  Persistent<Value> q = p;
-  p.MakeWeak(&p, disposeParamCallback);
-  q.MakeWeak(&q, weakCB1);
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(true, "Didn't crash");
-}}
-
-
-V8MONKEY_TEST(IntPersistent065, "OK to delete real persistent in callback") {
-  // We don't use the macro here due to the need to create via operator new
+V8MONKEY_TEST(IntPersistent032, "Possible to call MakeWeak on empty") {
   TestUtils::AutoTestCleanup ac;
-
   Isolate::GetCurrent()->Enter();
-  Persistent<Value>* p = new Persistent<Value>;
 
-  {
-    HandleScope h;
-
-    // Fake a local, and then assign p to the same object
-    Local<Value> l(Integer::New(123));
-    *p = l;
-
-    // When we exit this block, h will go out of scope, and p will hold the only ref to the integer
-  }
-  p->MakeWeak(p, deleteCallback);
-
-  InternalIsolate::ForceGC();
+  Persistent<Integer> p;
+  p.MakeWeak(nullptr, nullptr);
 
   V8MONKEY_CHECK(true, "Didn't crash");
 }
 
 
-V8MONKEY_TEST(IntPersistent066, "Deleting in callback via real persistent does not affect other weak references (1)") {
-  // We don't use the macro here due to the need to create via operator new
+V8MONKEY_TEST(IntPersistent033, "Weakening doesn't delete") {
   TestUtils::AutoTestCleanup ac;
-
   Isolate::GetCurrent()->Enter();
-  Persistent<Value>* p = new Persistent<Value>;
 
-  {
-    HandleScope h;
-
-    // Fake a local, and then assign p to the same object
-    Local<Value> l(Integer::New(123));
-    *p = l;
-
-    // When we exit this block, h will go out of scope, and p will hold the only ref to the integer
-  }
-  // This test and the next show that other weakrefs are unaffected, using both possible orders
-  Persistent<Value> q = *p;
-  q.MakeWeak(&q, weakCB1);
-  p->MakeWeak(p, deleteCallback);
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(true, "Didn't crash");
-}
-
-
-V8MONKEY_TEST(IntPersistent067, "Deleting in callback via real persistent does not affect other weak references (2)") {
-  // We don't use the macro here due to the need to create via operator new
-  TestUtils::AutoTestCleanup ac;
-
-  Isolate::GetCurrent()->Enter();
-  Persistent<Value>* p = new Persistent<Value>;
-
-  {
-    HandleScope h;
-
-    // Fake a local, and then assign p to the same object
-    Local<Value> l(Integer::New(123));
-    *p = l;
-
-    // When we exit this block, h will go out of scope, and p will hold the only ref to the integer
-  }
-  // This test and the next show that other weakrefs are unaffected, using both possible orders
-  Persistent<Value> q = *p;
-  p->MakeWeak(p, deleteCallback);
-  q.MakeWeak(&q, weakCB1);
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(true, "Didn't crash");
-}
-
-
-CALLBACKTEST(068, "OK to dispose via temporary persistent in callback") {
-  // Our callback receives a fresh persistent as its first argument. We dispose that object.
-  p.MakeWeak(&p, disposeTempCallback);
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(true, "Didn't crash");
-}}
-
-
-CALLBACKTEST(069, "Disposing in callback via temporary persistent does not affect other weak references (1)") {
-  // This test and the next test both possible orderings
-  Persistent<Value> q = p;
-  q.MakeWeak(&q, weakCB1);
-  p.MakeWeak(&p, disposeTempCallback);
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(true, "Didn't crash");
-}}
-
-
-CALLBACKTEST(070, "Disposing in callback via temporary persistent does not affect other weak references (2)") {
-  Persistent<Value> q = p;
-  p.MakeWeak(&p, disposeTempCallback);
-  q.MakeWeak(&q, weakCB1);
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(true, "Didn't crash");
-}}
-
-
-CALLBACKTEST(071, "Weak callback called with correct parameters") {
-  // We use the TestCleanup object (defined in the macro) as our parameter
-  p.MakeWeak(&ac, weakCB1);
-  weakCB1Params = nullptr;
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(weakCB1Params == &ac, "Weak callback called with correct parameters");
-}}
-
-
-V8MONKEY_TEST(IntPersistent072, "Weakening doesn't delete") {
-  TestUtils::AutoTestCleanup ac;
-
-  Isolate::GetCurrent()->Enter();
   bool deleted = false;
 
   Persistent<Value> p;
@@ -1603,7 +624,7 @@ V8MONKEY_TEST(IntPersistent072, "Weakening doesn't delete") {
     slot = HandleScope::CreateHandle(dummy);
     Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
     Local<Value> l(dummySlotAsValue);
-    p = l;
+    p = Persistent<Integer>::New(l);
 
     // When we exit this block, h will go out of scope, and p will hold the only ref to dummy
   }
@@ -1615,7 +636,7 @@ V8MONKEY_TEST(IntPersistent072, "Weakening doesn't delete") {
 }
 
 
-CALLBACKTEST(073, "Weakening correctly adjusts refcount") {
+PERSISTENT_TEST(034, "Weakening correctly adjusts refcount") {
   V8MonkeyObject* object = *reinterpret_cast<V8MonkeyObject**>(*p);
   V8MONKEY_CHECK(object->RefCount() == 1, "Sanity check");
   V8MONKEY_CHECK(object->WeakCount() == 0, "Sanity check");
@@ -1627,7 +648,7 @@ CALLBACKTEST(073, "Weakening correctly adjusts refcount") {
 }}
 
 
-CALLBACKTEST(074, "Clearing weakness has no effect on refcounts if not strengthened") {
+PERSISTENT_TEST(035, "Clearing weakness has no effect on refcounts if not strengthened") {
   V8MonkeyObject* object = *reinterpret_cast<V8MonkeyObject**>(*p);
   V8MONKEY_CHECK(object->RefCount() == 1, "Sanity check");
   V8MONKEY_CHECK(object->WeakCount() == 0, "Sanity check");
@@ -1638,7 +659,7 @@ CALLBACKTEST(074, "Clearing weakness has no effect on refcounts if not strengthe
 }}
 
 
-CALLBACKTEST(075, "Clearing weakness corrects refcount") {
+PERSISTENT_TEST(036, "Clearing weakness corrects refcount") {
   V8MonkeyObject* object = *reinterpret_cast<V8MonkeyObject**>(*p);
   V8MONKEY_CHECK(object->RefCount() == 1, "Sanity check");
   V8MONKEY_CHECK(object->WeakCount() == 0, "Sanity check");
@@ -1653,13 +674,259 @@ CALLBACKTEST(075, "Clearing weakness corrects refcount") {
 }}
 
 
-CALLBACKTEST(076, "IsNearDeath normally false") {
+V8MONKEY_TEST(IntPersistent037, "Possible to call ClearWeak on empty") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate::GetCurrent()->Enter();
+
+  Persistent<Integer> p;
+  p.ClearWeak();
+
+  V8MONKEY_CHECK(true, "Didn't crash");
+}
+
+
+PERSISTENT_TEST(038, "IsNearDeath normally false") {
   V8MONKEY_CHECK(!p.IsNearDeath(), "IsNearDeath correct");
 }}
 
 
-CALLBACKTEST(077, "IsNearDeath reports correct value in callback") {
-  p.MakeWeak(&p, NearDeathParamChecker);
+PERSISTENT_TEST(039, "IsNearDeath still false after weakening") {
+  p.MakeWeak(nullptr, nullptr);
+
+  V8MONKEY_CHECK(!p.IsNearDeath(), "IsNearDeath correct");
+}}
+
+
+V8MONKEY_TEST(IntPersistent040, "Possible to call IsNearDeath on empty") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate::GetCurrent()->Enter();
+
+  Persistent<Integer> p;
+
+  V8MONKEY_CHECK(!p.IsNearDeath(), "IsNearDeath correct");
+}
+
+
+V8MONKEY_TEST(IntPersistent041, "Items contained in persistents traced correctly") {
+  TestUtils::AutoTestCleanup ac;
+
+  bool traced = false;
+  TraceFake* t = new TraceFake(&traced);
+
+  Isolate::GetCurrent()->Enter();
+
+  {
+    HandleScope h;
+
+    V8MonkeyObject** slot = HandleScope::CreateHandle(t);
+    Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
+    Local<Value> l(dummySlotAsValue);
+    Persistent<Value> p = Persistent<Value>::New(l);
+    InternalIsolate::ForceGC();
+  }
+
+  V8MONKEY_CHECK(traced, "Value was traced");
+}
+
+
+V8MONKEY_TEST(IntPersistent042, "Tracing copes with zeroed slot in handle data") {
+  TestUtils::AutoTestCleanup ac;
+
+  bool traced = false;
+  TraceFake* t = new TraceFake(&traced);
+
+  Isolate::GetCurrent()->Enter();
+
+  {
+    HandleScope h;
+
+    Local<Value> l = Integer::New(123);
+    Persistent<Value> zero = Persistent<Value>::New(l);
+    zero.Dispose();
+
+    // Fake a local, and then assign p to the same object
+    V8MonkeyObject** slot = HandleScope::CreateHandle(t);
+    Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
+    Local<Value> l2(dummySlotAsValue);
+    Persistent<Value> p = Persistent<Value>::New(l2);
+    InternalIsolate::ForceGC();
+  }
+
+  V8MONKEY_CHECK(traced, "Legitimate value was traced");
+}
+
+
+PERSISTENT_TEST(043, "Weak callback called during tracing") {
+  p.MakeWeak(nullptr, weakCallbackChecker);
+  weakCallbackCalled = false;
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(weakCallbackCalled, "Weak callback called");
+}}
+
+
+PERSISTENT_TEST(044, "Weak callback called with correct parameters") {
+  // Let's use the TestCleanup object (defined in the macro) as our parameter
+  p.MakeWeak(&ac, weakCallbackChecker);
+  weakCallbackParams = nullptr;
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(weakCallbackParams == &ac, "Weak callback called with correct parameters");
+}}
+
+
+PERSISTENT_TEST(045, "Weak callback called not called if strengthened") {
+  p.MakeWeak(nullptr, weakCallbackChecker);
+  p.ClearWeak();
+  weakCallbackCalled = false;
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(!weakCallbackCalled, "Weak callback not called");
+}}
+
+
+PERSISTENT_TEST(046, "OK to clear weakness in callback") {
+  p.MakeWeak(nullptr, strengthenCallback);
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(true, "Didn't crash");
+}}
+
+
+PERSISTENT_TEST(047, "Refcount correct after weak callback sequence") {
+  Persistent<Value> q = Persistent<Integer>::New(p);
+  p.MakeWeak(nullptr, strengthenCallback);
+  q.MakeWeak(nullptr, weakCallbackChecker);
+
+  // We have just created two persistents pointing at the same object, which should have 2 weakrefs. After the GC, we
+  // should have 1 strong ref and 1 weak ref
+  V8MonkeyObject* underlyingObject = *(reinterpret_cast<V8MonkeyObject**>(*p));
+  V8MONKEY_CHECK(underlyingObject->RefCount() == 0, "RefCount sanity check");
+  V8MONKEY_CHECK(underlyingObject->WeakCount() == 2, "WeakCount check");
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(underlyingObject->RefCount() == 1, "RefCount correct");
+  V8MONKEY_CHECK(underlyingObject->WeakCount() == 1, "WeakCount correct");
+}}
+
+
+PERSISTENT_TEST(048, "OK to dispose in callback") {
+  p.MakeWeak(nullptr, disposeCallback);
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(true, "Didn't crash");
+}}
+
+
+PERSISTENT_TEST(049, "Disposing in callback does not affect other weak references (1)") {
+  // This test and the next exercise both possible orderings
+  Persistent<Value> q = Persistent<Integer>::New(p);
+  q.MakeWeak(nullptr, weakCallbackChecker);
+  p.MakeWeak(nullptr, disposeCallback);
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(true, "Didn't crash");
+}}
+
+
+PERSISTENT_TEST(050, "Disposing in callback does not affect other weak references (2)") {
+  Persistent<Value> q = Persistent<Integer>::New(p);
+  p.MakeWeak(nullptr, disposeCallback);
+  q.MakeWeak(nullptr, weakCallbackChecker);
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(true, "Didn't crash");
+}}
+
+
+V8MONKEY_TEST(IntPersistent051, "OK to delete real persistent in callback") {
+  // We don't use the macro here due to the need to create via operator new
+  TestUtils::AutoTestCleanup ac;
+
+  Isolate::GetCurrent()->Enter();
+  Persistent<Value>* p = new Persistent<Value>;
+
+  {
+    HandleScope h;
+
+    // Fake a local, and then assign p to the same object
+    Local<Value> l(Integer::New(123));
+    Persistent<Value> p2 = Persistent<Value>::New(l);
+    *p = p2;
+
+    // When we exit this block, h will go out of scope, and p will hold the only ref to the integer
+  }
+  p->MakeWeak(p, deleteCallback);
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(true, "Didn't crash");
+}
+
+
+V8MONKEY_TEST(IntPersistent052, "Deleting in callback via real persistent does not affect other weak references (1)") {
+  // We don't use the macro here due to the need to create via operator new
+  TestUtils::AutoTestCleanup ac;
+
+  Isolate::GetCurrent()->Enter();
+  Persistent<Value>* p = new Persistent<Value>;
+
+  {
+    HandleScope h;
+
+    Local<Value> l(Integer::New(123));
+    Persistent<Value> p2 = Persistent<Integer>::New(l);
+    *p = p2;
+
+    // When we exit this block, h will go out of scope, and p will hold the only ref to the integer
+  }
+
+  // This test and the next show that other weakrefs are unaffected, using both possible orders
+  Persistent<Value> q = Persistent<Integer>::New(*p);
+  q.MakeWeak(nullptr, weakCallbackChecker);
+  p->MakeWeak(p, deleteCallback);
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(true, "Didn't crash");
+}
+
+
+V8MONKEY_TEST(IntPersistent053, "Deleting in callback via real persistent does not affect other weak references (2)") {
+  // We don't use the macro here due to the need to create via operator new
+  TestUtils::AutoTestCleanup ac;
+
+  Isolate::GetCurrent()->Enter();
+  Persistent<Value>* p = new Persistent<Value>;
+
+  {
+    HandleScope h;
+
+    Local<Value> l(Integer::New(123));
+    Persistent<Value> p2 = Persistent<Integer>::New(l);
+    *p = p2;
+
+    // When we exit this block, h will go out of scope, and p will hold the only ref to the integer
+  }
+
+  Persistent<Value> q = Persistent<Integer>::New(*p);
+  p->MakeWeak(p, deleteCallback);
+  q.MakeWeak(nullptr, weakCallbackChecker);
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(true, "Didn't crash");
+}
+
+
+PERSISTENT_TEST(054, "IsNearDeath reports correct value in callback") {
+  p.MakeWeak(nullptr, NearDeathChecker);
   isNearDeath = false;
   InternalIsolate::ForceGC();
 
@@ -1667,7 +934,7 @@ CALLBACKTEST(077, "IsNearDeath reports correct value in callback") {
 }}
 
 
-CALLBACKTEST(078, "Equality holds for temporary persistent passed to callback") {
+PERSISTENT_TEST(055, "Equality holds for temporary persistent passed to callback") {
   // The persistent created when invoking the callback should be "equal" to the original
   p.MakeWeak(&p, EqualityChecker);
   wasEqual = false;
@@ -1677,32 +944,8 @@ CALLBACKTEST(078, "Equality holds for temporary persistent passed to callback") 
 }}
 
 
-CALLBACKTEST(079, "IsNearDeath reports correct value in callback when called on temporary") {
-  // If our persistent is near death (which, in the callback, it will be) then so should the temporary persistent
-  // supplied to the callback
-  p.MakeWeak(&p, NearDeathTempChecker);
-  isNearDeath = false;
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isNearDeath, "IsNearDeath correct");
-}}
-
-
-CALLBACKTEST(080, "IsWeak reports correct value in callback when called on temporary") {
-  // The temporary persistent supplied to the callback is a proxy for our real value. As our value is weak, the proxy
-  // persistent should report it is too
-  p.MakeWeak(&p, IsWeakTempChecker);
-  isWeak = false;
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isWeak, "IsWeak correct");
-}}
-
-
-CALLBACKTEST(081, "IsNearDeath reports false after ClearWeakness call in callback on real persistent") {
-  p.MakeWeak(&p, NearDeathClearParamChecker);
+PERSISTENT_TEST(056, "IsNearDeath reports false after ClearWeakness call in callback") {
+  p.MakeWeak(nullptr, ClearWeakNearDeathChecker);
   isNearDeath = false;
 
   InternalIsolate::ForceGC();
@@ -1711,258 +954,293 @@ CALLBACKTEST(081, "IsNearDeath reports false after ClearWeakness call in callbac
 }}
 
 
-CALLBACKTEST(082, "IsNearDeath reports false after ClearWeakness call in callback on temporary persistent") {
-  p.MakeWeak(&p, NearDeathClearTempChecker);
-  isNearDeath = false;
+PERSISTENT_TEST(057, "Reporting of IsNearDeath unaffected by other callbacks clearing weakness (1)") {
+  Persistent<Value> q = Persistent<Integer>::New(p);
 
+  // This test and the next show that other weakrefs are unaffected, using both possible orders
+  p.MakeWeak(nullptr, strengthenCallback);
+  q.MakeWeak(nullptr, NearDeathChecker);
+
+  isNearDeath = false;
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(isNearDeath, "IsNearDeath correct for other callback");
+}}
+
+
+PERSISTENT_TEST(058, "Reporting of IsNearDeath unaffected by other callbacks clearing weakness (2)") {
+  Persistent<Value> q = Persistent<Integer>::New(p);
+
+  // This test and the next show that other weakrefs are unaffected, using both possible orders
+  q.MakeWeak(nullptr, NearDeathChecker);
+  p.MakeWeak(nullptr, strengthenCallback);
+
+  isNearDeath = false;
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(isNearDeath, "IsNearDeath correct for other callback");
+}}
+
+
+PERSISTENT_TEST(059, "IsWeak reports false after ClearWeakness call in callback") {
+  p.MakeWeak(nullptr, ClearWeakIsWeakChecker);
+  isWeak = false;
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(!isWeak, "IsWeak correct");
+}}
+
+
+PERSISTENT_TEST(060, "Reporting of IsWeak unaffected by other callbacks clearing weakness (1)") {
+  Persistent<Value> q = Persistent<Integer>::New(p);
+
+  // This test and the next show that other weakrefs are unaffected, using both possible orders
+  p.MakeWeak(nullptr, strengthenCallback);
+  q.MakeWeak(nullptr, IsWeakChecker);
+
+  isWeak = false;
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(isWeak, "IsWeak correct for other callback");
+}}
+
+
+PERSISTENT_TEST(061, "Reporting of IsWeak unaffected by other callbacks clearing weakness (2)") {
+  Persistent<Value> q = Persistent<Integer>::New(p);
+
+  // This test and the next show that other weakrefs are unaffected, using both possible orders
+  q.MakeWeak(nullptr, IsWeakChecker);
+  p.MakeWeak(nullptr, strengthenCallback);
+
+  isWeak = false;
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(isWeak, "IsWeak correct for other callback");
+}}
+
+
+PERSISTENT_TEST(062, "In callback, IsWeak reports true for after clearing weakness and then reweakening") {
+  p.MakeWeak(nullptr, IsWeakClearAndReweakenChecker);
+  isWeak = false;
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(isWeak, "IsWeak correct");
+}}
+
+
+PERSISTENT_TEST(063, "In callback, IsNearDeath reports false for after clearing weakness and then reweakening") {
+  p.MakeWeak(nullptr, IsNearDeathClearAndReweakenChecker);
+  isNearDeath = false;
   InternalIsolate::ForceGC();
 
   V8MONKEY_CHECK(!isNearDeath, "IsNearDeath correct");
 }}
 
 
-CALLBACKTEST(083, "IsNearDeath called on real persistent reports false after ClearWeakness call on temporary") {
-  p.MakeWeak(&p, NearDeathClearTempCheckParam);
-  isNearDeath = false;
+PERSISTENT_TEST(064, "IsNearDeath reports false after callback sequence") {
+  p.MakeWeak(nullptr, weakCallbackChecker);
 
   InternalIsolate::ForceGC();
 
-  V8MONKEY_CHECK(!isNearDeath, "IsNearDeath correct");
+  V8MONKEY_CHECK(!p.IsNearDeath(), "No longer reports near death");
 }}
 
 
-CALLBACKTEST(084, "IsNearDeath called on temporary reports false after ClearWeakness call on real persistent") {
-  p.MakeWeak(&p, NearDeathClearParamCheckTemp);
-  isNearDeath = false;
+PERSISTENT_TEST(065, "IsNearDeath reports false after callback sequence if strengthened") {
+  p.MakeWeak(nullptr, strengthenCallback);
 
   InternalIsolate::ForceGC();
 
-  V8MONKEY_CHECK(!isNearDeath, "IsNearDeath correct");
+  V8MONKEY_CHECK(!p.IsNearDeath(), "No longer reports near death");
 }}
 
 
-CALLBACKTEST(085, "IsWeak reports false after ClearWeakness call in callback on real persistent") {
-  p.MakeWeak(&p, IsWeakClearParamChecker);
-  isWeak = false;
+PERSISTENT_TEST(066, "Disposing in callback zeroes object slot") {
+  V8MonkeyObject** slot = reinterpret_cast<V8MonkeyObject**>(*p);
+  V8MONKEY_CHECK(*slot != 0, "Sanity check");
 
+  p.MakeWeak(nullptr, disposeCallback);
   InternalIsolate::ForceGC();
 
-  V8MONKEY_CHECK(!isWeak, "IsWeak correct");
+  V8MONKEY_CHECK(*slot == 0, "Slot was zeroed");
 }}
 
 
-CALLBACKTEST(086, "IsWeak reports false after ClearWeakness call in callback on temporary persistent") {
-  p.MakeWeak(&p, IsWeakClearTempChecker);
-  isWeak = false;
+PERSISTENT_TEST(067, "Slot zeroed after tracing if callbacks decline to strengthen") {
+  V8MonkeyObject** slot = reinterpret_cast<V8MonkeyObject**>(*p);
+  V8MONKEY_CHECK(*slot != 0, "Sanity check");
+
+  p.MakeWeak(nullptr, weakCallbackChecker);
   InternalIsolate::ForceGC();
 
-  V8MONKEY_CHECK(!isWeak, "IsWeak correct");
+  V8MONKEY_CHECK(*slot == 0, "Slot was zeroed");
 }}
 
 
-CALLBACKTEST(087, "IsWeak called on real persistent reports false after ClearWeakness call on temporary") {
-  p.MakeWeak(&p, IsWeakClearTempCheckParam);
-  isWeak = false;
+PERSISTENT_TEST(068, "Slot not zeroed after tracing if callbacks strengthened") {
+  V8MonkeyObject** slot = reinterpret_cast<V8MonkeyObject**>(*p);
 
+  p.MakeWeak(nullptr, strengthenCallback);
   InternalIsolate::ForceGC();
 
-  V8MONKEY_CHECK(!isWeak, "IsWeak correct");
+  V8MONKEY_CHECK(*slot != 0, "Slot was not zeroed");
 }}
 
 
-CALLBACKTEST(088, "IsWeak called on temporary persistent reports false after ClearWeakness call on real") {
-  p.MakeWeak(&p, IsWeakClearParamCheckTemp);
-  isWeak = false;
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(!isWeak, "IsWeak correct");
-}}
-
-
-CALLBACKTEST(089, "IsWeak reports true for real after clearing and weakening real persistent in callback") {
-  p.MakeWeak(&p, IsWeakClearReParam);
-  isWeak = false;
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isWeak, "IsWeak correct");
-}}
-
-
-CALLBACKTEST(090, "IsWeak reports true for temporary after clearing and weakening temporary persistent in callback") {
-  p.MakeWeak(&p, IsWeakClearReTemp);
-  isWeak = false;
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isWeak, "IsWeak correct");
-}}
-
-
-CALLBACKTEST(091, "IsNearDeath reports true for real after clearing and weakening real persistent in callback") {
-  p.MakeWeak(&p, IsNearDeathClearReParam);
-  isNearDeath = false;
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isNearDeath, "IsNearDeath correct");
-}}
-
-
-CALLBACKTEST(092, "IsNearDeath reports true for temporary after clearing and weakening it in callback") {
-  p.MakeWeak(&p, IsNearDeathClearReTemp);
-  isNearDeath = false;
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isNearDeath, "IsNearDeath correct");
-}}
-
-
-CALLBACKTEST(093, "IsWeak reports true for temporary after clearing and weakening real persistent in callback") {
-  p.MakeWeak(&p, IsWeakClearReParamParamTemp);
-  isWeak = false;
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isWeak, "IsWeak correct");
-}}
-
-
-CALLBACKTEST(094, "IsNearDeath reports true for temporary after clearing and weakening real persistent in callback") {
-  p.MakeWeak(&p, IsNearDeathClearReParamParamTemp);
-  isNearDeath = false;
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isNearDeath, "IsNearDeath correct");
-}}
-
-
-CALLBACKTEST(095, "IsWeak reports true for real after clearing real and weakening temporary persistent in callback") {
-  p.MakeWeak(&p, IsWeakClearReParamTempParam);
-  isWeak = false;
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isWeak, "IsWeak correct");
-}}
-
-
-CALLBACKTEST(096, "IsNearDeath reports true for real after clearing real and weakening temporary persistent in callback") {
-  p.MakeWeak(&p, IsNearDeathClearReParamTempParam);
-  isNearDeath = false;
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isNearDeath, "IsNearDeath correct");
-}}
-
-
-CALLBACKTEST(097, "IsWeak reports true for real after clearing and weakening temporary persistent in callback") {
-  p.MakeWeak(&p, IsWeakClearReTempTempParam);
-  isWeak = false;
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isWeak, "IsWeak correct");
-}}
-
-
-CALLBACKTEST(098, "IsNearDeath reports true for real after clearing and weakening temporary persistent in callback") {
-  p.MakeWeak(&p, IsNearDeathClearReTempTempParam);
-  isNearDeath = false;
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isNearDeath, "IsNearDeath correct");
-}}
-
-
-CALLBACKTEST(099, "IsWeak reports true for temporary after clearing temporary and weakening real in callback") {
-  p.MakeWeak(&p, IsWeakClearReTempParamTemp);
-  isWeak = false;
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isWeak, "IsWeak correct");
-}}
-
-
-CALLBACKTEST(100, "IsNearDeath reports true for temporary after clearing temporary and weakening real in callback") {
-  p.MakeWeak(&p, IsNearDeathClearReTempParamTemp);
-  isNearDeath = false;
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(isNearDeath, "IsNearDeath correct");
-}}
-
-
-CALLBACKTEST(101, "Disposing temporary in callback zeroes real object slot") {
-  p.MakeWeak(&p, TempDisposeChecker);
-  wasZeroed = false;
-
-  InternalIsolate::ForceGC();
-
-  V8MONKEY_CHECK(wasZeroed, "Slot was zeroed");
-}}
-
-
-/*
-// What do we want to do? We want to show that after a ClearWeakness on the temporary, IsWeak on the original is false
-V8MONKEY_TEST(IntPersistent060, "OK to clear weakness in callback") {
+V8MONKEY_TEST(IntPersistent069, "Weak objects deleted after tracing if callbacks didn't strengthen") {
   TestUtils::AutoTestCleanup ac;
 
-  Isolate::GetCurrent()->Enter();
+  bool deleted = false;
+  Isolate* i = Isolate::New();
+  i->Enter();
   Persistent<Value> p;
 
   {
     HandleScope h;
 
-    // Fake a local, and then assign p to the same object
-    Local<Value> l(Integer::New(123));
-    p = l;
-
-    // When we exit this block, h will go out of scope, and p will hold the only ref to the integer
+    // Create a DeletionObject, and manually morph it into a fake Value
+    DeletionObject* dummy = new DeletionObject(&deleted);
+    V8MonkeyObject** slot = HandleScope::CreateHandle(dummy);
+    Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
+    Local<Value> l(dummySlotAsValue);
+    p = Persistent<Value>::New(l);
   }
-  p.MakeWeak(&p, strengthenCallback);
+
+  // At this point, the local has gone out of scope, but not the persistent, so there is still 1 reference to the object
+  V8MONKEY_CHECK(!deleted, "Sanity check");
+
+  p.MakeWeak(nullptr, weakCallbackChecker);
   InternalIsolate::ForceGC();
 
-  V8MONKEY_CHECK(true, "Didn't crash");
+  V8MONKEY_CHECK(deleted, "Object was deleted after tracing");
 }
-*/
 
 
-/* FIXME
-V8MONKEY_TEST(IntPersistent029, "Ob") {
+V8MONKEY_TEST(IntPersistent070, "Weak objects not deleted after tracing if callbacks strengthen") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
-  HandleScope h;
 
-  Local<Integer> l = Integer::New(123);
-  V8MonkeyObject** slot;
+  bool deleted = false;
+  Isolate* i = Isolate::New();
+  i->Enter();
+  Persistent<Value> p;
+
   {
-    Persistent<Integer> p(*l);
-    slot = reinterpret_cast<V8MonkeyObject**>(*p);
-    p.Dispose();
+    HandleScope h;
+
+    // Create a DeletionObject, and manually morph it into a fake Value
+    DeletionObject* dummy = new DeletionObject(&deleted);
+    V8MonkeyObject** slot = HandleScope::CreateHandle(dummy);
+    Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
+    Local<Value> l(dummySlotAsValue);
+    p = Persistent<Value>::New(l);
   }
 
-  V8MONKEY_CHECK(true, "Didn't crash");
+  // At this point, the local has gone out of scope, but not the persistent, so there is still 1 reference to the object
+  V8MONKEY_CHECK(!deleted, "Sanity check");
+
+  p.MakeWeak(nullptr, strengthenCallback);
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(!deleted, "Object was not deleted after tracing");
 }
-*/
 
 
-V8MONKEY_TEST(IntPersistent998, "Alignment of pointers is suitable for tagging pointers") {
+PERSISTENT_TEST(071, "All slots zeroed after tracing if callbacks decline to strengthen") {
+  Persistent<Integer> q = Persistent<Integer>::New(p);
+  Persistent<Integer> r = Persistent<Integer>::New(p);
+
+  V8MonkeyObject** pSlot = reinterpret_cast<V8MonkeyObject**>(*p);
+  V8MonkeyObject** qSlot = reinterpret_cast<V8MonkeyObject**>(*q);
+  V8MonkeyObject** rSlot = reinterpret_cast<V8MonkeyObject**>(*r);
+  V8MONKEY_CHECK(*pSlot != 0, "p slot sanity check");
+  V8MONKEY_CHECK(*qSlot != 0, "q slot sanity check");
+  V8MONKEY_CHECK(*rSlot != 0, "r slot sanity check");
+
+  p.MakeWeak(nullptr, weakCallbackChecker);
+  q.MakeWeak(nullptr, nullptr);
+  r.MakeWeak(nullptr, weakCallbackChecker);
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(*pSlot == 0, "Slot was zeroed (1)");
+  V8MONKEY_CHECK(*qSlot == 0, "Slot was zeroed (2)");
+  V8MONKEY_CHECK(*rSlot == 0, "Slot was zeroed (3)");
+}}
+
+
+PERSISTENT_TEST(072, "No slots zeroed after tracing if at least one callback strengthens") {
+  Persistent<Integer> q = Persistent<Integer>::New(p);
+  Persistent<Integer> r = Persistent<Integer>::New(p);
+
+  V8MonkeyObject** pSlot = reinterpret_cast<V8MonkeyObject**>(*p);
+  V8MonkeyObject** qSlot = reinterpret_cast<V8MonkeyObject**>(*q);
+  V8MonkeyObject** rSlot = reinterpret_cast<V8MonkeyObject**>(*r);
+
+  p.MakeWeak(nullptr, weakCallbackChecker);
+  q.MakeWeak(nullptr, strengthenCallback);
+  r.MakeWeak(nullptr, nullptr);
+
+  InternalIsolate::ForceGC();
+
+  V8MONKEY_CHECK(*pSlot != 0, "Slot was not zeroed (1)");
+  V8MONKEY_CHECK(*qSlot != 0, "Slot was not zeroed (2)");
+  V8MONKEY_CHECK(*rSlot != 0, "Slot was not zeroed (3)");
+}}
+
+
+PERSISTENT_TEST(073, "OK to dispose persistent zeroed by tracing") {
+  p.MakeWeak(nullptr, weakCallbackChecker);
+  InternalIsolate::ForceGC();
+  p.Dispose();
+
+  V8MONKEY_CHECK(true, "Didn't crash");
+}}
+
+
+V8MONKEY_TEST(IntPersistent074, "All objects torn down at isolate teardown") {
+  TestUtils::AutoTestCleanup ac;
+
+  bool deleted = false;
+  Isolate* i = Isolate::New();
+  i->Enter();
+  Persistent<Value>* p = new Persistent<Value>;
+
+  {
+    HandleScope h;
+
+    // Create a DeletionObject, and manually morph it into a fake Value
+    DeletionObject* dummy = new DeletionObject(&deleted);
+    V8MonkeyObject** slot = HandleScope::CreateHandle(dummy);
+    Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
+    Local<Value> l(dummySlotAsValue);
+    Persistent<Value> p2 = Persistent<Value>::New(l);
+    *p = p2;
+  }
+
+  // At this point, the local has gone out of scope, but not the persistent, so there is still 1 reference to the object
+  V8MONKEY_CHECK(!deleted, "Sanity check");
+
+  i->Exit();
+  i->Dispose();
+
+  V8MONKEY_CHECK(deleted, "Object was deleted after tracing");
+  delete p;
+}
+
+
+V8MONKEY_TEST(IntPersistent075, "Alignment of pointers is suitable for tagging pointers") {
   // TODO This should be some sort of static assert
   // TODO Also alignof support is patchy. That computation should be in a platform-specific macro
   V8MONKEY_CHECK(alignof(Persistent<Value>*) > 1, "Alignment suitable");
 }
 
 
-V8MONKEY_TEST(IntPersistent999, "Persistent is same size as pointer") {
+V8MONKEY_TEST(IntPersistent076, "Persistent is same size as pointer") {
   // TODO This should be some sort of static assert
   V8MONKEY_CHECK(sizeof(Persistent<Integer>) <= sizeof(void*), "Persistent fits in a pointer");
 }
 
 
-// XXX Slot zeroed after destroying trace
-// XXX Tracing
-// XXX Safe to call dispose/destroy after tracing destruction
-// XXX Think Dispose and ClearWeakness on temporary should affect original
+#undef PERSISTENT_TEST
