@@ -489,7 +489,7 @@ namespace v8 {
   };
 
 
-  class Int32 : public Integer {
+  class APIEXPORT Int32 : public Integer {
     public:
       int32_t Value() const;
     private:

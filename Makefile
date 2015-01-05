@@ -374,7 +374,7 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 
 
 # The "internals" test harness is composed from the following
-internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock persistent platform refcount smartpointer threadID
+internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock persistent platform refcount smartpointer threadID value
 internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))

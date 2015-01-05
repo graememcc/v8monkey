@@ -75,6 +75,7 @@ V8MONKEY_TEST(IntHandleScope004, "InternalIsolate HandleData changes after handl
 
 V8MONKEY_TEST(IntHandleScope005, "InternalIsolate HandleData changes after handle creation (block full case)") {
   TestUtils::AutoTestCleanup ac;
+
   HandleScope h;
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
@@ -965,17 +966,22 @@ V8MONKEY_TEST(IntLocal002, "Assigning to a local from an empty handle works") {
 
 
 V8MONKEY_TEST(IntLocal003, "Object wrapped in local doesn't die if handlescope still in scope") {
+  TestUtils::AutoTestCleanup ac;
+
   HandleScope h;
   V8MonkeyObject* asObj;
   {
     Local<Integer> l(Integer::New(123));
     asObj = *(reinterpret_cast<V8MonkeyObject**>(*l));
   }
+
   V8MONKEY_CHECK(asObj->RefCount() == 1, "Object didn't die when local died");
 }
 
 
 V8MONKEY_TEST(IntLocal004, "Object wrapped in local doesn't die if also contained in a parent handlescope") {
+  TestUtils::AutoTestCleanup ac;
+
   HandleScope h;
   V8MonkeyObject* asObj;
   {

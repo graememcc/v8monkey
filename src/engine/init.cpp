@@ -181,7 +181,7 @@ if (InternalIsolate::IsEntered(i)) {
       // test, and calling SetFatalErrorHandler implicitly inits V8, which is again something the test needs to
       // control.
       //
-      // The following function thus cicumvents API conventions, and installs an error handler without init, and kills
+      // The following function thus circumvents API conventions, and installs an error handler without init, and kills
       // V8 without triggering the handler.
       void TestUtils::SetHandlerAndKill(FatalErrorCallback f) {
         InternalIsolate* i = InternalIsolate::GetCurrent();

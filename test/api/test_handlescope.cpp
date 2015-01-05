@@ -86,6 +86,7 @@ V8MONKEY_TEST(HandleScope005, "NumberOfHandles count is per isolate (1)") {
     }
   }
 
+  Isolate::GetCurrent()->Exit();
   V8::Dispose();
 }
 

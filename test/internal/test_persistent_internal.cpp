@@ -1277,7 +1277,26 @@ V8MONKEY_TEST(IntPersistent077, "Persistent::New returns empty if V8 dead") {
 }
 
 
-V8MONKEY_TEST(IntPersistent078, "Persistent::New works when isolate not initted") {
+V8MONKEY_TEST(IntPersistent078, "Persistent::New triggers error if V8 dead") {
+  TestUtils::AutoTestCleanup ac;
+  V8::Initialize();
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
+
+  {
+    HandleScope h;
+
+    Local<Integer> l = Integer::New(123);
+
+    TestUtils::SetHandlerAndKill(errorCallback);
+    errorCallbackCalled = false;
+    Persistent<Integer> p = Persistent<Integer>::New(l);
+
+    V8MONKEY_CHECK(errorCallbackCalled, "Error triggered");
+  }
+}
+
+
+V8MONKEY_TEST(IntPersistent079, "Persistent::New works when isolate not initted") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
@@ -1295,7 +1314,7 @@ V8MONKEY_TEST(IntPersistent078, "Persistent::New works when isolate not initted"
 }
 
 
-V8MONKEY_TEST(IntPersistent079, "InternalIsolate Persistent HandleData is per isolate") {
+V8MONKEY_TEST(IntPersistent080, "InternalIsolate Persistent HandleData is per isolate") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());

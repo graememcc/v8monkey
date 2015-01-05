@@ -9,11 +9,12 @@
 #include "types/value_types.h"
 
 
-// XXX Ensure initialized/isdead checking
 // XXX Casting?
 namespace v8 {
   Local<Number> Number::New(double value) {
-    // XXX Ensure initialized...
+    // The V8 API specifies that this call implicitly inits V8
+    V8::Initialize();
+
     JSRuntime* rt = V8Monkey::InternalIsolate::GetJSRuntimeForThread();
     JS::RootedValue numVal(rt, JS::NumberValue(value));
 
@@ -26,6 +27,10 @@ namespace v8 {
 
 
   double Number::Value() const {
+    if (V8Monkey::V8MonkeyCommon::CheckDeath("Number::Value")) {
+      return 0;
+    }
+
     V8Monkey::SMValue* smValue = CONVERT_FROM_API(Number, SMValue, this);
     JSRuntime* rt = smValue->Runtime();
     JS::RootedValue rooted(rt, smValue->GetRawValue());
@@ -34,7 +39,9 @@ namespace v8 {
 
 
   Local<Integer> Integer::New(int32_t value) {
-    // XXX Ensure initialized...
+    // The V8 API specifies that this call implicitly inits V8
+    V8::Initialize();
+
     JSRuntime* rt = V8Monkey::InternalIsolate::GetJSRuntimeForThread();
     JS::RootedValue numVal(rt, JS::NumberValue(value));
 
@@ -49,7 +56,9 @@ namespace v8 {
 
 
   Local<Integer> Integer::NewFromUnsigned(uint32_t value) {
-    // XXX Ensure initialized...
+    // The V8 API specifies that this call implicitly inits V8
+    V8::Initialize();
+
     JSRuntime* rt = V8Monkey::InternalIsolate::GetJSRuntimeForThread();
 
     // Cast it to fool SpiderMonkey
@@ -84,6 +93,10 @@ namespace v8 {
 
 
   int64_t Integer::Value() const {
+    if (V8Monkey::V8MonkeyCommon::CheckDeath("Integer::Value")) {
+      return 0;
+    }
+
     V8Monkey::SMValue* smValue = CONVERT_FROM_API(Integer, SMValue, this);
     JSRuntime* rt = smValue->Runtime();
     JS::RootedValue rooted(rt, smValue->GetRawValue());
@@ -98,6 +111,10 @@ namespace v8 {
 
 
   int32_t Int32::Value() const {
+    if (V8Monkey::V8MonkeyCommon::CheckDeath("Int32::Value")) {
+      return 0;
+    }
+
     V8Monkey::SMValue* smValue = CONVERT_FROM_API(Int32, SMValue, this);
     JSRuntime* rt = smValue->Runtime();
     JS::RootedValue rooted(rt, smValue->GetRawValue());
@@ -108,6 +125,10 @@ namespace v8 {
 
 
   uint32_t Uint32::Value() const {
+    if (V8Monkey::V8MonkeyCommon::CheckDeath("Uint32::Value")) {
+      return 0;
+    }
+
     V8Monkey::SMValue* smValue = CONVERT_FROM_API(Uint32, SMValue, this);
     JSRuntime* rt = smValue->Runtime();
     JS::RootedValue rooted(rt, smValue->GetRawValue());

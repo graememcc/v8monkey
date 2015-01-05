@@ -22,6 +22,15 @@ namespace v8 {
       public:
         // Returns true if an attempt (not necessarily succesful) has been made to initialize the engine
         static bool IsV8Initialized();
+
+        // Many API functions implicitly init V8 but first confirm it's not dead. They test this by setting up a fatal
+        // error handler and triggering the implicitly initting function. There are a couple of key problems: calling
+        // TriggerFatalError, though killing V8, invokes the fatal error handler itself, defeating the point of the
+        // test, and calling SetFatalErrorHandler implicitly inits V8, which is again something the test needs to
+        // control.
+        //
+        // This function circumvents API conventions, and installs an error handler without init, and kills V8 without
+        // triggering the handler.
         static void SetHandlerAndKill(FatalErrorCallback fn);
 
         // The following RAII classes clean up our trail of destruction.

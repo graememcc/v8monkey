@@ -6,6 +6,7 @@
 
 #include "runtime/isolate.h"
 #include "types/value_types.h"
+#include "v8monkey_common.h"
 
 
 // XXX Ensure initialized/isdead checking
@@ -13,6 +14,10 @@
 namespace v8 {
   #define FORWARD_TO_INTERNAL(name) \
   bool Value::name() const {\
+    if (V8Monkey::V8MonkeyCommon::CheckDeath("Value::" #name)) { \
+      return false; \
+    } \
+ \
     V8Monkey::V8Value* val = *(reinterpret_cast<V8Monkey::V8Value**>(const_cast<Value*>(this)));\
     return val->name();\
   }
