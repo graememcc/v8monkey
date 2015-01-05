@@ -10,17 +10,17 @@ namespace {
   // To verify that the fatal error handlers we supply are called, we will have them set these variables, and then
   // test for equality
 
-  int callback1Called = 0;
-  int callback2Called = 0;
+  bool callback1Called = false;
+  bool callback2Called = false;
 
 
   void callback1(const char* location, const char* message) {
-    callback1Called = 1;
+    callback1Called = true;
   }
 
 
   void callback2(const char* location, const char* message) {
-    callback2Called = 1;
+    callback2Called = true;
   }
 
 
@@ -55,10 +55,10 @@ V8MONKEY_TEST(FatalHandler002, "Calling SetFatalErrorHandler doesn't change isol
 V8MONKEY_TEST(FatalHandler003, "Specified fatal error handler called") {
   V8Monkey::TestUtils::AutoTestCleanup ac;
 
-  callback1Called = 0;
+  callback1Called = false;
   V8::SetFatalErrorHandler(callback1);
-  V8Monkey::V8MonkeyCommon::TriggerFatalError(NULL, NULL);
-  V8MONKEY_CHECK(callback1Called == 1, "Handler called");
+  V8Monkey::V8MonkeyCommon::TriggerFatalError(nullptr, nullptr);
+  V8MONKEY_CHECK(callback1Called, "Handler called");
 }
 
 
@@ -73,11 +73,11 @@ V8MONKEY_TEST(FatalHandler004, "Specified fatal error handler is isolate specifi
   j->Enter();
   V8::SetFatalErrorHandler(callback2);
 
-  callback1Called = 0;
-  callback2Called = 0;
-  V8Monkey::V8MonkeyCommon::TriggerFatalError(NULL, NULL);
-  V8MONKEY_CHECK(callback1Called == 0, "Old handler not called");
-  V8MONKEY_CHECK(callback2Called == 1, "Handler called");
+  callback1Called = false;
+  callback2Called = false;
+  V8Monkey::V8MonkeyCommon::TriggerFatalError(nullptr, nullptr);
+  V8MONKEY_CHECK(!callback1Called, "Old handler not called");
+  V8MONKEY_CHECK(callback2Called, "Handler called");
 }
 
 
@@ -93,11 +93,11 @@ V8MONKEY_TEST(FatalHandler005, "Specified fatal error handler is isolate specifi
   V8::SetFatalErrorHandler(callback2);
   j->Exit();
 
-  callback1Called = 0;
-  callback2Called = 0;
-  V8Monkey::V8MonkeyCommon::TriggerFatalError(NULL, NULL);
-  V8MONKEY_CHECK(callback2Called == 0, "Old handler not called");
-  V8MONKEY_CHECK(callback1Called == 1, "Handler called");
+  callback1Called = false;
+  callback2Called = false;
+  V8Monkey::V8MonkeyCommon::TriggerFatalError(nullptr, nullptr);
+  V8MONKEY_CHECK(!callback2Called, "Old handler not called");
+  V8MONKEY_CHECK(callback1Called, "Handler called");
 
   j->Dispose();
 }

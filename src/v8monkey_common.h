@@ -40,6 +40,9 @@ namespace v8 {
         // XXX Is this still needed?
         static void EnsureSpiderMonkey();
 
+        // Returns true if V8 is dead, but also triggers a fatal error handler call, reporting it
+        static bool CheckDeath(const char* method);
+
       private:
         // This is simply a collection of helper methods
         V8MonkeyCommon();

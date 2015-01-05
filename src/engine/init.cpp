@@ -159,6 +159,16 @@ if (InternalIsolate::IsEntered(i)) {
     }
 
 
+    bool V8MonkeyCommon::CheckDeath(const char* method) {
+      if (V8::IsDead()) {
+        TriggerFatalError(method, "V8 is dead");
+        return true;
+      }
+
+      return false;
+    }
+
+
     #ifdef V8MONKEY_INTERNAL_TEST
       bool TestUtils::IsV8Initialized() {
         return v8initted;

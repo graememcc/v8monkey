@@ -100,8 +100,15 @@ namespace {
   }
 
 
-  // Suppress error arbortions
+  // Suppress error abortions
   void dummyFatalErrorHandler(const char* location, const char* message) {return;}
+
+
+  bool errorCallbackCalled = false;
+
+  void errorCallback(const char* location, const char* message) {
+    errorCallbackCalled = true;
+  }
 }
 
 
@@ -1261,7 +1268,7 @@ V8MONKEY_TEST(IntPersistent077, "Persistent::New returns empty if V8 dead") {
     Local<Integer> l = Integer::New(123);
 
     V8::SetFatalErrorHandler(dummyFatalErrorHandler);
-    V8Monkey::V8MonkeyCommon::TriggerFatalError(NULL, NULL);
+    V8Monkey::V8MonkeyCommon::TriggerFatalError(nullptr, nullptr);
 
     Persistent<Integer> p = Persistent<Integer>::New(l);
 
@@ -1270,7 +1277,7 @@ V8MONKEY_TEST(IntPersistent077, "Persistent::New returns empty if V8 dead") {
 }
 
 
-V8MONKEY_TEST(IntPersistent078, "Persistent::New returns empty if isolate not initted") {
+V8MONKEY_TEST(IntPersistent078, "Persistent::New works when isolate not initted") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
@@ -1283,7 +1290,7 @@ V8MONKEY_TEST(IntPersistent078, "Persistent::New returns empty if isolate not in
     V8::SetFatalErrorHandler(dummyFatalErrorHandler);
     Persistent<Integer> p = Persistent<Integer>::New(l);
 
-    V8MONKEY_CHECK(*p == nullptr, "Persistent is empty");
+    V8MONKEY_CHECK(*p != nullptr, "Persistent not empty");
   }
 }
 

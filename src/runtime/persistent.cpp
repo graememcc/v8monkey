@@ -64,7 +64,7 @@ namespace v8 {
 
     InternalIsolate* i = InternalIsolate::GetCurrent();
 
-    if (!i->IsInitted() || V8::IsDead()) {
+    if (V8MonkeyCommon::CheckDeath("Persistent::New")) {
       return nullptr;
     }
 
