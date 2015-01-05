@@ -34,7 +34,7 @@ namespace v8 {
     class EXPORT_FOR_TESTING_ONLY InternalIsolate {
       public:
         InternalIsolate() : isDisposed(false), isRegisteredForGC(false), fatalErrorHandler(NULL), threadData(NULL),
-                            embedderData(NULL), lockingThread(0) {
+                            embedderData(NULL), lockingThread(0), isInitted(false) {
           handleScopeData.Initialize();
           persistentData.Initialize();
         }
@@ -144,6 +144,10 @@ namespace v8 {
 
         void RemoveGCRooter();
 
+        // Provided for V8 compat
+        bool IsInitted() const { return isInitted; }
+        void Init() { isInitted = true; }
+
         // Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
         // "unlock" themselves to yield the isolate, we can't even be sure that threads will enter and exit in a LIFO
         // order-the ordering will be at the mercy of the locking mechanism. Thus we need some way of answering the
@@ -226,6 +230,9 @@ namespace v8 {
         ThreadData* FindOrCreateThreadData(int threadID, InternalIsolate* previousIsolate);
         ThreadData* FindThreadData(int threadID);
         void DeleteThreadData(ThreadData* data);
+
+        // V8 compat
+        bool isInitted;
 
         #ifdef V8MONKEY_INTERNAL_TEST
         static void (*GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);

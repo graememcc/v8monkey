@@ -98,6 +98,10 @@ namespace {
     p.MakeWeak(nullptr, IsWeakClearAndReweakenChecker);
     isWeak = p.IsWeak();
   }
+
+
+  // Suppress error arbortions
+  void dummyFatalErrorHandler(const char* location, const char* message) {return;}
 }
 
 
@@ -107,7 +111,7 @@ namespace {
   V8MONKEY_TEST(IntPersistent##num, message) {\
     TestUtils::AutoTestCleanup ac; \
  \
-    Isolate::GetCurrent()->Enter(); \
+    V8::Initialize(); \
     Persistent<Integer> p; \
  \
     { \
@@ -121,7 +125,7 @@ namespace {
 
 V8MONKEY_TEST(IntPersistent001, "InternalIsolate Persistent HandleData next initially null") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   HandleData hd = i->GetPersistentHandleData();
@@ -131,7 +135,7 @@ V8MONKEY_TEST(IntPersistent001, "InternalIsolate Persistent HandleData next init
 
 V8MONKEY_TEST(IntPersistent002, "InternalIsolate Persistent HandleData limit initially null") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   HandleData hd = i->GetPersistentHandleData();
@@ -141,7 +145,7 @@ V8MONKEY_TEST(IntPersistent002, "InternalIsolate Persistent HandleData limit ini
 
 V8MONKEY_TEST(IntPersistent003, "InternalIsolate Persistent HandleData changes after persistent creation (null case)") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
@@ -158,7 +162,7 @@ V8MONKEY_TEST(IntPersistent003, "InternalIsolate Persistent HandleData changes a
 
 V8MONKEY_TEST(IntPersistent004, "InternalIsolate Persistent HandleData changes after persistent creation (usual case)") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
@@ -177,7 +181,7 @@ V8MONKEY_TEST(IntPersistent004, "InternalIsolate Persistent HandleData changes a
 
 V8MONKEY_TEST(IntPersistent005, "InternalIsolate Persistent HandleData changes after persistent creation (full block case)") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
@@ -207,7 +211,7 @@ V8MONKEY_TEST(IntPersistent005, "InternalIsolate Persistent HandleData changes a
 
 V8MONKEY_TEST(IntPersistent006, "InternalIsolate Persistent HandleData doesn't change when constructing from pointer") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
@@ -225,7 +229,7 @@ V8MONKEY_TEST(IntPersistent006, "InternalIsolate Persistent HandleData doesn't c
 
 V8MONKEY_TEST(IntPersistent007, "InternalIsolate Persistent HandleData doesn't change when constructing from local") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
@@ -243,7 +247,7 @@ V8MONKEY_TEST(IntPersistent007, "InternalIsolate Persistent HandleData doesn't c
 
 V8MONKEY_TEST(IntPersistent008, "InternalIsolate Persistent HandleData doesn't change when constructing from persistent") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
@@ -263,7 +267,7 @@ V8MONKEY_TEST(IntPersistent008, "InternalIsolate Persistent HandleData doesn't c
 
 V8MONKEY_TEST(IntPersistent009, "Persistent refcount changes after persistent creation") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   {
     HandleScope h;
@@ -281,7 +285,7 @@ V8MONKEY_TEST(IntPersistent009, "Persistent refcount changes after persistent cr
 
 V8MONKEY_TEST(IntPersistent010, "Persistent refcount doesn't change after persistent construction") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   {
     HandleScope h;
@@ -300,7 +304,7 @@ V8MONKEY_TEST(IntPersistent010, "Persistent refcount doesn't change after persis
 
 V8MONKEY_TEST(IntPersistent011, "Persistent refcount unchanged after persistent destruction") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   {
     HandleScope h;
@@ -320,7 +324,7 @@ V8MONKEY_TEST(IntPersistent011, "Persistent refcount unchanged after persistent 
 
 V8MONKEY_TEST(IntPersistent012, "Persistent refcount changes after persistent disposal") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   {
     HandleScope h;
@@ -339,7 +343,7 @@ V8MONKEY_TEST(IntPersistent012, "Persistent refcount changes after persistent di
 V8MONKEY_TEST(IntPersistent013, "Assigning to self doesn't delete") {
   TestUtils::AutoTestCleanup ac;
 
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   bool deleted = false;
 
   Persistent<Value> p;
@@ -368,7 +372,7 @@ V8MONKEY_TEST(IntPersistent013, "Assigning to self doesn't delete") {
 V8MONKEY_TEST(IntPersistent014, "Assigning to self from pointer doesn't delete") {
   TestUtils::AutoTestCleanup ac;
 
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   bool deleted = false;
 
   Persistent<Value> p;
@@ -417,7 +421,7 @@ PERSISTENT_TEST(017, "Equality holds for new persistent created via Persistent::
 
 V8MONKEY_TEST(IntPersistent018, "Possible to create from empty local") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
@@ -434,7 +438,7 @@ V8MONKEY_TEST(IntPersistent018, "Possible to create from empty local") {
 
 V8MONKEY_TEST(IntPersistent019, "OK to dispose empty persistent") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   Persistent<Integer> p;
   p.Dispose();
@@ -445,7 +449,7 @@ V8MONKEY_TEST(IntPersistent019, "OK to dispose empty persistent") {
 
 V8MONKEY_TEST(IntPersistent020, "OK to delete disposed persistent") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   {
     HandleScope h;
@@ -473,7 +477,7 @@ PERSISTENT_TEST(021, "Containing slot zeroed after disposal") {
 
 V8MONKEY_TEST(IntPersistent022, "Slot zeroed, but object still alive if still held alive elsewhere after disposal") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   {
     HandleScope h;
@@ -499,7 +503,7 @@ V8MONKEY_TEST(IntPersistent022, "Slot zeroed, but object still alive if still he
 
 V8MONKEY_TEST(IntPersistent023, "Containing slot not zeroed after destruction") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   {
     HandleScope h;
@@ -519,7 +523,7 @@ V8MONKEY_TEST(IntPersistent023, "Containing slot not zeroed after destruction") 
 
 V8MONKEY_TEST(IntPersistent024, "Object still alive if held alive elsewhere after destruction") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   {
     HandleScope h;
@@ -558,7 +562,7 @@ PERSISTENT_TEST(026, "IsWeak reports correct value after weakening") {
 
 V8MONKEY_TEST(IntPersistent027, "Possible to call IsWeak on empty") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   Persistent<Integer> p;
 
@@ -598,7 +602,7 @@ PERSISTENT_TEST(031, "IsWeak reports correct value for persistent created from a
 
 V8MONKEY_TEST(IntPersistent032, "Possible to call MakeWeak on empty") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   Persistent<Integer> p;
   p.MakeWeak(nullptr, nullptr);
@@ -609,7 +613,7 @@ V8MONKEY_TEST(IntPersistent032, "Possible to call MakeWeak on empty") {
 
 V8MONKEY_TEST(IntPersistent033, "Weakening doesn't delete") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   bool deleted = false;
 
@@ -676,7 +680,7 @@ PERSISTENT_TEST(036, "Clearing weakness corrects refcount") {
 
 V8MONKEY_TEST(IntPersistent037, "Possible to call ClearWeak on empty") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   Persistent<Integer> p;
   p.ClearWeak();
@@ -699,7 +703,7 @@ PERSISTENT_TEST(039, "IsNearDeath still false after weakening") {
 
 V8MONKEY_TEST(IntPersistent040, "Possible to call IsNearDeath on empty") {
   TestUtils::AutoTestCleanup ac;
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   Persistent<Integer> p;
 
@@ -713,7 +717,7 @@ V8MONKEY_TEST(IntPersistent041, "Items contained in persistents traced correctly
   bool traced = false;
   TraceFake* t = new TraceFake(&traced);
 
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   {
     HandleScope h;
@@ -735,7 +739,7 @@ V8MONKEY_TEST(IntPersistent042, "Tracing copes with zeroed slot in handle data")
   bool traced = false;
   TraceFake* t = new TraceFake(&traced);
 
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
 
   {
     HandleScope h;
@@ -851,7 +855,7 @@ V8MONKEY_TEST(IntPersistent051, "OK to delete real persistent in callback") {
   // We don't use the macro here due to the need to create via operator new
   TestUtils::AutoTestCleanup ac;
 
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   Persistent<Value>* p = new Persistent<Value>;
 
   {
@@ -876,7 +880,7 @@ V8MONKEY_TEST(IntPersistent052, "Deleting in callback via real persistent does n
   // We don't use the macro here due to the need to create via operator new
   TestUtils::AutoTestCleanup ac;
 
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   Persistent<Value>* p = new Persistent<Value>;
 
   {
@@ -903,7 +907,7 @@ V8MONKEY_TEST(IntPersistent053, "Deleting in callback via real persistent does n
   // We don't use the macro here due to the need to create via operator new
   TestUtils::AutoTestCleanup ac;
 
-  Isolate::GetCurrent()->Enter();
+  V8::Initialize();
   Persistent<Value>* p = new Persistent<Value>;
 
   {
@@ -1095,6 +1099,7 @@ V8MONKEY_TEST(IntPersistent069, "Weak objects deleted after tracing if callbacks
   bool deleted = false;
   Isolate* i = Isolate::New();
   i->Enter();
+  V8::Initialize();
   Persistent<Value> p;
 
   {
@@ -1124,6 +1129,7 @@ V8MONKEY_TEST(IntPersistent070, "Weak objects not deleted after tracing if callb
   bool deleted = false;
   Isolate* i = Isolate::New();
   i->Enter();
+  V8::Initialize();
   Persistent<Value> p;
 
   {
@@ -1205,6 +1211,7 @@ V8MONKEY_TEST(IntPersistent074, "All objects torn down at isolate teardown") {
   bool deleted = false;
   Isolate* i = Isolate::New();
   i->Enter();
+  V8::Initialize();
   Persistent<Value>* p = new Persistent<Value>;
 
   {
@@ -1240,6 +1247,66 @@ V8MONKEY_TEST(IntPersistent075, "Alignment of pointers is suitable for tagging p
 V8MONKEY_TEST(IntPersistent076, "Persistent is same size as pointer") {
   // TODO This should be some sort of static assert
   V8MONKEY_CHECK(sizeof(Persistent<Integer>) <= sizeof(void*), "Persistent fits in a pointer");
+}
+
+
+V8MONKEY_TEST(IntPersistent077, "Persistent::New returns empty if V8 dead") {
+  TestUtils::AutoTestCleanup ac;
+  V8::Initialize();
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
+
+  {
+    HandleScope h;
+
+    Local<Integer> l = Integer::New(123);
+
+    V8::SetFatalErrorHandler(dummyFatalErrorHandler);
+    V8Monkey::V8MonkeyCommon::TriggerFatalError(NULL, NULL);
+
+    Persistent<Integer> p = Persistent<Integer>::New(l);
+
+    V8MONKEY_CHECK(*p == nullptr, "Persistent is empty");
+  }
+}
+
+
+V8MONKEY_TEST(IntPersistent078, "Persistent::New returns empty if isolate not initted") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate::GetCurrent()->Enter();
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
+
+  {
+    HandleScope h;
+
+    Local<Integer> l = Integer::New(123);
+
+    V8::SetFatalErrorHandler(dummyFatalErrorHandler);
+    Persistent<Integer> p = Persistent<Integer>::New(l);
+
+    V8MONKEY_CHECK(*p == nullptr, "Persistent is empty");
+  }
+}
+
+
+V8MONKEY_TEST(IntPersistent079, "InternalIsolate Persistent HandleData is per isolate") {
+  TestUtils::AutoTestCleanup ac;
+  V8::Initialize();
+  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
+
+  {
+    HandleScope h;
+    Local<Integer> l = Integer::New(123);
+    Persistent<Integer> p = Persistent<Integer>::New(l);
+
+    Isolate* j = Isolate::New();
+    InternalIsolate* i = InternalIsolate::FromIsolate(j);
+
+    HandleData hd = i->GetPersistentHandleData();
+
+    V8MONKEY_CHECK(hd.next == nullptr, "HandleData next changed after another persistent created");
+    V8MONKEY_CHECK(hd.next == nullptr, "HandleData limit changed after another persistent created");
+    j->Dispose();
+  }
 }
 
 

@@ -625,6 +625,60 @@ V8MONKEY_TEST(IntIsolate034, "Disposing an isolate deregisters it from rooting")
 }
 
 
+V8MONKEY_TEST(IntIsolate035, "IsInitted initially reports false (1)") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* i = Isolate::New();
+  InternalIsolate* ii = CurrentAsInternal();
+
+  V8MONKEY_CHECK(!ii->IsInitted(), "Init false");
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate036, "IsInitted initially reports false (2)") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* i = Isolate::New();
+  i->Enter();
+  InternalIsolate* ii = CurrentAsInternal();
+
+  V8MONKEY_CHECK(!ii->IsInitted(), "Init false");
+}
+
+
+V8MONKEY_TEST(IntIsolate037, "IsInitted reports true after init") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* i = Isolate::New();
+  i->Enter();
+
+  InternalIsolate* ii = CurrentAsInternal();
+  ii->Init();
+
+  V8MONKEY_CHECK(ii->IsInitted(), "Init true");
+}
+
+
+V8MONKEY_TEST(IntIsolate038, "V8 Init inits currently entered isolate") {
+  TestUtils::AutoTestCleanup ac;
+  Isolate* i = Isolate::New();
+  i->Enter();
+  V8::Initialize();
+  InternalIsolate* ii = CurrentAsInternal();
+
+  V8MONKEY_CHECK(ii->IsInitted(), "Init true");
+}
+
+
+V8MONKEY_TEST(IntIsolate039, "V8 Initialize inits default isolate") {
+  TestUtils::AutoTestCleanup ac;
+
+  InternalIsolate* ii = CurrentAsInternal();
+  V8MONKEY_CHECK(!ii->IsInitted(), "Sanity check");
+  V8::Initialize();
+
+  V8MONKEY_CHECK(ii->IsInitted(), "Init true");
+}
+
+
 V8MONKEY_TEST(IntScope001, "Scopes enter isolates on main thread") {
   TestUtils::AutoTestCleanup ac;
   V8MONKEY_CHECK(CheckScopesEnter(), "Isolate was entered");

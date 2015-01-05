@@ -64,6 +64,10 @@ namespace v8 {
 
     InternalIsolate* i = InternalIsolate::GetCurrent();
 
+    if (!i->IsInitted() || V8::IsDead()) {
+      return nullptr;
+    }
+
     InternalIsolate::AutoGCMutex lock(i);
 
     HandleData hd = i->GetPersistentHandleData();
@@ -94,7 +98,7 @@ namespace v8 {
    * already zeroed; AFAICT, the V8 API doesn't place any restrictions on when one can call Dispose after a Persistent
    * has been weakened and the weak callback called (though logic would dictate that the only safe place is when
    * handling the weak callback, as otherwise the caller cannot reason about the liveness of the object when they didn't
-   * clear the weakness). 
+   * clear the weakness).
    *
    */
 

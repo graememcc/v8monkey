@@ -110,6 +110,9 @@ namespace v8 {
     // On initialization, if the calling thread has not entered an isolate, the default isolate will be entered
     V8Monkey::InternalIsolate::EnsureInIsolate();
 
+    // V8 compat
+    V8Monkey::InternalIsolate::GetCurrent()->Init();
+
     return true;
   }
 
