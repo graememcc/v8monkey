@@ -30,7 +30,7 @@ namespace {
     // The V8 API specifies that this call implicitly inits V8
     V8::Initialize();
 
-    V8Monkey::V8Number* number = new V8Monkey::V8Number(numVal);
+    V8Monkey::V8Number* number = new V8Monkey::V8Number(value);
     // After creating a handle, the value will be rooted by the isolate
     V8Monkey::V8MonkeyObject** handle = HandleScope::CreateHandle(number);
 
@@ -38,8 +38,7 @@ namespace {
   }
 }
 
-    
-// XXX Casting?
+
 namespace v8 {
   Local<Number> Number::New(double value) {
     return reinterpret_cast<Number*>(handlizeNumber(value));
@@ -52,7 +51,7 @@ namespace v8 {
     }
 
     V8Monkey::V8Number* v8number = CONVERT_FROM_API(Number, V8Number, this);
-    return v8number.Value();
+    return v8number->Value();
   }
 
 
@@ -98,12 +97,8 @@ namespace v8 {
       return 0;
     }
 
-    V8Monkey::SMValue* smValue = CONVERT_FROM_API(Int32, SMValue, this);
-    JSRuntime* rt = smValue->Runtime();
-    JS::RootedValue rooted(rt, smValue->GetRawValue());
-
-    int32_t fromSpiderMonkey = rooted.toInt32();
-    return static_cast<int32_t>(fromSpiderMonkey);
+    V8Monkey::V8Number* v8number = CONVERT_FROM_API(Int32, V8Number, this);
+    return static_cast<int64_t>(v8number->Value());
   }
 
 
@@ -112,21 +107,13 @@ namespace v8 {
       return 0;
     }
 
-    V8Monkey::SMValue* smValue = CONVERT_FROM_API(Uint32, SMValue, this);
-    JSRuntime* rt = smValue->Runtime();
-    JS::RootedValue rooted(rt, smValue->GetRawValue());
-
-    // Watch out for values that were too large to store as a Spidermonkey-native int32
-    if (smValue->numberTag == V8Monkey::SMValue::UINT32) {
-      return static_cast<uint32_t>(rooted.toDouble());
-    }
-
-    return static_cast<uint32_t>(rooted.toInt32());
+    V8Monkey::V8Number* v8number = CONVERT_FROM_API(Uint32, V8Number, this);
+    return static_cast<int64_t>(v8number->Value());
   }
 
 
   namespace V8Monkey {
-    V8Number::classifyNumber() {
+    void V8Number::classifyNumber() {
       // Classify the number. We follow V8, and build a union to capture the bit pattern to distinguish -0.0. The V8
       // code assumes doubles are IEEE 754 double-precision, so we shall too.
       union Bits {

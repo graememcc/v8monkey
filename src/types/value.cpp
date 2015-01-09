@@ -10,8 +10,6 @@
 #include "v8monkey_common.h"
 
 
-// XXX Ensure initialized/isdead checking
-// XXX Casting?
 namespace {
 
   /*
@@ -36,6 +34,7 @@ namespace {
 
 
 namespace v8 {
+  // TODO: Empty handle checks in debug builds, per V8
   #define FORWARD_TO_INTERNAL(name) \
   bool Value::name() const {\
     if (V8Monkey::V8MonkeyCommon::CheckDeath("Value::" #name)) { \
@@ -288,5 +287,25 @@ namespace v8 {
     // XXX Finish
     Local<Integer> l;
     return l;
+  }
+
+  bool Value::Equals(Handle<Value> that) const {
+    if (IsNumber() && that->IsNumber()) {
+      double value = NumberValue();
+      double otherValue = that->NumberValue();
+      return !std::isnan(value) && !std::isnan(otherValue) && value == otherValue;
+    }
+    // FINISH
+    return false;
+  }
+
+
+  bool Value::StrictEquals(Handle<Value> that) const {
+    if (IsNumber() && that->IsNumber()) {
+      double value = NumberValue();
+      double otherValue = that->NumberValue();
+      return !std::isnan(value) && !std::isnan(otherValue) && value == otherValue;
+    }
+    return false;
   }
 }

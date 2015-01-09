@@ -156,6 +156,44 @@ V8MONKEY_TEST(IntNumber007, "Number::Value triggers error if V8 dead") {
 }
 
 
+V8MONKEY_TEST(IntNumber008, "Equals fails if V8 dead") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = 123.0;
+    Local<Value> n = Number::New(value);
+    Local<Value> n2 = Number::New(value);
+    TestUtils::SetHandlerAndKill(errorCallback);
+
+    V8MONKEY_CHECK(!n->Equals(n), "Self-equality returns false");
+    V8MONKEY_CHECK(!n->Equals(n2), "Equals returns correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(IntNumber009, "StrictEquals fails if V8 dead") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = 123.0;
+    Local<Value> n = Number::New(value);
+    Local<Value> n2 = Number::New(value);
+    TestUtils::SetHandlerAndKill(errorCallback);
+
+    V8MONKEY_CHECK(!n->StrictEquals(n), "Self-equality returns false");
+    V8MONKEY_CHECK(!n->StrictEquals(n2), "StrictEquals returns correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
 V8MONKEY_TEST(IntInteger001, "Integer::IsInt32 triggers error if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();

@@ -26,6 +26,10 @@ namespace v8 {
           return value;
         }
 
+        bool IsNumber() const {
+          return true;
+        }
+
         bool IsRealDouble() const {
           return type == NUMBER;
         }
@@ -42,10 +46,13 @@ namespace v8 {
           return type == VAL32 || type == UINT32;
         }
 
-        void Trace(JSRuntime* runtime, JSTracer* tracer) {}
+        void Trace(JSRuntime* runtime, JSTracer* tracer) {
+          // Need to call ShouldTrace for weak callbacks
+          ShouldTrace();
+        }
 
       private:
-        static void classifyNumber();
+        void classifyNumber();
 
         double value;
         NumberTag type;
@@ -60,14 +67,11 @@ namespace v8 {
 
     class EXPORT_FOR_TESTING_ONLY SMValue: public V8Value {
       public:
-        SMValue(JSRuntime* runtime, JS::Handle<JS::Value> val) : numberTag(UNKNOWN), rt(runtime), jsValue(val) {}
+        SMValue(JSRuntime* runtime, JS::Handle<JS::Value> val) : rt(runtime), jsValue(val) {}
 
         JSRuntime* Runtime() const { return rt; }
 
         const JS::Heap<JS::Value>& GetRawValue() const { return jsValue; }
-
-        // VAL32 represents UINT32 values that are small enough to fit into INT32s without changing sign
-        enum NumberTags {UNKNOWN, NUMBER, INT32, UINT32, VAL32};
 
         #define SMVALUE_IMPL(name, smMethod) bool name() const { return jsValue.smMethod(); }
 
@@ -77,23 +81,6 @@ namespace v8 {
         SMVALUE_IMPL(IsFalse, isFalse)
         SMVALUE_IMPL(IsBoolean, isBoolean)
         SMVALUE_IMPL(IsNumber, isNumber)
-
-        bool IsInt32() const {
-          if (!IsNumber()) {
-            return false;
-          }
-
-          return numberTag == VAL32 || numberTag == INT32;
-        }
-
-        bool IsUint32() const {
-          if (!IsNumber()) {
-            return false;
-          }
-
-          return numberTag == VAL32 || numberTag == UINT32;
-        }
-
 
         void Trace(JSRuntime* runtime, JSTracer* tracer) {
           printf("Value being traced %p\n", this);
@@ -106,8 +93,6 @@ namespace v8 {
           JS_CallValueTracer(tracer, &jsValue, "V8Monkey manual rooting");
           printf("Done value trace. Returning\n");
         }
-
-        NumberTags numberTag;
 
       private:
         JSRuntime* rt;

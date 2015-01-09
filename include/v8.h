@@ -412,11 +412,9 @@ namespace v8 {
 
       int32_t Int32Value() const;
 
-/*
       bool Equals(Handle<Value> that) const;
 
       bool StrictEquals(Handle<Value> that) const;
-*/
 
     private:
       // XXX Needed?

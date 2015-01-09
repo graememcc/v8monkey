@@ -166,7 +166,6 @@ V8MONKEY_TEST(Number010, "IsBoolean works correctly") {
   }
 
   Isolate::GetCurrent()->Exit();
-  V8::Dispose();
 }
 
 
@@ -738,7 +737,7 @@ NUMBERTOARRAYINDEXEMPTYTEST(148, 8, -0.0, false)
 NUMBERTOARRAYINDEXEMPTYTEST(149, 9, 0.0, false)
 NUMBERTOARRAYINDEXEMPTYTEST(150, 10, std::numeric_limits<double>::infinity(), true)
 NUMBERTOARRAYINDEXEMPTYTEST(151, 11, std::numeric_limits<double>::quiet_NaN(), true)
-#undef NUMBERTOARRAYINDEXTEST
+#undef NUMBERTOARRAYINDEXEMPTYTEST
 
 
 #define NUMBERTOARRAYINDEXTEST(testNumber, variant, val, expected) \
@@ -789,6 +788,150 @@ NUMBERTOARRAYINDEXSAMETEST(157, 2, 0xffffffff, false)
 NUMBERTOARRAYINDEXSAMETEST(158, 3, -0.0, false)
 NUMBERTOARRAYINDEXSAMETEST(159, 4, 0.0, true)
 #undef NUMBERTOARRAYINDEXSAMETEST
+
+
+#define NUMBEREQUALTEST(testNumber, variant, val) \
+V8MONKEY_TEST(Number##testNumber, "Equals works correctly (" #variant ")") { \
+  V8::Initialize(); \
+\
+  { \
+    HandleScope h; \
+    double value = val; \
+    Local<Value> n = Number::New(value); \
+    Local<Value> n2 = Number::New(value); \
+    Local<Value> n3 = Number::New(value - 1.0); \
+\
+    V8MONKEY_CHECK(n->Equals(n), "Self-equality works correctly"); \
+    V8MONKEY_CHECK(n->Equals(n2), "Equality works correctly"); \
+    V8MONKEY_CHECK(n2->Equals(n), "Equality is symmetric"); \
+    V8MONKEY_CHECK(!n->Equals(n3), "Inequality is correct"); \
+  } \
+ \
+  Isolate::GetCurrent()->Exit(); \
+  V8::Dispose(); \
+}
+
+
+NUMBEREQUALTEST(160, 1, 123.45)
+NUMBEREQUALTEST(161, 2, 123.65)
+NUMBEREQUALTEST(162, 3, -123.45)
+NUMBEREQUALTEST(163, 4, -123.67)
+NUMBEREQUALTEST(164, 5, 123)
+NUMBEREQUALTEST(165, 6, -1)
+NUMBEREQUALTEST(166, 7, 0xffffffff)
+NUMBEREQUALTEST(167, 8, -0.0)
+NUMBEREQUALTEST(168, 9, 0.0)
+#undef NUMBEREQUALTEST
+
+
+V8MONKEY_TEST(Number169, "Equals works correctly (10)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = std::numeric_limits<double>::infinity();
+    Local<Value> n = Number::New(value);
+    Local<Value> n2 = Number::New(value);
+    Local<Value> n3 = Number::New(123);
+
+    V8MONKEY_CHECK(n->Equals(n), "Self-equality works correctly");
+    V8MONKEY_CHECK(n->Equals(n2), "Equality works correctly");
+    V8MONKEY_CHECK(!n->Equals(n3), "Inequality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Number170, "Equals works correctly (11)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = std::numeric_limits<double>::quiet_NaN();
+    Local<Value> n = Number::New(value);
+    Local<Value> n2 = Number::New(value);
+
+    V8MONKEY_CHECK(!n->Equals(n), "Self-NaN equality works correctly");
+    V8MONKEY_CHECK(!n->Equals(n2), "NaN Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+#define NUMBERSTRICTEQUALTEST(testNumber, variant, val) \
+V8MONKEY_TEST(Number##testNumber, "StrictEquals works correctly (" #variant ")") { \
+  V8::Initialize(); \
+\
+  { \
+    HandleScope h; \
+    double value = val; \
+    Local<Value> n = Number::New(value); \
+    Local<Value> n2 = Number::New(value); \
+    Local<Value> n3 = Number::New(value - 1.0); \
+\
+    V8MONKEY_CHECK(n->StrictEquals(n), "Self-strict equality works correctly"); \
+    V8MONKEY_CHECK(n->StrictEquals(n2), "Strict equality works correctly"); \
+    V8MONKEY_CHECK(n2->StrictEquals(n), "Strict quality is symmetric"); \
+    V8MONKEY_CHECK(!n->StrictEquals(n3), "Inequality is correct"); \
+  } \
+ \
+  Isolate::GetCurrent()->Exit(); \
+  V8::Dispose(); \
+}
+
+
+NUMBERSTRICTEQUALTEST(171, 1, 123.45)
+NUMBERSTRICTEQUALTEST(172, 2, 123.65)
+NUMBERSTRICTEQUALTEST(173, 3, -123.45)
+NUMBERSTRICTEQUALTEST(174, 4, -123.67)
+NUMBERSTRICTEQUALTEST(175, 5, 123)
+NUMBERSTRICTEQUALTEST(176, 6, -1)
+NUMBERSTRICTEQUALTEST(177, 7, 0xffffffff)
+NUMBERSTRICTEQUALTEST(178, 8, -0.0)
+NUMBERSTRICTEQUALTEST(179, 9, 0.0)
+#undef NUMBERSTRICTEQUALTEST
+
+
+V8MONKEY_TEST(Number180, "StrictEquals works correctly (10)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = std::numeric_limits<double>::infinity();
+    Local<Value> n = Number::New(value);
+    Local<Value> n2 = Number::New(value);
+    Local<Value> n3 = Number::New(123);
+
+    V8MONKEY_CHECK(n->StrictEquals(n), "Self-equality works correctly");
+    V8MONKEY_CHECK(n->StrictEquals(n2), "Strict equality works correctly");
+    V8MONKEY_CHECK(!n->StrictEquals(n3), "Strict inequality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Number181, "StrictEquals works correctly (11)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = std::numeric_limits<double>::quiet_NaN();
+    Local<Value> n = Number::New(value);
+    Local<Value> n2 = Number::New(value);
+
+    V8MONKEY_CHECK(!n->StrictEquals(n), "Self-NaN equality works correctly");
+    V8MONKEY_CHECK(!n->StrictEquals(n2), "NaN Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
 
 
 V8MONKEY_TEST(Integer001, "IsUndefined works correctly") {
@@ -1152,36 +1295,36 @@ INTEGERNUMBERVALUETEST(041, 6, 0, NewFromUnsigned)
 
 
 V8MONKEY_TEST(Integer042, "NumberValue works correctly (7)") {
-  V8::Initialize(); 
+  V8::Initialize();
 
-  { 
-    HandleScope h; 
+  {
+    HandleScope h;
     double value = std::numeric_limits<double>::infinity();
-    Local<Value> temp = Number::New(value); 
-    Local<Integer> n = temp->ToInteger(); 
+    Local<Value> temp = Number::New(value);
+    Local<Integer> n = temp->ToInteger();
 
-    V8MONKEY_CHECK(n->NumberValue() == value, "Correct value returned"); 
-  } 
- 
-  Isolate::GetCurrent()->Exit(); 
-  V8::Dispose(); 
+    V8MONKEY_CHECK(n->NumberValue() == value, "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
 }
 
 
 V8MONKEY_TEST(Integer043, "NumberValue works correctly (8)") {
-  V8::Initialize(); 
+  V8::Initialize();
 
-  { 
-    HandleScope h; 
+  {
+    HandleScope h;
     double value = std::numeric_limits<double>::quiet_NaN();
-    Local<Value> temp = Number::New(value); 
-    Local<Integer> n = temp->ToInteger(); 
+    Local<Value> temp = Number::New(value);
+    Local<Integer> n = temp->ToInteger();
 
-    V8MONKEY_CHECK(std::isnan(n->NumberValue()), "Correct value returned"); 
-  } 
- 
-  Isolate::GetCurrent()->Exit(); 
-  V8::Dispose(); 
+    V8MONKEY_CHECK(std::isnan(n->NumberValue()), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
 }
 
 
@@ -1611,36 +1754,36 @@ INT32NUMBERVALUETEST(028, 3, 0)
 
 
 V8MONKEY_TEST(Int32_029, "NumberValue works correctly (4)") {
-  V8::Initialize(); 
+  V8::Initialize();
 
-  { 
-    HandleScope h; 
+  {
+    HandleScope h;
     double value = std::numeric_limits<double>::infinity();
-    Local<Value> temp = Number::New(value); 
-    Local<Int32> n = temp->ToInt32(); 
+    Local<Value> temp = Number::New(value);
+    Local<Int32> n = temp->ToInt32();
 
-    V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); 
-  } 
- 
-  Isolate::GetCurrent()->Exit(); 
-  V8::Dispose(); 
+    V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
 }
 
 
 V8MONKEY_TEST(Int32_030, "NumberValue works correctly (5)") {
-  V8::Initialize(); 
+  V8::Initialize();
 
-  { 
-    HandleScope h; 
+  {
+    HandleScope h;
     double value = std::numeric_limits<double>::quiet_NaN();
-    Local<Value> temp = Number::New(value); 
-    Local<Int32> n = temp->ToInt32(); 
+    Local<Value> temp = Number::New(value);
+    Local<Int32> n = temp->ToInt32();
 
-    V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); 
-  } 
- 
-  Isolate::GetCurrent()->Exit(); 
-  V8::Dispose(); 
+    V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
 }
 
 
@@ -1670,39 +1813,39 @@ INT32INT32VALUETEST(033, 3, 0)
 
 
 V8MONKEY_TEST(Int32_034, "Conversions of special values work as expected (1)") {
-  V8::Initialize(); 
+  V8::Initialize();
 
-  { 
-    HandleScope h; 
+  {
+    HandleScope h;
     double value = std::numeric_limits<double>::infinity();
-    Local<Value> temp = Number::New(value); 
-    Local<Int32> n = temp->ToInt32(); 
+    Local<Value> temp = Number::New(value);
+    Local<Int32> n = temp->ToInt32();
     Local<Number> n2 = n->ToNumber();
 
-    V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned"); 
-  } 
- 
-  Isolate::GetCurrent()->Exit(); 
-  V8::Dispose(); 
+    V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
 }
 
 
 V8MONKEY_TEST(Int32_035, "Conversions of special values work as expected (2)") {
-  V8::Initialize(); 
+  V8::Initialize();
 
-  { 
-    HandleScope h; 
+  {
+    HandleScope h;
     double value = std::numeric_limits<double>::quiet_NaN();
-    Local<Value> temp = Number::New(value); 
-    Local<Int32> n = temp->ToInt32(); 
+    Local<Value> temp = Number::New(value);
+    Local<Int32> n = temp->ToInt32();
     Local<Number> n2 = n->ToNumber();
 
-    V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned"); 
-    V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); 
-  } 
- 
-  Isolate::GetCurrent()->Exit(); 
-  V8::Dispose(); 
+    V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned");
+    V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
 }
 
 
@@ -2075,36 +2218,36 @@ UINT32NUMBERVALUETEST(028, 3, 0)
 
 
 V8MONKEY_TEST(Uint32_029, "NumberValue works correctly (4)") {
-  V8::Initialize(); 
+  V8::Initialize();
 
-  { 
-    HandleScope h; 
+  {
+    HandleScope h;
     double value = std::numeric_limits<double>::infinity();
-    Local<Value> temp = Number::New(value); 
-    Local<Uint32> n = temp->ToUint32(); 
+    Local<Value> temp = Number::New(value);
+    Local<Uint32> n = temp->ToUint32();
 
-    V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); 
-  } 
- 
-  Isolate::GetCurrent()->Exit(); 
-  V8::Dispose(); 
+    V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
 }
 
 
 V8MONKEY_TEST(Uint32_030, "NumberValue works correctly (5)") {
-  V8::Initialize(); 
+  V8::Initialize();
 
-  { 
-    HandleScope h; 
+  {
+    HandleScope h;
     double value = std::numeric_limits<double>::quiet_NaN();
-    Local<Value> temp = Number::New(value); 
-    Local<Uint32> n = temp->ToUint32(); 
+    Local<Value> temp = Number::New(value);
+    Local<Uint32> n = temp->ToUint32();
 
-    V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); 
-  } 
- 
-  Isolate::GetCurrent()->Exit(); 
-  V8::Dispose(); 
+    V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
 }
 
 
@@ -2134,37 +2277,37 @@ UINT32UINT32VALUETEST(033, 3, 0)
 
 
 V8MONKEY_TEST(Uint32_034, "Conversions of special values work as expected (1)") {
-  V8::Initialize(); 
+  V8::Initialize();
 
-  { 
-    HandleScope h; 
+  {
+    HandleScope h;
     double value = std::numeric_limits<double>::infinity();
-    Local<Value> temp = Number::New(value); 
-    Local<Uint32> n = temp->ToUint32(); 
+    Local<Value> temp = Number::New(value);
+    Local<Uint32> n = temp->ToUint32();
     Local<Number> n2 = n->ToNumber();
 
-    V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned"); 
-  } 
- 
-  Isolate::GetCurrent()->Exit(); 
-  V8::Dispose(); 
+    V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
 }
 
 
 V8MONKEY_TEST(Uint32_035, "Conversions of special values work as expected (2)") {
-  V8::Initialize(); 
+  V8::Initialize();
 
-  { 
-    HandleScope h; 
+  {
+    HandleScope h;
     double value = std::numeric_limits<double>::quiet_NaN();
-    Local<Value> temp = Number::New(value); 
-    Local<Uint32> n = temp->ToUint32(); 
+    Local<Value> temp = Number::New(value);
+    Local<Uint32> n = temp->ToUint32();
     Local<Number> n2 = n->ToNumber();
 
-    V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned"); 
-    V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); 
-  } 
- 
-  Isolate::GetCurrent()->Exit(); 
-  V8::Dispose(); 
+    V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned");
+    V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
 }
