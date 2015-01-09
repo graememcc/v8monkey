@@ -14,6 +14,45 @@ namespace v8 {
   namespace V8Monkey {
 
 
+    class EXPORT_FOR_TESTING_ONLY V8Number: public V8Value {
+      public:
+        enum NumberTag {UNKNOWN, NUMBER, INT32, UINT32, VAL32};
+
+        V8Number(double val) : value(val) {
+          classifyNumber();
+        }
+
+        double Value() {
+          return value;
+        }
+
+        bool IsRealDouble() const {
+          return type == NUMBER;
+        }
+
+        bool IsVal32() const {
+          return type == VAL32;
+        }
+
+        bool IsInt32() const {
+          return type == VAL32 || type == INT32;
+        }
+
+        bool IsUint32() const {
+          return type == VAL32 || type == UINT32;
+        }
+
+        void Trace(JSRuntime* runtime, JSTracer* tracer) {}
+
+      private:
+        static void classifyNumber();
+
+        double value;
+        NumberTag type;
+    };
+
+
+
     /*
      * The base class of all V8 values that wrap values from SpiderMonkey
      *
@@ -27,7 +66,8 @@ namespace v8 {
 
         const JS::Heap<JS::Value>& GetRawValue() const { return jsValue; }
 
-        enum NumberTags {UNKNOWN, NUMBER, INT32, UINT32};
+        // VAL32 represents UINT32 values that are small enough to fit into INT32s without changing sign
+        enum NumberTags {UNKNOWN, NUMBER, INT32, UINT32, VAL32};
 
         #define SMVALUE_IMPL(name, smMethod) bool name() const { return jsValue.smMethod(); }
 
@@ -43,7 +83,7 @@ namespace v8 {
             return false;
           }
 
-          return numberTag == INT32;
+          return numberTag == VAL32 || numberTag == INT32;
         }
 
         bool IsUint32() const {
@@ -51,7 +91,7 @@ namespace v8 {
             return false;
           }
 
-          return numberTag == UINT32;
+          return numberTag == VAL32 || numberTag == UINT32;
         }
 
 

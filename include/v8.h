@@ -402,8 +402,7 @@ namespace v8 {
 
       Local<Uint32> ToArrayIndex() const;
 
-/*
-      bool BooleanValue() const;
+//      bool BooleanValue() const;
 
       double NumberValue() const;
 
@@ -413,6 +412,7 @@ namespace v8 {
 
       int32_t Int32Value() const;
 
+/*
       bool Equals(Handle<Value> that) const;
 
       bool StrictEquals(Handle<Value> that) const;
