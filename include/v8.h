@@ -32,6 +32,7 @@ namespace v8 {
   class Integer;
   class Int32;
   class Uint32;
+  class Boolean;
   class Isolate;
   class V8;
 
@@ -380,9 +381,7 @@ namespace v8 {
 
       bool IsRegExp() const;
 
-/*
       Local<Boolean> ToBoolean() const;
-*/
 
       Local<Number> ToNumber() const;
 
@@ -402,7 +401,7 @@ namespace v8 {
 
       Local<Uint32> ToArrayIndex() const;
 
-//      bool BooleanValue() const;
+      bool BooleanValue() const;
 
       double NumberValue() const;
 
@@ -440,14 +439,12 @@ namespace v8 {
   class Primitive : public Value {};
 
 
-/*
   class APIEXPORT Boolean : public Primitive {
     public:
       bool Value() const;
 
       static inline Handle<Boolean> New(bool value);
   };
-*/
 
 
   class APIEXPORT Number : public Primitive {
@@ -501,6 +498,19 @@ namespace v8 {
     private:
       Uint32();
   };
+
+
+
+  //Handle<Primitive> V8EXPORT Undefined();
+  //Handle<Primitive> V8EXPORT Null();
+  Handle<Boolean> APIEXPORT True();
+  Handle<Boolean> APIEXPORT False();
+
+
+  //inline Handle<Primitive> Undefined(Isolate* isolate);
+  //inline Handle<Primitive> Null(Isolate* isolate);
+  inline Handle<Boolean> True(Isolate* isolate);
+  inline Handle<Boolean> False(Isolate* isolate);
 
 
   class APIEXPORT Isolate {
@@ -802,6 +812,24 @@ namespace v8 {
 
   Integer* Integer::Cast(v8::Value* obj) {
     return static_cast<Integer*>(obj);
+  }
+
+
+
+  Handle<Boolean> Boolean::New(bool value) {
+    return value ? True() : False();
+  }
+
+
+  Handle<Boolean> True(v8::Isolate* isolate) {
+    // XXX What should we do with the isolate?
+    return True();
+  }
+
+
+  Handle<Boolean> False(v8::Isolate* isolate) {
+    // XXX What should we do with the isolate?
+    return False();
   }
 }
 

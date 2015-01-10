@@ -46,16 +46,38 @@ namespace v8 {
           return type == VAL32 || type == UINT32;
         }
 
-        void Trace(JSRuntime* runtime, JSTracer* tracer) {
-          // Need to call ShouldTrace for weak callbacks
-          ShouldTrace();
-        }
-
       private:
         void classifyNumber();
 
         double value;
         NumberTag type;
+    };
+
+
+    // XXX NEED A NOTE HERE RE WHY NOT SM VERSIONS
+    //
+    class EXPORT_FOR_TESTING_ONLY V8Boolean: public V8Value {
+      public:
+        V8Boolean(bool val) : value(val) {}
+
+        bool Value() {
+          return value;
+        }
+
+        bool IsBoolean() const {
+          return true;
+        }
+
+        bool IsTrue() const {
+          return value;
+        }
+
+        bool IsFalse() const {
+          return !value;
+        }
+
+      private:
+        bool value;
     };
 
 

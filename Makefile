@@ -170,7 +170,7 @@ runtimeobjects = $(addsuffix .o, $(runtimestems))
 threadstems = $(addprefix src/threads/, locker)
 threadobjects = $(addsuffix .o, $(threadstems))
 
-typestems = $(addprefix src/types/, number value v8monkeyobject)
+typestems = $(addprefix src/types/, number primitives value v8monkeyobject)
 typeobjects = $(addsuffix .o, $(typestems))
 
 allstems = $(enginestems) $(runtimestems) $(threadstems) $(typestems)
@@ -353,7 +353,7 @@ visibility_changes: src/test.h
 # Testsuites
 
 # The test harness is composed from the following
-teststems = death handlescope init isolate locker number threadID version
+teststems = death handlescope init isolate locker number primitives threadID version
 testfiles = $(addprefix test/api/test_, $(teststems))
 testsources = $(addsuffix .cpp, $(testfiles))
 testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))

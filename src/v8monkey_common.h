@@ -26,6 +26,13 @@ namespace v8 {
         // the thread running static initializers has that isolate pointer in TLS. Must be called after InitTLSKeys.
         static void EnsureDefaultIsolate();
 
+        // Intended to be called only by the static initializer to ensure that the primitive singletons (i.e. true,
+        // false etc) exist.
+        static void InitPrimitiveSingletons();
+
+        // Intended to be called only by the static initializer's destructor to clean up singleton primitives
+        static void TearDownPrimitiveSingletons();
+
         // Ensure TLS destructor for default isolate doesn't run after main thread exit
         static void ClearOutMainThreadIsolateTLS();
 

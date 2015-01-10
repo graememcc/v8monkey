@@ -16,13 +16,13 @@ namespace {
 
 
   /*
-   * Builds a SMValue containing a SpiderMonkey JS::Value which represents the given number.
+   * Builds a V8Number which represents the given number.
    *
    * Note that, whilst both V8 and SpiderMonkey APIs have notions of arbitrary IEEE 754 double-precision numbers and
-   * Int32s, only V8 additionally exposes Uint32s. This presents a minor book-keeping headache: we can either create
-   * the corresponding SpiderMonkey objects from doubles, or create from real doubles and int32s where appropriate,
-   * and flip the sign back and forth to create Uint32s using int32s. We opt for just creating doubles, and figuring
-   * out the V8 type at this level.
+   * Int32s, only V8 additionally exposes Uint32s. This presents a minor book-keeping headache, particularly if we were
+   * to take the approach of wrapping a SpiderMonkey JS::Value, as we would be constantly checking to see if the value
+   * fits in 31 bits, in order to choose the correct accessor. Instead, we just create our own objects, handling such
+   * complications at this level. We lazily create SpiderMonkey equivalents as required.
    *
    */
 

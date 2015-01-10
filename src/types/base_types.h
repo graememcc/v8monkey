@@ -143,6 +143,12 @@ namespace v8 {
 
         bool StrictEquals(Handle<Value> that) const;
         */
+
+
+        virtual void Trace(JSRuntime* runtime, JSTracer* tracer) {
+          // Need to call ShouldTrace for weak callbacks
+          ShouldTrace();
+        }
     };
 
 

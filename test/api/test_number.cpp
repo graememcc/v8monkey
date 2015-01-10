@@ -10,23 +10,7 @@
 using namespace v8;
 
 
-V8MONKEY_TEST(Number001, "Value works correctly") {
-  double d = 123.45;
-  V8::Initialize();
-
-  {
-    HandleScope h;
-    Local<Number> n = Number::New(d);
-
-    V8MONKEY_CHECK(n->Value() == d, "Value correct");
-  }
-
-  Isolate::GetCurrent()->Exit();
-  V8::Dispose();
-}
-
-
-V8MONKEY_TEST(Number002, "IsUndefined works correctly") {
+V8MONKEY_TEST(Number001, "IsUndefined works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -42,7 +26,7 @@ V8MONKEY_TEST(Number002, "IsUndefined works correctly") {
 }
 
 
-V8MONKEY_TEST(Number003, "IsNull works correctly") {
+V8MONKEY_TEST(Number002, "IsNull works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -58,7 +42,7 @@ V8MONKEY_TEST(Number003, "IsNull works correctly") {
 }
 
 
-V8MONKEY_TEST(Number004, "IsTrue works correctly") {
+V8MONKEY_TEST(Number003, "IsTrue works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -74,7 +58,7 @@ V8MONKEY_TEST(Number004, "IsTrue works correctly") {
 }
 
 
-V8MONKEY_TEST(Number005, "IsFalse works correctly") {
+V8MONKEY_TEST(Number004, "IsFalse works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -90,7 +74,7 @@ V8MONKEY_TEST(Number005, "IsFalse works correctly") {
 }
 
 
-V8MONKEY_TEST(Number006, "IsString works correctly") {
+V8MONKEY_TEST(Number005, "IsString works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -106,7 +90,7 @@ V8MONKEY_TEST(Number006, "IsString works correctly") {
 }
 
 
-V8MONKEY_TEST(Number007, "IsFunction works correctly") {
+V8MONKEY_TEST(Number006, "IsFunction works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -122,7 +106,7 @@ V8MONKEY_TEST(Number007, "IsFunction works correctly") {
 }
 
 
-V8MONKEY_TEST(Number008, "IsArray works correctly") {
+V8MONKEY_TEST(Number007, "IsArray works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -138,7 +122,7 @@ V8MONKEY_TEST(Number008, "IsArray works correctly") {
 }
 
 
-V8MONKEY_TEST(Number009, "IsObject works correctly") {
+V8MONKEY_TEST(Number008, "IsObject works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -154,7 +138,7 @@ V8MONKEY_TEST(Number009, "IsObject works correctly") {
 }
 
 
-V8MONKEY_TEST(Number010, "IsBoolean works correctly") {
+V8MONKEY_TEST(Number009, "IsBoolean works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -169,23 +153,7 @@ V8MONKEY_TEST(Number010, "IsBoolean works correctly") {
 }
 
 
-V8MONKEY_TEST(Number011, "IsNumber works correctly") {
-  double d = 123.45;
-  V8::Initialize();
-
-  {
-    HandleScope h;
-    Local<Number> n = Number::New(d);
-
-    V8MONKEY_CHECK(n->IsNumber(), "IsNumber reports correct result");
-  }
-
-  Isolate::GetCurrent()->Exit();
-  V8::Dispose();
-}
-
-
-V8MONKEY_TEST(Number012, "IsExternal works correctly") {
+V8MONKEY_TEST(Number010, "IsExternal works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -201,7 +169,7 @@ V8MONKEY_TEST(Number012, "IsExternal works correctly") {
 }
 
 
-V8MONKEY_TEST(Number013, "IsDate works correctly") {
+V8MONKEY_TEST(Number011, "IsDate works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -217,7 +185,7 @@ V8MONKEY_TEST(Number013, "IsDate works correctly") {
 }
 
 
-V8MONKEY_TEST(Number014, "IsBooleanObject works correctly") {
+V8MONKEY_TEST(Number012, "IsBooleanObject works correctly") {
   double d = 123.45;
 
   V8::Initialize();
@@ -233,7 +201,7 @@ V8MONKEY_TEST(Number014, "IsBooleanObject works correctly") {
 }
 
 
-V8MONKEY_TEST(Number015, "IsNumberObject works correctly") {
+V8MONKEY_TEST(Number013, "IsNumberObject works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -249,7 +217,7 @@ V8MONKEY_TEST(Number015, "IsNumberObject works correctly") {
 }
 
 
-V8MONKEY_TEST(Number016, "IsStringObject works correctly") {
+V8MONKEY_TEST(Number014, "IsStringObject works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -265,7 +233,7 @@ V8MONKEY_TEST(Number016, "IsStringObject works correctly") {
 }
 
 
-V8MONKEY_TEST(Number017, "IsNativeError works correctly") {
+V8MONKEY_TEST(Number015, "IsNativeError works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -281,7 +249,7 @@ V8MONKEY_TEST(Number017, "IsNativeError works correctly") {
 }
 
 
-V8MONKEY_TEST(Number018, "IsRegExp works correctly") {
+V8MONKEY_TEST(Number016, "IsRegExp works correctly") {
   double d = 123.45;
   V8::Initialize();
 
@@ -297,24 +265,8 @@ V8MONKEY_TEST(Number018, "IsRegExp works correctly") {
 }
 
 
-V8MONKEY_TEST(Number019, "Works correctly for NaN") {
-  double d = std::numeric_limits<double>::quiet_NaN();
-  V8::Initialize();
-
-  {
-    HandleScope h;
-    Local<Number> n = Number::New(d);
-
-    V8MONKEY_CHECK(std::isnan(n->Value()), "NaN works correctly");
-  }
-
-  Isolate::GetCurrent()->Exit();
-  V8::Dispose();
-}
-
-
-#define NUMBERISINT32TEST(testNumber, variant, val, expected) \
-V8MONKEY_TEST(Number##testNumber, "IsInt32 works correctly (" #variant ")") { \
+#define NUMBERISTEST(testNumber, variant, val, method, expected) \
+V8MONKEY_TEST(Number##testNumber, #method " works correctly (" #variant ")") { \
   V8::Initialize(); \
 \
   { \
@@ -322,7 +274,7 @@ V8MONKEY_TEST(Number##testNumber, "IsInt32 works correctly (" #variant ")") { \
     double value = val; \
     Local<Value> n = Number::New(value); \
 \
-    V8MONKEY_CHECK(n->IsInt32() == expected, "Correct value returned"); \
+    V8MONKEY_CHECK(n->method() == expected, "Correct value returned"); \
   } \
  \
   Isolate::GetCurrent()->Exit(); \
@@ -330,49 +282,44 @@ V8MONKEY_TEST(Number##testNumber, "IsInt32 works correctly (" #variant ")") { \
 }
 
 
-NUMBERISINT32TEST(020, 1, 123.45, false)
-NUMBERISINT32TEST(021, 2, 123.65, false)
-NUMBERISINT32TEST(022, 3, -123.45, false)
-NUMBERISINT32TEST(023, 4, -123.67, false)
-NUMBERISINT32TEST(024, 5, 123, true)
-NUMBERISINT32TEST(025, 6, -1, true)
-NUMBERISINT32TEST(026, 7, 0xffffffff, false)
-NUMBERISINT32TEST(027, 8, -0.0, false)
-NUMBERISINT32TEST(028, 9, 0.0, true)
-NUMBERISINT32TEST(029, 10, std::numeric_limits<double>::infinity(), false)
-NUMBERISINT32TEST(030, 11, std::numeric_limits<double>::quiet_NaN(), false)
-#undef NUMBERISINT32TEST
+NUMBERISTEST(017, 1, 123.45, IsNumber, true)
+NUMBERISTEST(018, 2, 123.65, IsNumber, true)
+NUMBERISTEST(019, 3, -123.45, IsNumber, true)
+NUMBERISTEST(020, 4, -123.67, IsNumber, true)
+NUMBERISTEST(021, 5, 123, IsNumber, true)
+NUMBERISTEST(022, 6, -1, IsNumber, true)
+NUMBERISTEST(023, 7, 0xffffffff, IsNumber, true)
+NUMBERISTEST(024, 8, -0.0, IsNumber, true)
+NUMBERISTEST(025, 9, 0.0, IsNumber, true)
+NUMBERISTEST(026, 10, std::numeric_limits<double>::infinity(), IsNumber, true)
+NUMBERISTEST(027, 11, std::numeric_limits<double>::quiet_NaN(), IsNumber, true)
 
 
-#define NUMBERISUINT32TEST(testNumber, variant, val, expected) \
-V8MONKEY_TEST(Number##testNumber, "IsUint32 works correctly (" #variant ")") { \
-  V8::Initialize(); \
-\
-  { \
-    HandleScope h; \
-    double value = val; \
-    Local<Value> n = Number::New(value); \
-\
-    V8MONKEY_CHECK(n->IsUint32() == expected, "Correct value returned"); \
-  } \
- \
-  Isolate::GetCurrent()->Exit(); \
-  V8::Dispose(); \
-}
+NUMBERISTEST(028, 1, 123.45, IsInt32, false)
+NUMBERISTEST(029, 2, 123.65, IsInt32, false)
+NUMBERISTEST(030, 3, -123.45, IsInt32, false)
+NUMBERISTEST(031, 4, -123.67, IsInt32, false)
+NUMBERISTEST(032, 5, 123, IsInt32, true)
+NUMBERISTEST(033, 6, -1, IsInt32, true)
+NUMBERISTEST(034, 7, 0xffffffff, IsInt32, false)
+NUMBERISTEST(035, 8, -0.0, IsInt32, false)
+NUMBERISTEST(036, 9, 0.0, IsInt32, true)
+NUMBERISTEST(037, 10, std::numeric_limits<double>::infinity(), IsInt32, false)
+NUMBERISTEST(038, 11, std::numeric_limits<double>::quiet_NaN(), IsInt32, false)
 
 
-NUMBERISUINT32TEST(031, 1, 123.45, false)
-NUMBERISUINT32TEST(032, 2, 123.65, false)
-NUMBERISUINT32TEST(033, 3, -123.45, false)
-NUMBERISUINT32TEST(034, 4, -123.67, false)
-NUMBERISUINT32TEST(035, 5, 123, true)
-NUMBERISUINT32TEST(036, 6, -1, false)
-NUMBERISUINT32TEST(037, 7, 0xffffffff, true)
-NUMBERISUINT32TEST(038, 8, -0.0, false)
-NUMBERISUINT32TEST(039, 9, 0.0, true)
-NUMBERISUINT32TEST(040, 10, std::numeric_limits<double>::infinity(), false)
-NUMBERISUINT32TEST(041, 11, std::numeric_limits<double>::quiet_NaN(), false)
-#undef NUMBERISUINT32TEST
+NUMBERISTEST(039, 1, 123.45, IsUint32, false)
+NUMBERISTEST(040, 2, 123.65, IsUint32, false)
+NUMBERISTEST(041, 3, -123.45, IsUint32, false)
+NUMBERISTEST(042, 4, -123.67, IsUint32, false)
+NUMBERISTEST(043, 5, 123, IsUint32, true)
+NUMBERISTEST(044, 6, -1, IsUint32, false)
+NUMBERISTEST(045, 7, 0xffffffff, IsUint32, true)
+NUMBERISTEST(046, 8, -0.0, IsUint32, false)
+NUMBERISTEST(047, 9, 0.0, IsUint32, true)
+NUMBERISTEST(048, 10, std::numeric_limits<double>::infinity(), IsUint32, false)
+NUMBERISTEST(049, 11, std::numeric_limits<double>::quiet_NaN(), IsUint32, false)
+#undef NUMBERISTEST
 
 
 #define NUMBERVALUETEST(testNumber, variant, val) \
@@ -392,20 +339,20 @@ V8MONKEY_TEST(Number##testNumber, "Value works correctly (" #variant ")") { \
 }
 
 
-NUMBERVALUETEST(042, 1, 123.45)
-NUMBERVALUETEST(043, 2, 123.65)
-NUMBERVALUETEST(044, 3, -123.45)
-NUMBERVALUETEST(045, 4, -123.67)
-NUMBERVALUETEST(046, 5, 123)
-NUMBERVALUETEST(047, 6, -1)
-NUMBERVALUETEST(048, 7, 0xffffffff)
-NUMBERVALUETEST(049, 8, -0.0)
-NUMBERVALUETEST(050, 9, 0.0)
-NUMBERVALUETEST(051, 10, std::numeric_limits<double>::infinity())
+NUMBERVALUETEST(050, 1, 123.45)
+NUMBERVALUETEST(051, 2, 123.65)
+NUMBERVALUETEST(052, 3, -123.45)
+NUMBERVALUETEST(053, 4, -123.67)
+NUMBERVALUETEST(054, 5, 123)
+NUMBERVALUETEST(055, 6, -1)
+NUMBERVALUETEST(056, 7, 0xffffffff)
+NUMBERVALUETEST(057, 8, -0.0)
+NUMBERVALUETEST(058, 9, 0.0)
+NUMBERVALUETEST(059, 10, std::numeric_limits<double>::infinity())
 #undef NUMBERVALUETEST
 
 
-V8MONKEY_TEST(Number052, "Value works correctly (10)") {
+V8MONKEY_TEST(Number060, "Value works correctly (10)") {
   V8::Initialize();
 
   {
@@ -438,20 +385,20 @@ V8MONKEY_TEST(Number##testNumber, "NumberValue works correctly (" #variant ")") 
 }
 
 
-NUMBERNUMBERVALUETEST(053, 1, 123.45)
-NUMBERNUMBERVALUETEST(054, 2, 123.65)
-NUMBERNUMBERVALUETEST(055, 3, -123.45)
-NUMBERNUMBERVALUETEST(056, 4, -123.67)
-NUMBERNUMBERVALUETEST(057, 5, 123)
-NUMBERNUMBERVALUETEST(058, 6, -1)
-NUMBERNUMBERVALUETEST(059, 7, 0xffffffff)
-NUMBERNUMBERVALUETEST(060, 8, -0.0)
-NUMBERNUMBERVALUETEST(061, 9, 0.0)
-NUMBERNUMBERVALUETEST(062, 10, std::numeric_limits<double>::infinity())
+NUMBERNUMBERVALUETEST(061, 1, 123.45)
+NUMBERNUMBERVALUETEST(062, 2, 123.65)
+NUMBERNUMBERVALUETEST(063, 3, -123.45)
+NUMBERNUMBERVALUETEST(064, 4, -123.67)
+NUMBERNUMBERVALUETEST(065, 5, 123)
+NUMBERNUMBERVALUETEST(066, 6, -1)
+NUMBERNUMBERVALUETEST(067, 7, 0xffffffff)
+NUMBERNUMBERVALUETEST(068, 8, -0.0)
+NUMBERNUMBERVALUETEST(069, 9, 0.0)
+NUMBERNUMBERVALUETEST(070, 10, std::numeric_limits<double>::infinity())
 #undef NUMBERNUMBERVALUETEST
 
 
-V8MONKEY_TEST(Number063, "NumberValue works correctly (10)") {
+V8MONKEY_TEST(Number071, "NumberValue works correctly (10)") {
   V8::Initialize();
 
   {
@@ -486,20 +433,20 @@ V8MONKEY_TEST(Number##testNumber, "ToNumber works correctly (" #variant ")") { \
 }
 
 
-NUMBERTONUMBERTEST(064, 1, 123.45)
-NUMBERTONUMBERTEST(065, 2, 123.65)
-NUMBERTONUMBERTEST(066, 3, -123.45)
-NUMBERTONUMBERTEST(067, 4, -123.67)
-NUMBERTONUMBERTEST(068, 5, 123)
-NUMBERTONUMBERTEST(069, 6, -1)
-NUMBERTONUMBERTEST(070, 7, 0xffffffff)
-NUMBERTONUMBERTEST(071, 8, -0.0)
-NUMBERTONUMBERTEST(072, 9, 0.0)
-NUMBERTONUMBERTEST(073, 10, std::numeric_limits<double>::infinity())
+NUMBERTONUMBERTEST(072, 1, 123.45)
+NUMBERTONUMBERTEST(073, 2, 123.65)
+NUMBERTONUMBERTEST(074, 3, -123.45)
+NUMBERTONUMBERTEST(075, 4, -123.67)
+NUMBERTONUMBERTEST(076, 5, 123)
+NUMBERTONUMBERTEST(077, 6, -1)
+NUMBERTONUMBERTEST(078, 7, 0xffffffff)
+NUMBERTONUMBERTEST(079, 8, -0.0)
+NUMBERTONUMBERTEST(080, 9, 0.0)
+NUMBERTONUMBERTEST(081, 10, std::numeric_limits<double>::infinity())
 #undef NUMBERTONUMBERTEST
 
 
-V8MONKEY_TEST(Number074, "ToNumber works correctly (10)") {
+V8MONKEY_TEST(Number082, "ToNumber works correctly (10)") {
   V8::Initialize();
 
   {
@@ -516,16 +463,16 @@ V8MONKEY_TEST(Number074, "ToNumber works correctly (10)") {
 }
 
 
-#define NUMBERINTEGERVALUETEST(testNumber, variant, val, expected) \
-V8MONKEY_TEST(Number##testNumber, "IntegerValue works correctly (" #variant ")") { \
+#define NUMBERNUMERICVALUETEST(testNumber, variant, val, method, expected) \
+V8MONKEY_TEST(Number##testNumber, #method " works correctly (" #variant ")") { \
   V8::Initialize(); \
 \
   { \
     HandleScope h; \
     double value = val; \
-    Local<Value> n = Number::New(value); \
+    Local<Number> n = Number::New(value); \
 \
-    V8MONKEY_CHECK(n->IntegerValue() == expected, "Correct value returned"); \
+    V8MONKEY_CHECK(n->method() == expected, "Correct value returned"); \
   } \
  \
   Isolate::GetCurrent()->Exit(); \
@@ -533,31 +480,70 @@ V8MONKEY_TEST(Number##testNumber, "IntegerValue works correctly (" #variant ")")
 }
 
 
-NUMBERINTEGERVALUETEST(075, 1, 123.45, 123)
-NUMBERINTEGERVALUETEST(076, 2, 123.65, 123)
-NUMBERINTEGERVALUETEST(077, 3, -123.45, -123)
-NUMBERINTEGERVALUETEST(078, 4, -123.67, -123)
-NUMBERINTEGERVALUETEST(079, 5, 123, 123)
-NUMBERINTEGERVALUETEST(080, 6, -1, -1)
-NUMBERINTEGERVALUETEST(081, 7, 0xffffffff, 0xffffffff)
-NUMBERINTEGERVALUETEST(082, 8, -0.0, 0)
-NUMBERINTEGERVALUETEST(083, 9, 0.0, 0)
-NUMBERINTEGERVALUETEST(084, 10, std::numeric_limits<double>::infinity(), static_cast<int64_t>(0x8000000000000000))
-NUMBERINTEGERVALUETEST(085, 11, std::numeric_limits<double>::quiet_NaN(), static_cast<int64_t>(0x8000000000000000))
-#undef NUMBERINTEGERVALUETEST
+NUMBERNUMERICVALUETEST(083, 1, 123.45, IntegerValue, 123)
+NUMBERNUMERICVALUETEST(084, 2, 123.65, IntegerValue, 123)
+NUMBERNUMERICVALUETEST(085, 3, -123.45, IntegerValue, -123)
+NUMBERNUMERICVALUETEST(086, 4, -123.67, IntegerValue, -123)
+NUMBERNUMERICVALUETEST(087, 5, 123, IntegerValue, 123)
+NUMBERNUMERICVALUETEST(088, 6, -1, IntegerValue, -1)
+NUMBERNUMERICVALUETEST(089, 7, 0xffffffff, IntegerValue, 0xffffffff)
+NUMBERNUMERICVALUETEST(090, 8, -0.0, IntegerValue, 0)
+NUMBERNUMERICVALUETEST(091, 9, 0.0, IntegerValue, 0)
+NUMBERNUMERICVALUETEST(092, 10, std::numeric_limits<double>::infinity(), IntegerValue, static_cast<int64_t>(0x8000000000000000))
+NUMBERNUMERICVALUETEST(093, 11, std::numeric_limits<double>::quiet_NaN(), IntegerValue, static_cast<int64_t>(0x8000000000000000))
 
 
-#define NUMBERTOINTEGERTEST(testNumber, variant, val, isSame) \
-V8MONKEY_TEST(Number##testNumber, "ToInteger works correctly (" #variant ")") { \
+NUMBERNUMERICVALUETEST(094, 1, 123.45,Int32Value,  123)
+NUMBERNUMERICVALUETEST(095, 2, 123.65, Int32Value, 123)
+NUMBERNUMERICVALUETEST(096, 3, -123.45, Int32Value, -123)
+NUMBERNUMERICVALUETEST(097, 4, -123.67, Int32Value, -123)
+NUMBERNUMERICVALUETEST(098, 5, 123, Int32Value, 123)
+NUMBERNUMERICVALUETEST(099, 6, -1, Int32Value, -1)
+NUMBERNUMERICVALUETEST(100, 7, 0xffffffff, Int32Value, -1)
+NUMBERNUMERICVALUETEST(101, 8, -0.0, Int32Value, 0)
+NUMBERNUMERICVALUETEST(102, 9, 0.0, Int32Value,  0)
+NUMBERNUMERICVALUETEST(103, 10, std::numeric_limits<double>::infinity(), Int32Value, 0)
+NUMBERNUMERICVALUETEST(104, 11, std::numeric_limits<double>::quiet_NaN(), Int32Value, 0)
+
+
+NUMBERNUMERICVALUETEST(105, 1, 123.45, Uint32Value, 123)
+NUMBERNUMERICVALUETEST(106, 2, 123.65, Uint32Value, 123)
+NUMBERNUMERICVALUETEST(107, 3, -123.45, Uint32Value, 0xffffff85)
+NUMBERNUMERICVALUETEST(108, 4, -123.67, Uint32Value, 0xffffff85)
+NUMBERNUMERICVALUETEST(109, 5, 123, Uint32Value, 123)
+NUMBERNUMERICVALUETEST(110, 6, -1, Uint32Value, 0xffffffff)
+NUMBERNUMERICVALUETEST(111, 7, 0xffffffff, Uint32Value, 0xffffffff)
+NUMBERNUMERICVALUETEST(112, 8, -0.0, Uint32Value, 0)
+NUMBERNUMERICVALUETEST(113, 9, 0.0, Uint32Value, 0)
+NUMBERNUMERICVALUETEST(114, 10, std::numeric_limits<double>::infinity(), Uint32Value, 0)
+NUMBERNUMERICVALUETEST(115, 11, std::numeric_limits<double>::quiet_NaN(), Uint32Value, 0)
+
+
+NUMBERNUMERICVALUETEST(116, 1, 123.45, BooleanValue, true)
+NUMBERNUMERICVALUETEST(117, 2, 123.65, BooleanValue, true)
+NUMBERNUMERICVALUETEST(118, 3, -123.45, BooleanValue, true)
+NUMBERNUMERICVALUETEST(119, 4, -123.67, BooleanValue, true)
+NUMBERNUMERICVALUETEST(120, 5, 123, BooleanValue, true)
+NUMBERNUMERICVALUETEST(121, 6, -1, BooleanValue, true)
+NUMBERNUMERICVALUETEST(122, 7, 0xffffffff, BooleanValue, true)
+NUMBERNUMERICVALUETEST(123, 8, -0.0, BooleanValue, false)
+NUMBERNUMERICVALUETEST(124, 9, 0.0, BooleanValue, false)
+NUMBERNUMERICVALUETEST(125, 10, std::numeric_limits<double>::infinity(), BooleanValue, true)
+NUMBERNUMERICVALUETEST(126, 11, std::numeric_limits<double>::quiet_NaN(), BooleanValue, 0)
+#undef NUMBERNUMERICVALUETEST
+
+
+#define NUMBERTOTYPETEST(testNumber, variant, val, type, isSame) \
+V8MONKEY_TEST(Number##testNumber, "To" #type " works correctly (" #variant ")") { \
   V8::Initialize(); \
 \
   { \
     HandleScope h; \
     double value = val; \
     Local<Value> n = Number::New(value); \
-    Local<Integer> n2 = n->ToInteger(); \
+    Local<type> n2 = n->To##type(); \
 \
-    V8MONKEY_CHECK(n2->Value() == n->IntegerValue(), "Correct value returned"); \
+    V8MONKEY_CHECK(n2->Value() == n->type##Value(), "Correct value returned"); \
     V8MONKEY_CHECK((n2 == n) == isSame, "New object returned"); \
   } \
  \
@@ -566,146 +552,57 @@ V8MONKEY_TEST(Number##testNumber, "ToInteger works correctly (" #variant ")") { 
 }
 
 
-NUMBERTOINTEGERTEST(086, 1, 123.45, false)
-NUMBERTOINTEGERTEST(087, 2, 123.65, false)
-NUMBERTOINTEGERTEST(088, 3, -123.45, false)
-NUMBERTOINTEGERTEST(089, 4, -123.67, false)
-NUMBERTOINTEGERTEST(090, 5, 123, true)
-NUMBERTOINTEGERTEST(091, 6, -1, true)
-NUMBERTOINTEGERTEST(092, 7, 0xffffffff, false)
-NUMBERTOINTEGERTEST(093, 8, -0.0, false)
-NUMBERTOINTEGERTEST(094, 9, 0.0, true)
-NUMBERTOINTEGERTEST(095, 10, std::numeric_limits<double>::infinity(), false)
-NUMBERTOINTEGERTEST(096, 11, std::numeric_limits<double>::quiet_NaN(), false)
-#undef NUMBERTOINTEGERTEST
+NUMBERTOTYPETEST(127, 1, 123.45, Integer, false)
+NUMBERTOTYPETEST(128, 2, 123.65, Integer, false)
+NUMBERTOTYPETEST(129, 3, -123.45, Integer, false)
+NUMBERTOTYPETEST(130, 4, -123.67, Integer, false)
+NUMBERTOTYPETEST(131, 5, 123, Integer, true)
+NUMBERTOTYPETEST(132, 6, -1, Integer, true)
+NUMBERTOTYPETEST(133, 7, 0xffffffff, Integer, false)
+NUMBERTOTYPETEST(134, 8, -0.0, Integer, false)
+NUMBERTOTYPETEST(135, 9, 0.0, Integer, true)
+NUMBERTOTYPETEST(136, 10, std::numeric_limits<double>::infinity(), Integer, false)
+NUMBERTOTYPETEST(137, 11, std::numeric_limits<double>::quiet_NaN(), Integer, false)
 
 
-#define NUMBERINT32VALUETEST(testNumber, variant, val, expected) \
-V8MONKEY_TEST(Number##testNumber, "Int32Value works correctly (" #variant ")") { \
-  V8::Initialize(); \
-\
-  { \
-    HandleScope h; \
-    double value = val; \
-    Local<Value> n = Number::New(value); \
-\
-    V8MONKEY_CHECK(n->Int32Value() == expected, "Correct value returned"); \
-  } \
- \
-  Isolate::GetCurrent()->Exit(); \
-  V8::Dispose(); \
-}
+NUMBERTOTYPETEST(138, 1, 123.45, Int32, false)
+NUMBERTOTYPETEST(139, 2, 123.65, Int32, false)
+NUMBERTOTYPETEST(140, 3, -123.45, Int32, false)
+NUMBERTOTYPETEST(141, 4, -123.67, Int32, false)
+NUMBERTOTYPETEST(142, 5, 123, Int32, true)
+NUMBERTOTYPETEST(143, 6, -1, Int32, true)
+NUMBERTOTYPETEST(144, 7, 0xffffffff, Int32, false)
+NUMBERTOTYPETEST(145, 8, -0.0, Int32, false)
+NUMBERTOTYPETEST(146, 9, 0.0, Int32, true)
+NUMBERTOTYPETEST(147, 10, std::numeric_limits<double>::infinity(), Int32, false)
+NUMBERTOTYPETEST(148, 11, std::numeric_limits<double>::quiet_NaN(), Int32, false)
 
 
-NUMBERINT32VALUETEST(097, 1, 123.45, 123)
-NUMBERINT32VALUETEST(098, 2, 123.65, 123)
-NUMBERINT32VALUETEST(099, 3, -123.45, -123)
-NUMBERINT32VALUETEST(100, 4, -123.67, -123)
-NUMBERINT32VALUETEST(101, 5, 123, 123)
-NUMBERINT32VALUETEST(102, 6, -1, -1)
-NUMBERINT32VALUETEST(103, 7, 0xffffffff, -1)
-NUMBERINT32VALUETEST(104, 8, -0.0, 0)
-NUMBERINT32VALUETEST(105, 9, 0.0, 0)
-NUMBERINT32VALUETEST(106, 10, std::numeric_limits<double>::infinity(), 0)
-NUMBERINT32VALUETEST(107, 11, std::numeric_limits<double>::quiet_NaN(), 0)
-#undef NUMBERINT32VALUETEST
+NUMBERTOTYPETEST(149, 1, 123.45, Uint32, false)
+NUMBERTOTYPETEST(150, 2, 123.65, Uint32, false)
+NUMBERTOTYPETEST(151, 3, -123.45, Uint32, false)
+NUMBERTOTYPETEST(152, 4, -123.67, Uint32, false)
+NUMBERTOTYPETEST(153, 5, 123, Uint32, true)
+NUMBERTOTYPETEST(154, 6, -1, Uint32, true)
+NUMBERTOTYPETEST(155, 7, 0xffffffff, Uint32, false)
+NUMBERTOTYPETEST(156, 8, -0.0, Uint32, false)
+NUMBERTOTYPETEST(157, 9, 0.0, Uint32, true)
+NUMBERTOTYPETEST(158, 10, std::numeric_limits<double>::infinity(), Uint32, false)
+NUMBERTOTYPETEST(159, 11, std::numeric_limits<double>::quiet_NaN(), Uint32, false)
 
 
-#define NUMBERTOINT32TEST(testNumber, variant, val, isSame) \
-V8MONKEY_TEST(Number##testNumber, "ToInt32 works correctly (" #variant ")") { \
-  V8::Initialize(); \
-\
-  { \
-    HandleScope h; \
-    double value = val; \
-    Local<Value> n = Number::New(value); \
-    Local<Int32> n2 = n->ToInt32(); \
-\
-    V8MONKEY_CHECK(n2->Value() == n->Int32Value(), "Correct value returned"); \
-    V8MONKEY_CHECK((n2 == n) == isSame, "New object returned"); \
-  } \
- \
-  Isolate::GetCurrent()->Exit(); \
-  V8::Dispose(); \
-}
-
-
-NUMBERTOINT32TEST(108, 1, 123.45, false)
-NUMBERTOINT32TEST(109, 2, 123.65, false)
-NUMBERTOINT32TEST(110, 3, -123.45, false)
-NUMBERTOINT32TEST(111, 4, -123.67, false)
-NUMBERTOINT32TEST(112, 5, 123, true)
-NUMBERTOINT32TEST(113, 6, -1, true)
-NUMBERTOINT32TEST(114, 7, 0xffffffff, false)
-NUMBERTOINT32TEST(115, 8, -0.0, false)
-NUMBERTOINT32TEST(116, 9, 0.0, true)
-NUMBERTOINT32TEST(117, 10, std::numeric_limits<double>::infinity(), false)
-NUMBERTOINT32TEST(118, 11, std::numeric_limits<double>::quiet_NaN(), false)
-#undef NUMBERTOINT32TEST
-
-
-#define NUMBERUINT32VALUETEST(testNumber, variant, val, expected) \
-V8MONKEY_TEST(Number##testNumber, "Uint32Value works correctly (" #variant ")") { \
-  V8::Initialize(); \
-\
-  { \
-    HandleScope h; \
-    double value = val; \
-    Local<Value> n = Number::New(value); \
-\
-    V8MONKEY_CHECK(n->Uint32Value() == expected, "Correct value returned"); \
-  } \
- \
-  Isolate::GetCurrent()->Exit(); \
-  V8::Dispose(); \
-}
-
-
-NUMBERUINT32VALUETEST(119, 1, 123.45, 123)
-NUMBERUINT32VALUETEST(120, 2, 123.65, 123)
-NUMBERUINT32VALUETEST(121, 3, -123.45, 0xffffff85)
-NUMBERUINT32VALUETEST(122, 4, -123.67, 0xffffff85)
-NUMBERUINT32VALUETEST(123, 5, 123, 123)
-NUMBERUINT32VALUETEST(124, 6, -1, 0xffffffff)
-NUMBERUINT32VALUETEST(125, 7, 0xffffffff, 0xffffffff)
-NUMBERUINT32VALUETEST(126, 8, -0.0, 0)
-NUMBERUINT32VALUETEST(127, 9, 0.0, 0)
-NUMBERUINT32VALUETEST(128, 10, std::numeric_limits<double>::infinity(), 0)
-NUMBERUINT32VALUETEST(129, 11, std::numeric_limits<double>::quiet_NaN(), 0)
-#undef NUMBERUINT32VALUETEST
-
-
-#define NUMBERTOUINT32TEST(testNumber, variant, val, isSame) \
-V8MONKEY_TEST(Number##testNumber, "ToUint32 works correctly (" #variant ")") { \
-  V8::Initialize(); \
-\
-  { \
-    HandleScope h; \
-    double value = val; \
-    Local<Value> n = Number::New(value); \
-    Local<Uint32> n2 = n->ToUint32(); \
-\
-    V8MONKEY_CHECK(n2->Value() == n->Uint32Value(), "Correct value returned"); \
-    V8MONKEY_CHECK((n2 == n) == isSame, "New object returned"); \
-  } \
- \
-  Isolate::GetCurrent()->Exit(); \
-  V8::Dispose(); \
-}
-
-
-NUMBERTOUINT32TEST(130, 1, 123.45, false)
-NUMBERTOUINT32TEST(131, 2, 123.65, false)
-NUMBERTOUINT32TEST(132, 3, -123.45, false)
-NUMBERTOUINT32TEST(133, 4, -123.67, false)
-NUMBERTOUINT32TEST(134, 5, 123, true)
-NUMBERTOUINT32TEST(135, 6, -1, true)
-NUMBERTOUINT32TEST(136, 7, 0xffffffff, false)
-NUMBERTOUINT32TEST(137, 8, -0.0, false)
-NUMBERTOUINT32TEST(138, 9, 0.0, true)
-NUMBERTOUINT32TEST(139, 10, std::numeric_limits<double>::infinity(), false)
-NUMBERTOUINT32TEST(140, 11, std::numeric_limits<double>::quiet_NaN(), false)
-#undef NUMBERTOUINT32TEST
+NUMBERTOTYPETEST(160, 1, 123.45, Boolean, false)
+NUMBERTOTYPETEST(161, 2, 123.65, Boolean, false)
+NUMBERTOTYPETEST(162, 3, -123.45, Boolean, false)
+NUMBERTOTYPETEST(163, 4, -123.67, Boolean, false)
+NUMBERTOTYPETEST(164, 5, 123, Boolean, false)
+NUMBERTOTYPETEST(165, 6, -1, Boolean, false)
+NUMBERTOTYPETEST(166, 7, 0xffffffff, Boolean, false)
+NUMBERTOTYPETEST(167, 8, -0.0, Boolean, false)
+NUMBERTOTYPETEST(168, 9, 0.0, Boolean, false)
+NUMBERTOTYPETEST(169, 10, std::numeric_limits<double>::infinity(), Boolean, false)
+NUMBERTOTYPETEST(170, 11, std::numeric_limits<double>::quiet_NaN(), Boolean, false)
+#undef NUMBERTOTYPETEST
 
 
 #define NUMBERTOARRAYINDEXEMPTYTEST(testNumber, variant, val, shouldBeEmpty) \
@@ -726,17 +623,17 @@ V8MONKEY_TEST(Number##testNumber, "ToArrayIndex works correctly (" #variant ")")
 }
 
 
-NUMBERTOARRAYINDEXEMPTYTEST(141, 1, 123.45, true)
-NUMBERTOARRAYINDEXEMPTYTEST(142, 2, 123.65, true)
-NUMBERTOARRAYINDEXEMPTYTEST(143, 3, -123.45, true)
-NUMBERTOARRAYINDEXEMPTYTEST(144, 4, -123.67, true)
-NUMBERTOARRAYINDEXEMPTYTEST(145, 5, 123, false)
-NUMBERTOARRAYINDEXEMPTYTEST(146, 6, -1, true)
-NUMBERTOARRAYINDEXEMPTYTEST(147, 7, 0xffffffff, false)
-NUMBERTOARRAYINDEXEMPTYTEST(148, 8, -0.0, false)
-NUMBERTOARRAYINDEXEMPTYTEST(149, 9, 0.0, false)
-NUMBERTOARRAYINDEXEMPTYTEST(150, 10, std::numeric_limits<double>::infinity(), true)
-NUMBERTOARRAYINDEXEMPTYTEST(151, 11, std::numeric_limits<double>::quiet_NaN(), true)
+NUMBERTOARRAYINDEXEMPTYTEST(171, 1, 123.45, true)
+NUMBERTOARRAYINDEXEMPTYTEST(172, 2, 123.65, true)
+NUMBERTOARRAYINDEXEMPTYTEST(173, 3, -123.45, true)
+NUMBERTOARRAYINDEXEMPTYTEST(174, 4, -123.67, true)
+NUMBERTOARRAYINDEXEMPTYTEST(175, 5, 123, false)
+NUMBERTOARRAYINDEXEMPTYTEST(176, 6, -1, true)
+NUMBERTOARRAYINDEXEMPTYTEST(177, 7, 0xffffffff, false)
+NUMBERTOARRAYINDEXEMPTYTEST(178, 8, -0.0, false)
+NUMBERTOARRAYINDEXEMPTYTEST(179, 9, 0.0, false)
+NUMBERTOARRAYINDEXEMPTYTEST(180, 10, std::numeric_limits<double>::infinity(), true)
+NUMBERTOARRAYINDEXEMPTYTEST(181, 11, std::numeric_limits<double>::quiet_NaN(), true)
 #undef NUMBERTOARRAYINDEXEMPTYTEST
 
 
@@ -758,10 +655,10 @@ V8MONKEY_TEST(Number##testNumber, "ToArrayIndex returns correct value (" #varian
 }
 
 
-NUMBERTOARRAYINDEXTEST(152, 1, 123, 123)
-NUMBERTOARRAYINDEXTEST(153, 2, 0xffffffff, 0xffffffff)
-NUMBERTOARRAYINDEXTEST(154, 3, -0.0, 0)
-NUMBERTOARRAYINDEXTEST(155, 4, 0.0, 0)
+NUMBERTOARRAYINDEXTEST(182, 1, 123, 123)
+NUMBERTOARRAYINDEXTEST(183, 2, 0xffffffff, 0xffffffff)
+NUMBERTOARRAYINDEXTEST(184, 3, -0.0, 0)
+NUMBERTOARRAYINDEXTEST(185, 4, 0.0, 0)
 #undef NUMBERTOARRAYINDEXTEST
 
 
@@ -783,10 +680,10 @@ V8MONKEY_TEST(Number##testNumber, "ToArrayIndex returns correct slot (" #variant
 }
 
 
-NUMBERTOARRAYINDEXSAMETEST(156, 1, 123, true)
-NUMBERTOARRAYINDEXSAMETEST(157, 2, 0xffffffff, false)
-NUMBERTOARRAYINDEXSAMETEST(158, 3, -0.0, false)
-NUMBERTOARRAYINDEXSAMETEST(159, 4, 0.0, true)
+NUMBERTOARRAYINDEXSAMETEST(186, 1, 123, true)
+NUMBERTOARRAYINDEXSAMETEST(187, 2, 0xffffffff, false)
+NUMBERTOARRAYINDEXSAMETEST(188, 3, -0.0, false)
+NUMBERTOARRAYINDEXSAMETEST(189, 4, 0.0, true)
 #undef NUMBERTOARRAYINDEXSAMETEST
 
 
@@ -812,19 +709,19 @@ V8MONKEY_TEST(Number##testNumber, "Equals works correctly (" #variant ")") { \
 }
 
 
-NUMBEREQUALTEST(160, 1, 123.45)
-NUMBEREQUALTEST(161, 2, 123.65)
-NUMBEREQUALTEST(162, 3, -123.45)
-NUMBEREQUALTEST(163, 4, -123.67)
-NUMBEREQUALTEST(164, 5, 123)
-NUMBEREQUALTEST(165, 6, -1)
-NUMBEREQUALTEST(166, 7, 0xffffffff)
-NUMBEREQUALTEST(167, 8, -0.0)
-NUMBEREQUALTEST(168, 9, 0.0)
+NUMBEREQUALTEST(190, 1, 123.45)
+NUMBEREQUALTEST(191, 2, 123.65)
+NUMBEREQUALTEST(192, 3, -123.45)
+NUMBEREQUALTEST(193, 4, -123.67)
+NUMBEREQUALTEST(194, 5, 123)
+NUMBEREQUALTEST(195, 6, -1)
+NUMBEREQUALTEST(196, 7, 0xffffffff)
+NUMBEREQUALTEST(197, 8, -0.0)
+NUMBEREQUALTEST(198, 9, 0.0)
 #undef NUMBEREQUALTEST
 
 
-V8MONKEY_TEST(Number169, "Equals works correctly (10)") {
+V8MONKEY_TEST(Number199, "Equals works correctly (10)") {
   V8::Initialize();
 
   {
@@ -844,7 +741,7 @@ V8MONKEY_TEST(Number169, "Equals works correctly (10)") {
 }
 
 
-V8MONKEY_TEST(Number170, "Equals works correctly (11)") {
+V8MONKEY_TEST(Number200, "Equals works correctly (11)") {
   V8::Initialize();
 
   {
@@ -855,6 +752,74 @@ V8MONKEY_TEST(Number170, "Equals works correctly (11)") {
 
     V8MONKEY_CHECK(!n->Equals(n), "Self-NaN equality works correctly");
     V8MONKEY_CHECK(!n->Equals(n2), "NaN Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Number201, "Equals works correctly (12)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = 1;
+    Local<Value> n = Number::New(value);
+    Handle<Value> n2 = Boolean::New(true);
+
+    V8MONKEY_CHECK(n->Equals(n2), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Number202, "Equals works correctly (13)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = 2;
+    Local<Value> n = Number::New(value);
+    Handle<Value> n2 = Boolean::New(true);
+
+    V8MONKEY_CHECK(!n->Equals(n2), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Number203, "Equals works correctly (14)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = 0;
+    Local<Value> n = Number::New(value);
+    Handle<Value> n2 = Boolean::New(false);
+
+    V8MONKEY_CHECK(n->Equals(n2), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Number204, "Equals works correctly (15)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = 1;
+    Local<Value> n = Number::New(value);
+    Handle<Value> n2 = Boolean::New(false);
+
+    V8MONKEY_CHECK(!n->Equals(n2), "Equality works correctly");
   }
 
   Isolate::GetCurrent()->Exit();
@@ -884,19 +849,19 @@ V8MONKEY_TEST(Number##testNumber, "StrictEquals works correctly (" #variant ")")
 }
 
 
-NUMBERSTRICTEQUALTEST(171, 1, 123.45)
-NUMBERSTRICTEQUALTEST(172, 2, 123.65)
-NUMBERSTRICTEQUALTEST(173, 3, -123.45)
-NUMBERSTRICTEQUALTEST(174, 4, -123.67)
-NUMBERSTRICTEQUALTEST(175, 5, 123)
-NUMBERSTRICTEQUALTEST(176, 6, -1)
-NUMBERSTRICTEQUALTEST(177, 7, 0xffffffff)
-NUMBERSTRICTEQUALTEST(178, 8, -0.0)
-NUMBERSTRICTEQUALTEST(179, 9, 0.0)
+NUMBERSTRICTEQUALTEST(205, 1, 123.45)
+NUMBERSTRICTEQUALTEST(206, 2, 123.65)
+NUMBERSTRICTEQUALTEST(207, 3, -123.45)
+NUMBERSTRICTEQUALTEST(208, 4, -123.67)
+NUMBERSTRICTEQUALTEST(209, 5, 123)
+NUMBERSTRICTEQUALTEST(210, 6, -1)
+NUMBERSTRICTEQUALTEST(211, 7, 0xffffffff)
+NUMBERSTRICTEQUALTEST(212, 8, -0.0)
+NUMBERSTRICTEQUALTEST(213, 9, 0.0)
 #undef NUMBERSTRICTEQUALTEST
 
 
-V8MONKEY_TEST(Number180, "StrictEquals works correctly (10)") {
+V8MONKEY_TEST(Number214, "StrictEquals works correctly (10)") {
   V8::Initialize();
 
   {
@@ -916,7 +881,7 @@ V8MONKEY_TEST(Number180, "StrictEquals works correctly (10)") {
 }
 
 
-V8MONKEY_TEST(Number181, "StrictEquals works correctly (11)") {
+V8MONKEY_TEST(Number215, "StrictEquals works correctly (11)") {
   V8::Initialize();
 
   {
@@ -927,6 +892,40 @@ V8MONKEY_TEST(Number181, "StrictEquals works correctly (11)") {
 
     V8MONKEY_CHECK(!n->StrictEquals(n), "Self-NaN equality works correctly");
     V8MONKEY_CHECK(!n->StrictEquals(n2), "NaN Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Number216, "StrictEquals works correctly (12)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = 1;
+    Local<Value> n = Number::New(value);
+    Handle<Value> n2 = Boolean::New(true);
+
+    V8MONKEY_CHECK(!n->StrictEquals(n2), "Strict equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Number217, "StrictEquals works correctly (13)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = 0;
+    Local<Value> n = Number::New(value);
+    Handle<Value> n2 = Boolean::New(false);
+
+    V8MONKEY_CHECK(!n->StrictEquals(n2), "Strict Equality works correctly");
   }
 
   Isolate::GetCurrent()->Exit();
@@ -1190,8 +1189,8 @@ V8MONKEY_TEST(Integer016, "IsRegExp works correctly") {
 }
 
 
-#define INTEGERISINT32TEST(testNumber, variant, val, constructor, expected) \
-V8MONKEY_TEST(Integer##testNumber, "IsInt32 works correctly (" #variant ")") { \
+#define INTEGERISTEST(testNumber, variant, val, constructor, method, expected) \
+V8MONKEY_TEST(Integer##testNumber, "Is" #method " works correctly (" #variant ")") { \
   V8::Initialize(); \
 \
   { \
@@ -1199,7 +1198,7 @@ V8MONKEY_TEST(Integer##testNumber, "IsInt32 works correctly (" #variant ")") { \
     int32_t value = val; \
     Local<Value> n = Integer::constructor(value); \
 \
-    V8MONKEY_CHECK(n->IsInt32() == expected, "Correct value returned"); \
+    V8MONKEY_CHECK(n->Is##method() == expected, "Correct value returned"); \
   } \
  \
   Isolate::GetCurrent()->Exit(); \
@@ -1207,39 +1206,29 @@ V8MONKEY_TEST(Integer##testNumber, "IsInt32 works correctly (" #variant ")") { \
 }
 
 
-INTEGERISINT32TEST(018, 1, 123, New, true)
-INTEGERISINT32TEST(019, 2, -1, New, true)
-INTEGERISINT32TEST(020, 3, 0, New, true)
-INTEGERISINT32TEST(021, 4, 123, NewFromUnsigned, true)
-INTEGERISINT32TEST(022, 5, 0xffffffff, NewFromUnsigned, false)
-INTEGERISINT32TEST(023, 6, 0, NewFromUnsigned, true)
-#undef INTEGERISINT32TEST
+INTEGERISTEST(018, 1, 123, New, Number, true)
+INTEGERISTEST(019, 2, -1, New, Number, true)
+INTEGERISTEST(020, 3, 0, New, Number, true)
+INTEGERISTEST(021, 4, 123, NewFromUnsigned, Number, true)
+INTEGERISTEST(022, 5, 0xffffffff, NewFromUnsigned, Number, true)
+INTEGERISTEST(023, 6, 0, NewFromUnsigned, Number, true)
 
 
-#define INTEGERISUINT32TEST(testNumber, variant, val, constructor, expected) \
-V8MONKEY_TEST(Integer##testNumber, "IsUint32 works correctly (" #variant ")") { \
-  V8::Initialize(); \
-\
-  { \
-    HandleScope h; \
-    int32_t value = val; \
-    Local<Value> n = Integer::constructor(value); \
-\
-    V8MONKEY_CHECK(n->IsUint32() == expected, "Correct value returned"); \
-  } \
- \
-  Isolate::GetCurrent()->Exit(); \
-  V8::Dispose(); \
-}
+INTEGERISTEST(024, 1, 123, New, Int32, true)
+INTEGERISTEST(025, 2, -1, New, Int32, true)
+INTEGERISTEST(026, 3, 0, New, Int32, true)
+INTEGERISTEST(027, 4, 123, NewFromUnsigned, Int32, true)
+INTEGERISTEST(028, 5, 0xffffffff, NewFromUnsigned, Int32, false)
+INTEGERISTEST(029, 6, 0, NewFromUnsigned, Int32, true)
 
 
-INTEGERISUINT32TEST(024, 1, 123, New, true)
-INTEGERISUINT32TEST(025, 2, -1, New, false)
-INTEGERISUINT32TEST(026, 3, 0, New, true)
-INTEGERISUINT32TEST(027, 4, 123, NewFromUnsigned, true)
-INTEGERISUINT32TEST(028, 5, 0xffffffff, NewFromUnsigned, true)
-INTEGERISUINT32TEST(029, 6, 0, NewFromUnsigned, true)
-#undef INTEGERISUINT32TEST
+INTEGERISTEST(030, 1, 123, New, Uint32, true)
+INTEGERISTEST(031, 2, -1, New, Uint32, false)
+INTEGERISTEST(032, 3, 0, New, Uint32, true)
+INTEGERISTEST(033, 4, 123, NewFromUnsigned, Uint32, true)
+INTEGERISTEST(034, 5, 0xffffffff, NewFromUnsigned, Uint32, true)
+INTEGERISTEST(035, 6, 0, NewFromUnsigned, Uint32, true)
+#undef INTEGERISTEST
 
 
 #define INTEGERVALUETEST(testNumber, variant, val, type, constructor) \
@@ -1259,12 +1248,12 @@ V8MONKEY_TEST(Integer##testNumber, "Value works correctly (" #variant ")") { \
 }
 
 
-INTEGERVALUETEST(030, 1, 123, int32_t, New)
-INTEGERVALUETEST(031, 2, -1, int32_t, New)
-INTEGERVALUETEST(032, 3, 0, int32_t, New)
-INTEGERVALUETEST(033, 4, 123, uint32_t, NewFromUnsigned)
-INTEGERVALUETEST(034, 5, 0xffffffff, uint32_t, NewFromUnsigned)
-INTEGERVALUETEST(035, 6, 0, uint32_t, NewFromUnsigned)
+INTEGERVALUETEST(036, 1, 123, int32_t, New)
+INTEGERVALUETEST(037, 2, -1, int32_t, New)
+INTEGERVALUETEST(038, 3, 0, int32_t, New)
+INTEGERVALUETEST(039, 4, 123, uint32_t, NewFromUnsigned)
+INTEGERVALUETEST(040, 5, 0xffffffff, uint32_t, NewFromUnsigned)
+INTEGERVALUETEST(041, 6, 0, uint32_t, NewFromUnsigned)
 #undef INTEGERVALUETEST
 
 
@@ -1285,16 +1274,16 @@ V8MONKEY_TEST(Integer##testNumber, "NumberValue works correctly (" #variant ")")
 }
 
 
-INTEGERNUMBERVALUETEST(036, 1, 123, New)
-INTEGERNUMBERVALUETEST(037, 2, -1, New)
-INTEGERNUMBERVALUETEST(038, 3, 0, New)
-INTEGERNUMBERVALUETEST(039, 4, 123, NewFromUnsigned)
-INTEGERNUMBERVALUETEST(040, 5, 0xffffffff, NewFromUnsigned)
-INTEGERNUMBERVALUETEST(041, 6, 0, NewFromUnsigned)
+INTEGERNUMBERVALUETEST(042, 1, 123, New)
+INTEGERNUMBERVALUETEST(043, 2, -1, New)
+INTEGERNUMBERVALUETEST(044, 3, 0, New)
+INTEGERNUMBERVALUETEST(045, 4, 123, NewFromUnsigned)
+INTEGERNUMBERVALUETEST(046, 5, 0xffffffff, NewFromUnsigned)
+INTEGERNUMBERVALUETEST(047, 6, 0, NewFromUnsigned)
 #undef INTEGERNUMBERVALUETEST
 
 
-V8MONKEY_TEST(Integer042, "NumberValue works correctly (7)") {
+V8MONKEY_TEST(Integer048, "NumberValue works correctly (7)") {
   V8::Initialize();
 
   {
@@ -1311,7 +1300,7 @@ V8MONKEY_TEST(Integer042, "NumberValue works correctly (7)") {
 }
 
 
-V8MONKEY_TEST(Integer043, "NumberValue works correctly (8)") {
+V8MONKEY_TEST(Integer049, "NumberValue works correctly (8)") {
   V8::Initialize();
 
   {
@@ -1345,16 +1334,16 @@ V8MONKEY_TEST(Integer##testNumber, "IntegerValue works correctly (" #variant ")"
 }
 
 
-INTEGERINTEGERVALUETEST(044, 1, 123, New)
-INTEGERINTEGERVALUETEST(045, 2, -1, New)
-INTEGERINTEGERVALUETEST(046, 3, 0, New)
-INTEGERINTEGERVALUETEST(047, 4, 123, NewFromUnsigned)
-INTEGERINTEGERVALUETEST(048, 5, 0xffffffff, NewFromUnsigned)
-INTEGERINTEGERVALUETEST(049, 6, 0, NewFromUnsigned)
+INTEGERINTEGERVALUETEST(050, 1, 123, New)
+INTEGERINTEGERVALUETEST(051, 2, -1, New)
+INTEGERINTEGERVALUETEST(052, 3, 0, New)
+INTEGERINTEGERVALUETEST(053, 4, 123, NewFromUnsigned)
+INTEGERINTEGERVALUETEST(054, 5, 0xffffffff, NewFromUnsigned)
+INTEGERINTEGERVALUETEST(055, 6, 0, NewFromUnsigned)
 #undef INTEGERINTEGERVALUETEST
 
 
-V8MONKEY_TEST(Integer050, "Isolate variant works correctly") {
+V8MONKEY_TEST(Integer056, "Isolate variant works correctly") {
   int32_t d = 123;
   V8::Initialize();
 
@@ -1370,7 +1359,7 @@ V8MONKEY_TEST(Integer050, "Isolate variant works correctly") {
 }
 
 
-V8MONKEY_TEST(Integer051, "Unsigned isolate variant works correctly") {
+V8MONKEY_TEST(Integer057, "Unsigned isolate variant works correctly") {
   uint32_t d = 0xffffffff;
   V8::Initialize();
 

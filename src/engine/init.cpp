@@ -73,9 +73,9 @@ namespace {
   class OneTrueStaticInitializer {
     public:
       OneTrueStaticInitializer() {
-        // Initialize all required TLS keys
         v8::V8Monkey::V8MonkeyCommon::InitTLSKeys();
         v8::V8Monkey::V8MonkeyCommon::EnsureDefaultIsolate();
+        v8::V8Monkey::V8MonkeyCommon::InitPrimitiveSingletons();
 
         // Just go ahead and init SpiderMonkey here too. We don't acquire the mutex: we should be single-threaded at this point
         engineInitAttempted = true;
@@ -86,6 +86,8 @@ namespace {
       // runtimes or contexts-is currently optional, but warns that this might not always be so. Thus we ensure we shut
       // things down in this destructor.
       ~OneTrueStaticInitializer() {
+        v8::V8Monkey::V8MonkeyCommon::TearDownPrimitiveSingletons();
+
         // Ensure default isolate is disposed
         delete v8::V8Monkey::InternalIsolate::GetCurrent();
 

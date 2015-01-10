@@ -91,6 +91,12 @@ namespace v8 {
       return static_cast<Number*>(const_cast<Value*>(this))->Value();
     }
 
+    if (IsBoolean()) {
+      Boolean* asBoolean = static_cast<Boolean*>(const_cast<Value*>(this));
+      bool value = asBoolean->Value();
+      return value ? 1.0 : 0.0;
+    }
+
     return 0xdead;
   }
 
@@ -102,6 +108,12 @@ namespace v8 {
       // Interestingly, the V8 API isn't ECMA262 Section 9.4 compliant here (although the engine presumably is), in that
       // NaN gets cast to int64_t too: ECMA states NaN maps to 0.
       return static_cast<int64_t>(asNumber->Value());
+    }
+
+    if (IsBoolean()) {
+      Boolean* asBoolean = static_cast<Boolean*>(const_cast<Value*>(this));
+      bool value = asBoolean->Value();
+      return value ? 1.0 : 0.0;
     }
 
     // XXX Finish
@@ -129,6 +141,12 @@ namespace v8 {
       return doubleToInt32(asNumber->Value());
     }
 
+    if (IsBoolean()) {
+      Boolean* asBoolean = static_cast<Boolean*>(const_cast<Value*>(this));
+      bool value = asBoolean->Value();
+      return value ? 1.0 : 0.0;
+    }
+
     // XXX Finish
     return 0x4;
   }
@@ -152,6 +170,12 @@ namespace v8 {
       return doubleToInt32(asNumber->Value());
     }
 
+    if (IsBoolean()) {
+      Boolean* asBoolean = static_cast<Boolean*>(const_cast<Value*>(this));
+      bool value = asBoolean->Value();
+      return value ? 1.0 : 0.0;
+    }
+
     // XXX Finish
     return 12;
   }
@@ -164,9 +188,7 @@ namespace v8 {
       return Local<Number>(static_cast<Number*>(const_cast<Value*>(this)));
     }
 
-    // XXX Finish
-    Local<Number> l;
-    return l;
+    return Number::New(NumberValue());
   }
 
 
@@ -197,9 +219,7 @@ namespace v8 {
       return Integer::New(static_cast<int32_t>(value));
     }
 
-    // XXX Finish
-    Local<Integer> l;
-    return l;
+    return Integer::New(IntegerValue());
   }
 
 
@@ -220,9 +240,7 @@ namespace v8 {
       return reinterpret_cast<Int32*>(*temp);
     }
 
-    // XXX Finish
-    Local<Integer> l;
-    return l;
+    return Integer::New(Int32Value());
   }
 
 
@@ -243,9 +261,7 @@ namespace v8 {
       return reinterpret_cast<Uint32*>(*temp);
     }
 
-    // XXX Finish
-    Local<Integer> l;
-    return l;
+    return Integer::NewFromUnsigned(Uint32Value());
   }
 
 
@@ -284,28 +300,84 @@ namespace v8 {
       return reinterpret_cast<Uint32*>(*temp);
     }
 
-    // XXX Finish
-    Local<Integer> l;
-    return l;
+    return Integer::NewFromUnsigned(Uint32Value());
   }
 
-  bool Value::Equals(Handle<Value> that) const {
-    if (IsNumber() && that->IsNumber()) {
-      double value = NumberValue();
-      double otherValue = that->NumberValue();
-      return !std::isnan(value) && !std::isnan(otherValue) && value == otherValue;
+
+  bool Value::BooleanValue() const {
+    if (IsBoolean()) {
+      Boolean* asBoolean = static_cast<Boolean*>(const_cast<Value*>(this));
+      return asBoolean->Value();
     }
+
+    // 9.2
+    if (IsNumber()) {
+      double value = NumberValue();
+      if (std::isnan(value) || value == 0.0) {
+        return false;
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+
+  Local<Boolean> Value::ToBoolean() const {
+    if (IsBoolean()) {
+      return reinterpret_cast<Boolean*>(const_cast<Value*>(this));
+    }
+
+    Handle<Boolean> h = Boolean::New(BooleanValue());
+    return *h;
+  }
+
+
+  bool Value::Equals(Handle<Value> that) const {
+    if (V8Monkey::V8MonkeyCommon::CheckDeath("Value::Equals")) {
+      return false;
+    }
+
+    if (IsNumber()) {
+      // 11.9.3.1c 11.9.3.7
+      if (that->IsNumber() || that->IsBoolean()) {
+        double value = NumberValue();
+        double otherValue = that->NumberValue();
+        return !std::isnan(value) && !std::isnan(otherValue) && value == otherValue;
+      }
+    }
+
+    if (IsBoolean()) {
+      // 11.9.3.1e
+      if (that->IsBoolean()) {
+        return BooleanValue() == that->BooleanValue();
+      }
+
+      // 11.9.3.6e
+      return ToNumber()->Equals(that);
+    }
+
     // FINISH
     return false;
   }
 
 
   bool Value::StrictEquals(Handle<Value> that) const {
+    if (V8Monkey::V8MonkeyCommon::CheckDeath("Value::Equals")) {
+      return false;
+    }
+
     if (IsNumber() && that->IsNumber()) {
       double value = NumberValue();
       double otherValue = that->NumberValue();
       return !std::isnan(value) && !std::isnan(otherValue) && value == otherValue;
     }
-    return false;
+
+    if (IsBoolean() && that->IsBoolean()) {
+      return BooleanValue() == that->BooleanValue();
+    }
+
+    return this == *that;
   }
 }
