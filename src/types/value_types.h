@@ -54,8 +54,24 @@ namespace v8 {
     };
 
 
-    // XXX NEED A NOTE HERE RE WHY NOT SM VERSIONS
-    //
+    class EXPORT_FOR_TESTING_ONLY V8SpecialValue: public V8Value {
+      public:
+        V8SpecialValue(bool isNull, bool isUndefined) : isNull(isNull), isUndefined(isUndefined) {}
+
+        bool IsNull() const {
+          return isNull;
+        }
+
+        bool IsUndefined() const {
+          return isUndefined;
+        }
+
+      private:
+        bool isNull;
+        bool isUndefined;
+    };
+
+
     class EXPORT_FOR_TESTING_ONLY V8Boolean: public V8Value {
       public:
         V8Boolean(bool val) : value(val) {}
@@ -79,7 +95,6 @@ namespace v8 {
       private:
         bool value;
     };
-
 
 
     /*

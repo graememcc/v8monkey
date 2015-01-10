@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cinttypes>
+#include <limits>
 
 #include "v8.h"
 
@@ -97,6 +98,11 @@ namespace v8 {
       return value ? 1.0 : 0.0;
     }
 
+    if (IsUndefined()) {
+      return std::numeric_limits<double>::quiet_NaN();
+    }
+
+
     return 0xdead;
   }
 
@@ -114,6 +120,10 @@ namespace v8 {
       Boolean* asBoolean = static_cast<Boolean*>(const_cast<Value*>(this));
       bool value = asBoolean->Value();
       return value ? 1.0 : 0.0;
+    }
+
+    if (IsUndefined()) {
+      return 0;
     }
 
     // XXX Finish
@@ -147,6 +157,10 @@ namespace v8 {
       return value ? 1.0 : 0.0;
     }
 
+    if (IsUndefined()) {
+      return 0;
+    }
+
     // XXX Finish
     return 0x4;
   }
@@ -174,6 +188,10 @@ namespace v8 {
       Boolean* asBoolean = static_cast<Boolean*>(const_cast<Value*>(this));
       bool value = asBoolean->Value();
       return value ? 1.0 : 0.0;
+    }
+
+    if (IsUndefined()) {
+      return 0;
     }
 
     // XXX Finish
@@ -300,6 +318,10 @@ namespace v8 {
       return reinterpret_cast<Uint32*>(*temp);
     }
 
+    if (IsUndefined()) {
+      return empty;
+    }
+
     return Integer::NewFromUnsigned(Uint32Value());
   }
 
@@ -356,6 +378,10 @@ namespace v8 {
 
       // 11.9.3.6e
       return ToNumber()->Equals(that);
+    }
+
+    if (IsUndefined()) {
+      return that->IsUndefined();
     }
 
     // FINISH

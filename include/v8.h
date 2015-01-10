@@ -501,14 +501,14 @@ namespace v8 {
 
 
 
-  //Handle<Primitive> V8EXPORT Undefined();
-  //Handle<Primitive> V8EXPORT Null();
+  Handle<Primitive> APIEXPORT Undefined();
+  Handle<Primitive> APIEXPORT Null();
   Handle<Boolean> APIEXPORT True();
   Handle<Boolean> APIEXPORT False();
 
 
-  //inline Handle<Primitive> Undefined(Isolate* isolate);
-  //inline Handle<Primitive> Null(Isolate* isolate);
+  inline Handle<Primitive> Undefined(Isolate* isolate);
+  inline Handle<Primitive> Null(Isolate* isolate);
   inline Handle<Boolean> True(Isolate* isolate);
   inline Handle<Boolean> False(Isolate* isolate);
 
@@ -830,6 +830,12 @@ namespace v8 {
   Handle<Boolean> False(v8::Isolate* isolate) {
     // XXX What should we do with the isolate?
     return False();
+  }
+
+
+  Handle<Primitive> Undefined(v8::Isolate* isolate) {
+    // XXX What should we do with the isolate?
+    return Undefined();
   }
 }
 

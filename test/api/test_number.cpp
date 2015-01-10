@@ -764,7 +764,7 @@ V8MONKEY_TEST(Number201, "Equals works correctly (12)") {
 
   {
     HandleScope h;
-    double value = 1;
+    double value = 1.0;
     Local<Value> n = Number::New(value);
     Handle<Value> n2 = Boolean::New(true);
 
@@ -781,7 +781,7 @@ V8MONKEY_TEST(Number202, "Equals works correctly (13)") {
 
   {
     HandleScope h;
-    double value = 2;
+    double value = 2.0;
     Local<Value> n = Number::New(value);
     Handle<Value> n2 = Boolean::New(true);
 
@@ -798,7 +798,7 @@ V8MONKEY_TEST(Number203, "Equals works correctly (14)") {
 
   {
     HandleScope h;
-    double value = 0;
+    double value = 0.0;
     Local<Value> n = Number::New(value);
     Handle<Value> n2 = Boolean::New(false);
 
@@ -815,11 +815,28 @@ V8MONKEY_TEST(Number204, "Equals works correctly (15)") {
 
   {
     HandleScope h;
-    double value = 1;
+    double value = 1.0;
     Local<Value> n = Number::New(value);
     Handle<Value> n2 = Boolean::New(false);
 
     V8MONKEY_CHECK(!n->Equals(n2), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Number205, "Equals works correctly (16)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = 0.0;
+    Local<Value> n = Number::New(value);
+    Handle<Value> u = Undefined();
+
+    V8MONKEY_CHECK(!n->Equals(u), "Equality works correctly");
   }
 
   Isolate::GetCurrent()->Exit();
@@ -849,19 +866,19 @@ V8MONKEY_TEST(Number##testNumber, "StrictEquals works correctly (" #variant ")")
 }
 
 
-NUMBERSTRICTEQUALTEST(205, 1, 123.45)
-NUMBERSTRICTEQUALTEST(206, 2, 123.65)
-NUMBERSTRICTEQUALTEST(207, 3, -123.45)
-NUMBERSTRICTEQUALTEST(208, 4, -123.67)
-NUMBERSTRICTEQUALTEST(209, 5, 123)
-NUMBERSTRICTEQUALTEST(210, 6, -1)
-NUMBERSTRICTEQUALTEST(211, 7, 0xffffffff)
-NUMBERSTRICTEQUALTEST(212, 8, -0.0)
-NUMBERSTRICTEQUALTEST(213, 9, 0.0)
+NUMBERSTRICTEQUALTEST(206, 1, 123.45)
+NUMBERSTRICTEQUALTEST(207, 2, 123.65)
+NUMBERSTRICTEQUALTEST(208, 3, -123.45)
+NUMBERSTRICTEQUALTEST(209, 4, -123.67)
+NUMBERSTRICTEQUALTEST(210, 5, 123)
+NUMBERSTRICTEQUALTEST(211, 6, -1)
+NUMBERSTRICTEQUALTEST(212, 7, 0xffffffff)
+NUMBERSTRICTEQUALTEST(213, 8, -0.0)
+NUMBERSTRICTEQUALTEST(214, 9, 0.0)
 #undef NUMBERSTRICTEQUALTEST
 
 
-V8MONKEY_TEST(Number214, "StrictEquals works correctly (10)") {
+V8MONKEY_TEST(Number215, "StrictEquals works correctly (10)") {
   V8::Initialize();
 
   {
@@ -881,7 +898,7 @@ V8MONKEY_TEST(Number214, "StrictEquals works correctly (10)") {
 }
 
 
-V8MONKEY_TEST(Number215, "StrictEquals works correctly (11)") {
+V8MONKEY_TEST(Number216, "StrictEquals works correctly (11)") {
   V8::Initialize();
 
   {
@@ -899,7 +916,7 @@ V8MONKEY_TEST(Number215, "StrictEquals works correctly (11)") {
 }
 
 
-V8MONKEY_TEST(Number216, "StrictEquals works correctly (12)") {
+V8MONKEY_TEST(Number217, "StrictEquals works correctly (12)") {
   V8::Initialize();
 
   {
@@ -916,7 +933,7 @@ V8MONKEY_TEST(Number216, "StrictEquals works correctly (12)") {
 }
 
 
-V8MONKEY_TEST(Number217, "StrictEquals works correctly (13)") {
+V8MONKEY_TEST(Number218, "StrictEquals works correctly (13)") {
   V8::Initialize();
 
   {
@@ -926,6 +943,23 @@ V8MONKEY_TEST(Number217, "StrictEquals works correctly (13)") {
     Handle<Value> n2 = Boolean::New(false);
 
     V8MONKEY_CHECK(!n->StrictEquals(n2), "Strict Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Number219, "Equals works correctly (14)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = 0.0;
+    Local<Value> n = Number::New(value);
+    Handle<Value> u = Undefined();
+
+    V8MONKEY_CHECK(!n->StrictEquals(u), "Equality works correctly");
   }
 
   Isolate::GetCurrent()->Exit();
