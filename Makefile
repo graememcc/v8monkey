@@ -510,9 +510,11 @@ $(depsdir)/config.status: $(mozillaroot)/js/src/configure | $(depsdir)
 
 
 # To run configure we must first invoke autoconf
+# XXX For some reason, I've been finding it necessary to add declare JS_STANDALONE to avoid build errors. I believe this
+#     shouldn't be necessary. YMMV.
 $(mozillaroot)/js/src/configure:
 	rm -f $(smheadersdir)/jsapi.h
-	cd $(mozillaroot)/js/src && autoconf
+	cd $(mozillaroot)/js/src && JS_STANDALONE=1 autoconf
 
 
 # Run the testsuite
@@ -545,8 +547,8 @@ clobber:
 
 
 valgrind: $(testsuites)
-	valgrind --tool=memcheck --leak-check=full --log-file=mem_api --trace-children=yes --gen-suppressions=all $(outdir)/test/run_v8monkey_tests
-	valgrind --tool=memcheck --leak-check=full --log-file=mem_internal --trace-children=yes  --suppressions=$(CURDIR)/int_suppress.supp --gen-suppressions=all $(outdir)/test/run_v8monkey_internal_tests
+	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --log-file=mem_api --trace-children=yes --gen-suppressions=all $(outdir)/test/run_v8monkey_tests
+	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --log-file=mem_internal --trace-children=yes  --suppressions=$(CURDIR)/int_suppress.supp --gen-suppressions=all $(outdir)/test/run_v8monkey_internal_tests
 	valgrind --tool=helgrind --log-file=thread_api --trace-children=yes $(outdir)/test/run_v8monkey_tests
 	valgrind --tool=helgrind --log-file=thread_internal --trace-children=yes $(outdir)/test/run_v8monkey_internal_tests
 
