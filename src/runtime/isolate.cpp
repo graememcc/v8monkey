@@ -681,13 +681,18 @@ namespace v8 {
     }
 
 
-    // XXX Can we fix these up to look out for construction?
+    // XXX Can we fix these up to watch out for isolate construction?
     TestUtils::AutoIsolateCleanup::~AutoIsolateCleanup() {
       while (Isolate::GetCurrent() && InternalIsolate::IsEntered(InternalIsolate::GetCurrent())) {
         Isolate* i = Isolate::GetCurrent();
-        i->Exit();
-        i->Dispose();
+        InternalIsolate* ii = InternalIsolate::FromIsolate(i);
 
+        // Isolates can be entered multiple times
+        while (InternalIsolate::IsEntered(ii)) {
+          i->Exit();
+        }
+
+        i->Dispose();
       }
     }
 
@@ -702,7 +707,13 @@ namespace v8 {
     TestUtils::AutoTestCleanup::~AutoTestCleanup() {
       while (Isolate::GetCurrent() && InternalIsolate::IsEntered(InternalIsolate::GetCurrent())) {
         Isolate* i = Isolate::GetCurrent();
-        i->Exit();
+        InternalIsolate* ii = InternalIsolate::FromIsolate(i);
+
+        // Isolates can be entered multiple times
+        while (InternalIsolate::IsEntered(ii)) {
+          i->Exit();
+        }
+
         i->Dispose();
       }
       V8::Dispose();
@@ -710,3 +721,4 @@ namespace v8 {
     #endif
   }
 }
+#undef FORWARD_TO_INTERNAL
