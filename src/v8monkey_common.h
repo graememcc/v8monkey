@@ -1,6 +1,7 @@
 #ifndef V8MONKEY_COMMON_H
 #define V8MONKEY_COMMON_H
 
+// EXPORT_FOR_TESTING_ONLY
 #include "test.h"
 
 
@@ -21,10 +22,6 @@ namespace v8 {
       public:
         // Intended to be called only by the static initializer to ensure that all required TLS keys exist
         static void InitTLSKeys();
-
-        // Intended to be called only by the static initializer to ensure that the default isolate exists, and that
-        // the thread running static initializers has that isolate pointer in TLS. Must be called after InitTLSKeys.
-        static void EnsureDefaultIsolate();
 
         // Intended to be called only by the static initializer to ensure that the primitive singletons (i.e. true,
         // false etc) exist.

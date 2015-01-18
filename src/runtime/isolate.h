@@ -184,11 +184,8 @@ namespace v8 {
 
         #endif
 
-        // Return the JSRuntime associated with this thread. May be null
-        static JSRuntime* GetJSRuntimeForThread();
-
-        // Return the JSContext associated with this thread. May be null
-        static JSContext* GetJSContextForThread();
+        // Initialize the default isolate and claim thread id 1
+        static void EnsureDefaultIsolateForStaticInitializerThread();
 
       private:
         struct ThreadData;

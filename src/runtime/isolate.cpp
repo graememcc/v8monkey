@@ -691,22 +691,43 @@ namespace v8 {
     }
 
 
-    // Must only be called from static initializer
+    /*
+     * We implement this function here, as most of the keys are related to the isolate. This function is intended
+     * to only be called by the OneTrueStaticIntializer
+     *
+     */
+
     void V8MonkeyCommon::InitTLSKeys() {
+      static bool initialized = false;
+
+      ASSERT(!initialized, "V8MonkeyCommon::InitTLSKeys", "TLS keys already initialised");
       threadIDKey = Platform::CreateTLSKey();
       isolateKey = Platform::CreateTLSKey();
       rtcxKey = Platform::CreateTLSKey(tearDownCXAndRT);
     }
 
 
-    // Must only be called from a static initializer, and after InitTLSKeys
-    void V8MonkeyCommon::EnsureDefaultIsolate() {
-      // The internal isolate will be disposed elsewhere
-      // XXX Where?
+    /*
+     * In V8, the thread that runs the static initializers is permanently associated with the default isolate,
+     * and has thread ID 1. This function ensures that this is also the case in V8Monkey. Additionally, it
+     * ensures the default isolate is constructed.
+     *
+     * This function is intended to only be called once, by the OneTrueStaticIntializer, and must be called after
+     * V8MonkeyCommon::InitTLSKeys.
+     *
+     */
+
+    void InternalIsolate::EnsureDefaultIsolateForStaticInitializerThread() {
+      static bool initialized = false;
+
+      ASSERT(!initialized, "V8MonkeyCommon::EnsureDefaultIsolateForInitializerThread",
+                           "Default isolate already initialised");
+
+      // We create the default isolate. OneTrueStaticInitializer's destructor will destroy and release it
       InternalIsolate::defaultIsolate = new InternalIsolate;
 
-      // Associate the default isolate with this thread permanently
-      SetIsolateInTLS(InternalIsolate::defaultIsolate);
+      // Permanently associate the default isolate with this thread
+      SetCurrentIsolateInTLS(InternalIsolate::defaultIsolate);
 
       // We should be thread number 1!
       int threadID = fetchOrAssignThreadID();
