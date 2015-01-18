@@ -267,25 +267,46 @@ namespace {
   }
 
 
-  // Interface to isolate tracing for the SpiderMonkey garbage collector. Each isolate will call this function on
-  // entry, in order to trace the values contained in HandleScopes and Persistents
-  void gcTracer(JSTracer* tracer, void* data) {
+  /*
+   * Interface to isolate tracing for the SpiderMonkey garbage collector. When a thread enters an isolate, the isolate
+   * will register itself as a GC rooter with that thread's JSRuntime. This is the function that SpiderMonkey will call
+   * when tracing roots.
+   *
+   */
+
+  void GCTracingFunction(JSTracer* tracer, void* data) {
+    // All we need to do is cast to the isolate, and invoke Trace
     v8::V8Monkey::InternalIsolate* i = reinterpret_cast<v8::V8Monkey::InternalIsolate*>(data);
     i->Trace(tracer);
   }
 
 
-  // Originally, the ObjectBlock could potentially contain objects created by different threads, i.e. in different
-  // JSRuntimes. To that end, we supply both the JSRuntime and the JSTracer to the iterated objects. They will know
-  // which runtime created them, and can ignore the tracing requests for foreign runtimes.
+  /*
+   * This design harks back to the original plan to support V8's multi-threading model. In such a world, the
+   * ObjectBlocks could potentially contain objects that were created by different threads, and so potentially wrap
+   * SpiderMonkey objects from different JSRuntimes. As a consequence, each isolate would be registered as a GC
+   * rooter for each of those runtimes. Of course, we would want to ensure that only the objects relevant to a
+   * particular runtime are traced. To that end, we supply both the JSRuntime and the JSTracer to the iterated objects.
+   * They will know which runtime created them, and can ignore the tracing requests for foreign runtimes.
+   *
+   * Of course, things are currently much simpler; there can only be one thread, one runtime. However, we will leave
+   * the design untouched for the moment until we can confirm that multi-threading won't be possible.
+   *
+   */
+
   struct TraceData {
     JSRuntime* rt;
     JSTracer* tracer;
   };
 
 
-  // Interface to isolate tracing for the ObjectBlock iteration function
-  void traceV8MonkeyObject(V8MonkeyObject* object, void* data) {
+  /*
+   * The objects to be traced are stored in ObjectBlocks. This iteration function will be supplied to them to trace all
+   * the objects contained within them in sequence.
+   *
+   */
+
+  void tracingIterationFunction(V8MonkeyObject* object, void* data) {
     if (!object) {
       return;
     }
@@ -494,27 +515,43 @@ namespace v8 {
     }
 
 
+    /*
+     * An InternalIsolate contains two structures containing pointers to V8MonkeyObjects. Objects created whilst the
+     * thread has entered this isolate will be referenced there. Some of those objects might wrap SpiderMonkey objects,
+     * and need to participate in GC rooting. This function adds a tracing function which will traverse and trace those
+     * structures.
+     *
+     */
+
     void InternalIsolate::AddGCRooter() {
       AutoGCMutex(this);
 
+      // Protect against isolate re-entry
       if (isRegisteredForGC) {
         return;
       }
 
       #ifdef V8MONKEY_INTERNAL_TEST
         if (GCRegistrationHookFn) {
-          GCRegistrationHookFn(GetJSRuntimeForThread(), gcTracer, this);
+          GCRegistrationHookFn(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
         } else {
-          JS_AddExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
+          JS_AddExtraGCRootsTracer(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
         }
       #else
-        JS_AddExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
+        JS_AddExtraGCRootsTracer(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
       #endif
 
       AddIsolateToGCTLSList(this);
       isRegisteredForGC = true;
     }
 
+
+    /*
+     * Called on isolate disposal to unhook the isolate from GC Rooting. Objects created whilst in this isolate are
+     * now effectively dead, so the SpiderMonkey objects they wrapped no longer need to be rooted, and can be reaped
+     * by the SpiderMonkey garbage collector.
+     *
+     */
 
     void InternalIsolate::RemoveGCRooter() {
       AutoGCMutex(this);
@@ -526,12 +563,12 @@ namespace v8 {
       // Deregister this isolate from SpiderMonkey
       #ifdef V8MONKEY_INTERNAL_TEST
         if (GCDeregistrationHookFn) {
-          GCDeregistrationHookFn(GetJSRuntimeForThread(), gcTracer, this);
+          GCDeregistrationHookFn(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
         } else {
-          JS_RemoveExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
+          JS_RemoveExtraGCRootsTracer(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
         }
       #else
-        JS_RemoveExtraGCRootsTracer(GetJSRuntimeForThread(), gcTracer, this);
+        JS_RemoveExtraGCRootsTracer(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
       #endif
 
       DeleteIsolateFromGCTLSList(this);
@@ -628,20 +665,22 @@ namespace v8 {
     }
 
 
+    /*
+     * Returns the currently entered isolate. For threads other than the one in which static initializers ran, this
+     * might return null. When called by the static intializer thread this will never return null: the address of the
+     * default isolate will be returned when no isolate is entered. This mirrors V8 behaviour.
+     *
+     */
+
     InternalIsolate* InternalIsolate::GetCurrent() {
-      return GetIsolateFromTLS();
+      return GetCurrentIsolateFromTLS();
     }
 
 
-    bool InternalIsolate::IsDefaultIsolate(InternalIsolate* i) {
-      return i == defaultIsolate;
-    }
-
-
-    InternalIsolate* InternalIsolate::GetDefaultIsolate() {
-      return defaultIsolate;
-    }
-
+    /*
+     * Answers the question as to whether a thread has entered a given isolate.
+     *
+     */
 
     bool InternalIsolate::IsEntered(InternalIsolate* i) {
       // The naive approach here would be to simply grab the isolate pointer from TLS and compare. However, this would
@@ -685,13 +724,21 @@ namespace v8 {
       }
 
       // V8 permanently associates threads that implicitly enter the default isolate with the default isolate
-      SetIsolateInTLS(defaultIsolate);
+      SetCurrentIsolateInTLS(defaultIsolate);
       defaultIsolate->Enter();
 
       return defaultIsolate;
     }
 
 
+    /*
+     * API for HandleScopes and Persistents.. The structure containing pointers to the wrapped objects lives here in the
+     * isolate, but is managed by the HandleScopes and Persistents. Having the structures and the associated data live
+     * in the isolate means we can keep the logic for rooting/tracing in one place.
+     *
+     */
+
+    // XXX Should the getters return references? Document the decision so you don't ask the question again
     HandleData InternalIsolate::GetLocalHandleData() {
       return handleScopeData;
     }
@@ -755,21 +802,23 @@ namespace v8 {
     }
 
 
+    /*
+     * Invoked by the SpiderMonkey garbage collector. Compiles the information required by individual object's tracing
+     * functions, then iterates over the object blocks for Locals and Persistents respectively.
+     *
+     */
+
     void InternalIsolate::Trace(JSTracer* tracer) {
-      // Don't allow API mutation of the handle structures when we're tracing them
+      // Don't allow API mutation of the handle structures during tracing
       AutoGCMutex(this);
 
-      TraceData* td = new TraceData;
-      td->rt = GetJSRuntimeForThread();
-      td->tracer = tracer;
+      TraceData td = {SpiderMonkeyUtils::GetJSRuntimeForThread(), tracer};
 
       // Trace Local handles from HandleScopes
-      ObjectBlock<V8MonkeyObject>::Iterate(handleScopeData.limit, handleScopeData.next, traceV8MonkeyObject, td);
+      ObjectBlock<V8MonkeyObject>::Iterate(handleScopeData.limit, handleScopeData.next, tracingIterationFunction, &td);
 
       // Trace Persistent handles
-      ObjectBlock<V8MonkeyObject>::Iterate(persistentData.limit, persistentData.next, traceV8MonkeyObject, td);
-
-      delete td;
+      ObjectBlock<V8MonkeyObject>::Iterate(persistentData.limit, persistentData.next, tracingIterationFunction, &td);
     }
 
 
