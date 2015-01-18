@@ -1,5 +1,6 @@
 #ifndef V8MONKEY_INIT_H
 #define V8MONKEY_INIT_H
+
 /*
  * Until version 3.29.79.0, calling V8::Initialize was optional; the engine would implicitly perform initialization
  * if required. At time of writing (version 33.0) SpiderMonkey always requires explicit initialization. Thus, until
@@ -20,6 +21,7 @@
  *
  */
 
+// TODO: This is apparently unused. Nice comment, though.
 #define ATTEMPT_ENGINE_INIT V8::Initialize();
 
 
