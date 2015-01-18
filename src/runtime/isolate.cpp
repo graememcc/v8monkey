@@ -56,129 +56,173 @@ namespace {
 
 
   // Thread-local storage keys for isolate related thread data
+  // The thread's unique ID
   TLSKey* threadIDKey = nullptr;
-  TLSKey* isolateKey = nullptr;
-  TLSKey* rtcxKey = nullptr;
+  // The internal isolate that the thread has entered
+  TLSKey* currentIsolateKey = nullptr;
+  // List of isolates that the thread has entered and not yet exited
+  TLSKey* smDataKey = nullptr;
 
 
-  v8::V8Monkey::InternalIsolate* GetIsolateFromTLS() {
-    void* raw_id = v8::V8Platform::Platform::GetTLSData(isolateKey);
-    return reinterpret_cast<v8::V8Monkey::InternalIsolate*>(raw_id);
+  /*
+   * Returns the currently entered isolate for this thread
+   *
+   */
+
+  InternalIsolate* GetCurrentIsolateFromTLS() {
+    void* raw_id = Platform::GetTLSData(currentIsolateKey);
+    return reinterpret_cast<InternalIsolate*>(raw_id);
   }
 
 
-  void SetIsolateInTLS(v8::V8Monkey::InternalIsolate* i) {
-    v8::V8Platform::Platform::StoreTLSData(isolateKey, i);
+  /*
+   * Store the currently entered isolate for this thread
+   *
+   */
+
+  void SetCurrentIsolateInTLS(InternalIsolate* i) {
+    Platform::StoreTLSData(currentIsolateKey, i);
   }
 
 
-  // Per-thread SpiderMonkey data
-  struct RTCXData {
-    // Pointer to a list of isolates that have not been exited or destructed, and are therefore still attached to
-    // SpiderMonkey for GC
-    v8::V8Monkey::DestructingList<v8::V8Monkey::InternalIsolate>* isolateList;
+  /*
+   * When a JSContext is destroyed, a garbage collection is performed. Therefore, when the main thread exits, prior to
+   * JSContext destruction, we must ensure that the thread has disposed of each entered isolate, regardless of whether the
+   * client did the right thing or not. Failure to do so could result in crashes or resource leaks. As Dispose is the
+   * only isolate method that removes isolates from the teardown list, we can be sure that the isolates are still alive
+   * and are safe to touch.
+   *
+   * TODO: This situation is pretty broken when it comes to trying to implement multi-threading. There will be a bit of
+   *       work needed here
+   *
+   */
 
-    JSRuntime* rt;
-    JSContext* cx;
+  struct SpiderMonkeyData {
+    // A POD struct containing the JSRuntime and JSContext pointers
+    RTCXData rtcx;
+
+    // Pointer to a list of isolates that have not been disposed or destructed, and are therefore still known to
+    // SpiderMonkey for rooting
+    DestructingList<InternalIsolate>* isolateList;
   };
 
 
-  // Tear down a context and runtime for a thread.
-  void tearDownCXAndRT(void* raw) {
-    if (!raw) {
-      return;
-    }
+  /*
+   * Function passed to DestructingList to destroy its contents. In effect, this will iterate over a list of
+   * InternalIsolates, removing them as GC rooters.
+   *
+   */
 
-    RTCXData* data = reinterpret_cast<RTCXData*>(raw);
-
-    // Must teardown GC hook before destroying runtime objects
-    delete data->isolateList;
-
-    JS_DestroyContext(data->cx);
-    JS_DestroyRuntime(data->rt);
-
-    delete data;
-  }
-
-
-  // Remove an isolate from the GC teardown list (by calling the teardown list's Delete function, which will in
-  // turn invoke RemoveGCRooter
-  void AddIsolateToGCTLSList(v8::V8Monkey::InternalIsolate* i) {
-    void* raw = Platform::GetTLSData(rtcxKey);
-    ASSERT(raw != nullptr, "AddIsolateToGCTLSList", "Somehow entered isolate without JSRuntime/JSContext data");
-
-    RTCXData* data = reinterpret_cast<RTCXData*>(raw);
-    data->isolateList->Add(i);
-  }
-
-
-  // Remove an isolate from the GC teardown list (by calling the teardown list's Delete function, which will in
-  // turn invoke RemoveGCRooter
-  void DeleteIsolateFromGCTLSList(v8::V8Monkey::InternalIsolate* i) {
-    void* raw = Platform::GetTLSData(rtcxKey);
-    ASSERT(raw != nullptr, "DeleteIsolateFromGCTLSList", "Somehow entered isolate without JSRuntime/JSContext data");
-
-    RTCXData* data = reinterpret_cast<RTCXData*>(raw);
-    data->isolateList->Delete(i);
-  }
-
-
-  // Function passed to DestructingList to destroy its contents
   void unhookFromGC(InternalIsolate* i) {
     i->RemoveGCRooter();
   }
 
 
-  // Assigns a JSRuntime and JSContext to this thread if necessary. If a JSRuntime* is present in TLS, then we assume
-  // that the context is present also
-  void EnsureRuntimeAndContext() {
-    void* raw_id = Platform::GetTLSData(rtcxKey);
+  /*
+   * Assign this thread a JSRuntime and JSContext if necessary, and create the DestructingList which will tear down
+   * any isolates that the client failed to dispose.
+   *
+   */
+
+  void ensureRuntimeAndContext() {
+    ASSERT(smDataKey, "InternalIsolate::Enter", "SpiderMonkey TLS key not initialised");
+
+    // Don't reassign if already assigned
+    // It is acceptable for this function to be called many times, indeed InternalIsolate::Enter does so.
+    void* raw_id = Platform::GetTLSData(smDataKey);
     if (raw_id) {
       return;
     }
-
-    RTCXData* data = new RTCXData;
 
     JSRuntime* rt = JS_NewRuntime(JS::DefaultHeapMaxBytes);
 
     if (!rt) {
       // The game is up
-      delete data;
-      V8MonkeyCommon::TriggerFatalError("EnsureRuntimeAndContext", "SpiderMonkey's JS_NewRuntime failed");
+      V8MonkeyCommon::TriggerFatalError("InternalIsolate::Enter", "SpiderMonkey's JS_NewRuntime failed");
       return;
     }
 
-    data->rt = rt;
-
-    // The stackChunkSize parameter isn't actually used by SpiderMonkey. This might affect implementation of
+    // The stackChunkSize parameter isn't actually used by SpiderMonkey. However, it might affect implementation of
     // the V8 resource constraints class.
     JSContext* cx = JS_NewContext(rt, 8192);
     if (!cx) {
       // The game is up
       JS_DestroyRuntime(rt);
-      delete data;
-      V8MonkeyCommon::TriggerFatalError("EnsureRuntimeAndContext", "SpiderMonkey's JS_NewContext failed");
+      V8MonkeyCommon::TriggerFatalError("InternalIsolate::Enter", "SpiderMonkey's JS_NewContext failed");
       return;
     }
 
-    data->cx = cx;
-    // Set options here. Note: the MDN page for JS_NewContext uses JS_(G|S)etOptions. This changed in bug 880330.
+    // Set options here. Note: the MDN page for JS_NewContext tells us to use JS_(G|S)etOptions. This changed in
+    // bug 880330.
     JS::RuntimeOptionsRef(rt).setVarObjFix(true);
 
-    data->isolateList = new DestructingList<InternalIsolate>(unhookFromGC);
+    SpiderMonkeyData* data = new SpiderMonkeyData{{rt, cx},  new DestructingList<InternalIsolate>(unhookFromGC)};
 
-    Platform::StoreTLSData(rtcxKey, data);
+    Platform::StoreTLSData(smDataKey, data);
   }
 
 
-  // Returns the thread's ID from TLS, or 0 if not present
-  int GetThreadIDFromTLS() {
-    void* raw_id = Platform::GetTLSData(threadIDKey);
-    return *reinterpret_cast<int*>(&raw_id);
+  /*
+   * Add an entered isolate to the list of isolates that require disposal on shutdown. The list of isolates is a
+   * DestructingList pointed to by a field in the smData struct in TLS.
+   *
+   */
+
+  void AddIsolateToGCTLSList(v8::V8Monkey::InternalIsolate* i) {
+    void* raw = Platform::GetTLSData(smDataKey);
+    ASSERT(raw, "AddIsolateToGCTLSList", "Somehow entered an isolate without creating SpiderMonkey data");
+
+    SpiderMonkeyData* data = reinterpret_cast<SpiderMonkeyData*>(raw);
+    data->isolateList->Add(i);
   }
 
 
-  // Returns a unique thread ID
+  /*
+   * Remove an isolate from the GC teardown list (by calling the teardown list's Delete function, which will in
+   * turn invoke RemoveGCRooter).
+   *
+   */
+
+  void DeleteIsolateFromGCTLSList(v8::V8Monkey::InternalIsolate* i) {
+    void* raw = Platform::GetTLSData(smDataKey);
+    ASSERT(raw, "DeleteIsolateFromGCTLSList", "Somehow entered isolate without creating SpiderMonkey data");
+
+    SpiderMonkeyData* data = reinterpret_cast<SpiderMonkeyData*>(raw);
+    data->isolateList->Delete(i);
+  }
+
+
+  /*
+   * TLS Key destructor. Disposes of any isolates that are GC roots for the thread's JSRuntime/JSContext, and then
+   * tears down those SpiderMonkey objects.
+   *
+   */
+
+  void tearDownCXAndRT(void* raw) {
+    if (!raw) {
+      return;
+    }
+
+    SpiderMonkeyData* data = reinterpret_cast<SpiderMonkeyData*>(raw);
+
+    // Must teardown isolates hooked into GC before destroying SpiderMonkey runtime objects
+    delete data->isolateList;
+
+    ASSERT(data->rtcx.rt, "tearDownCXAndRT", "JSRuntime* was null");
+    ASSERT(data->rtcx.cx, "tearDownCXAndRT", "JSContext* was null");
+
+    JS_DestroyContext(data->rtcx.cx);
+    JS_DestroyRuntime(data->rtcx.rt);
+
+    delete data;
+  }
+
+
+  /*
+   * Returns a unique thread ID
+   *
+   */
+
   int CreateThreadID() {
     // Thread IDs must be greater than 0; otherwise we wouldn't be able to tell if the value is the thread ID, or
     // represents the case where the given thread has no data for the TLS key
@@ -193,8 +237,12 @@ namespace {
   }
 
 
-  // Returns a new thread id for the thread, after having first stored it in TLS
-  int CreateAndAssignThreadID() {
+  /*
+   * Returns a new thread ID for the thread, after having first stored it in TLS
+   *
+   */
+
+  int createAndAssignThreadID() {
     int thread_id = CreateThreadID();
     Platform::StoreTLSData(threadIDKey, reinterpret_cast<void*>(thread_id));
 
@@ -202,13 +250,20 @@ namespace {
   }
 
 
-  int FetchOrAssignThreadId() {
-    int existing_id = GetThreadIDFromTLS();
+  /*
+   * Returns the thread ID stored in TLS, creating one if there is no such ID in TLS
+   *
+   */
+
+  int fetchOrAssignThreadID() {
+    void* raw_id = Platform::GetTLSData(threadIDKey);
+    int existing_id =  *reinterpret_cast<int*>(&raw_id);
+
     if (existing_id > 0) {
       return existing_id;
     }
 
-    return CreateAndAssignThreadID();
+    return createAndAssignThreadID();
   }
 
 
@@ -257,17 +312,18 @@ namespace v8 {
   int V8::GetCurrentThreadId() {
     if (V8::IsDead()) {
       V8MonkeyCommon::TriggerFatalError("V8::GetCurrentThreadId", "V8 is dead");
-      // Note V8 actually soldiers on here and doesn't return early, so we will too!
+      // Note V8 actually soldiers on here and doesn't return early; we will too!
     }
 
     // The V8 API specifies that this call implicitly inits V8
     V8::Initialize();
 
-    return FetchOrAssignThreadId();
+    return fetchOrAssignThreadID();
   }
 
 
   void V8::SetFatalErrorHandler(FatalErrorCallback fn) {
+    // Fatal error handlers are isolate-specific
     V8Monkey::InternalIsolate* i = V8Monkey::InternalIsolate::EnsureInIsolate();
     i->SetFatalErrorHandler(fn);
   }
@@ -334,9 +390,8 @@ namespace v8 {
     }
 
 
-    // Searches the linked list, and finds the ThreadData object for the given thread ID, or returns nullptr
-    InternalIsolate::ThreadData* InternalIsolate::FindThreadData(int threadID) {
-      ThreadData* data = threadData;
+      // We need to ensure this thread has an ID. GetCurrentThreadId creates one if necessary
+      int threadID = fetchOrAssignThreadID();
 
       while (data && data->threadID != threadID) {
         data = data->next;
@@ -346,9 +401,18 @@ namespace v8 {
     }
 
 
-    // Searches the linked list, and finds the ThreadData object for the given thread ID, creating one if it didn't
-    // already exist
-    InternalIsolate::ThreadData* InternalIsolate::FindOrCreateThreadData(int threadID, InternalIsolate* previousIsolate) {
+    /*
+     * Exiting the isolate is another simple book-keeping exercise, however note what doesn't happen: we don't
+     * deregister from SpiderMonkey GC rooting. Objects created-particularly persistent objects-may have the same
+     * lifetime as the isolate, so could exist until the client calls Isolate::Dispose. It would therefore be
+     * incorrect to stop tracing at this point.
+     * XXX What about HandleScopes/Locals. Clarify this comment.
+     *
+     */
+
+    void InternalIsolate::Exit() {
+      int threadID = fetchOrAssignThreadID();
+
       ThreadData* data = FindThreadData(threadID);
       if (data) {
         return data;
@@ -430,97 +494,81 @@ namespace v8 {
     }
 
 
-    void InternalIsolate::Enter() {
-      isDisposed = false;
+    /*
+     * Searches the linked list of thread data, and finds the ThreadData object for the given thread ID.
+     *
+     * Retuns nullptr if there is no entry for that threadID
+     *
+     */
 
-      // We need to ensure this thread has an ID. GetCurrentThreadId creates one if necessary
-      int threadID = FetchOrAssignThreadId();
+    InternalIsolate::ThreadData* InternalIsolate::FindThreadData(int threadID) {
+      ThreadData* data = threadData;
 
-      // Likewise, it should have a JSRuntime and JSContext
-      EnsureRuntimeAndContext();
-
-      // Register this isolate with SpiderMonkey for GC
-      AddGCRooter();
-
-      // What isolate was the thread in previously?
-      InternalIsolate* previousIsolate = GetIsolateFromTLS();
-
-      ThreadData* data = FindOrCreateThreadData(threadID, previousIsolate);
-
-      // Note a new entry for this thread
-      data->entryCount++;
-
-      if (data->entryCount > 1) {
-        // The thread was already in this isolate
-        return;
+      while (data && data->threadID != threadID) {
+        data = data->next;
       }
 
-      SetIsolateInTLS(this);
+      return data;
     }
 
 
-    void InternalIsolate::Exit() {
-      int threadID = FetchOrAssignThreadId();
+
+    /*
+     * Searches the linked list of thread data, and finds the ThreadData object for the given thread ID.
+     * If no entry exists for the thread, then one will be created, with the previous isolate field set to the given
+     * isolate.
+     *
+     */
+
+    InternalIsolate::ThreadData* InternalIsolate::FindOrCreateThreadData(int threadID, InternalIsolate* previousIsolate) {
       ThreadData* data = FindThreadData(threadID);
-
-      // Note that we have exited the isolate
-      data->entryCount--;
-
-      // Nothing more to do if the thread has other outstanding exits
-      if (data->entryCount > 0) {
-        return;
+      if (data) {
+        return data;
       }
 
-      // Time for this thread to say goodbye. We need to remove the ThreadData
-      // from the linked list, and pop that thread's isolate stack
-      SetIsolateInTLS(data->previousIsolate);
+      // Need to create new ThreadData. We will insert it at the head of the list
+      ThreadData* td = new ThreadData(threadID, previousIsolate, nullptr, threadData);
+      if (threadData) {
+        threadData->prev = td;
+      }
+      threadData = td;
 
-      // data will be dangling after this call, so make this the last thing we do
-      DeleteThreadData(data);
+      return td;
     }
 
 
-    void InternalIsolate::Dispose() {
-      // Don't dispose of the default isolate (or indeed any isolate) multiple times
-      if (isDisposed) {
-        return;
+    /*
+     * Delete the given entry from the ThreadData linked list and delete it.
+     *
+     */
+
+    void InternalIsolate::DeleteAndFreeThreadData(ThreadData* td) {
+      ASSERT(td, "InternalIsolate::DeleteAndFreeThreadData", "Attempting to delete null entry");
+      if (td->prev) {
+        td->prev->next = td->next;
       }
 
-      if (isRegisteredForGC) {
-        DeleteIsolateFromGCTLSList(this);
+      if (td->next) {
+        td->next->prev = td->prev;
       }
 
-      // Although we have just unhooked ourselves from the garbage collector, there might already be a GC running
-      AutoGCMutex(this);
-
-      // Ensure we don't attempt to delete the default isolate multiple times
-      isDisposed = true;
-
-      // Release any remaining objects if their persistents haven't cleaned them up, as we won't be tracing them after
-      // this.
-      // We assume if one field in persistentData is non-null then they both are, i.e. handles exist
-      if (persistentData.limit != nullptr) {
-        // All HandleScopes should be gone at this point. If we're going away, it'll be dangling-pointer-tastic
-        ASSERT(handleScopeData.limit == nullptr && handleScopeData.next == nullptr, "Isolate::Dispose",
-               "HandleScopes not destroyed!");
-        ObjectBlock<V8MonkeyObject>::Delete(persistentData.limit, persistentData.next, nullptr, persistentTearDown);
+      if (threadData == td) {
+        threadData = td->next;
       }
 
-      if (this != defaultIsolate) {
-        delete this;
-      } else {
-        // Clear out TLS so the destructor doesn't run again (unless on main thread)
-        int threadID = FetchOrAssignThreadId();
-        if (threadID != 1) {
-          SetIsolateInTLS(nullptr);
-        }
-      }
+      delete td;
     }
 
+
+    /*
+     * API for Lockers to "lock" the isolate for a given thread. As we are currently single-threaded, this is
+     * essentially meaningless. Hopefully, this won't always be the case.
+     *
+     */
 
     void InternalIsolate::Lock() {
       lockingMutex.Lock();
-      lockingThread = FetchOrAssignThreadId();
+      lockingThread = fetchOrAssignThreadID();
     }
 
 
@@ -530,8 +578,8 @@ namespace v8 {
     }
 
 
-    bool InternalIsolate::IsLockedForThisThread() {
-      return lockingThread == FetchOrAssignThreadId();
+    bool InternalIsolate::IsLockedForThisThread() const {
+      return lockingThread == fetchOrAssignThreadID();
     }
 
 
@@ -551,9 +599,10 @@ namespace v8 {
 
 
     bool InternalIsolate::IsEntered(InternalIsolate* i) {
-      // Note: we can't simply grab the isolate* from TLS, as main will have a non-null value, even when it hasn't
-      // entered the isolate
-      int threadID = FetchOrAssignThreadId();
+      // The naive approach here would be to simply grab the isolate pointer from TLS and compare. However, this would
+      // be incorrect for the main thread, as, for V8 compatability, it has a pointer to the default isolate regardless
+      // of entry status.
+      int threadID = fetchOrAssignThreadID();
       return i->FindThreadData(threadID) != nullptr;
     }
 
@@ -575,14 +624,17 @@ namespace v8 {
       // Associate the default isolate with this thread permanently
       SetIsolateInTLS(InternalIsolate::defaultIsolate);
 
-      // We should be thread 1!
-      FetchOrAssignThreadId();
+      // We should be thread number 1!
+      int threadID = fetchOrAssignThreadID();
+
+      ASSERT(threadID == 1, "InternalIsolate::EnsureDefaultIsolateForStaticInitializerThread", "Wrong thread ID!");
+      initialized = true;
     }
 
 
     InternalIsolate* InternalIsolate::EnsureInIsolate() {
       InternalIsolate* current = GetCurrent();
-      int threadID = FetchOrAssignThreadId();
+      int threadID = fetchOrAssignThreadID();
       if (current && current->FindThreadData(threadID) != nullptr) {
         return current;
       }
@@ -698,7 +750,8 @@ namespace v8 {
 
 
     TestUtils::AutoTestCleanup::AutoTestCleanup() {
-      if (GetThreadIDFromTLS() != 1) {
+      // Use fetchOrThreadID to avoid implicitly initting V8
+      if (fetchOrAssignThreadID() != 1) {
         V8Platform::Platform::ExitWithError("Why are you using AutoTestCleanup on a thread, idiot?");
       }
     }
