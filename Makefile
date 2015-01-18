@@ -109,8 +109,17 @@ v8platformtarget = $(outdir)/$(platformlibfile)
 # Directory where the "internal" library object files will be built
 v8monkeyinternaldir = $(outdir)/test/internalLib
 
+
 # Absolute filename of the internal test variant of the V8Monkey library
 v8monkeytesttarget = $(v8monkeyinternaldir)/$(v8testlibraryfile)
+
+
+# Location of API test files
+apitestbase = $(outdir)/test/api
+
+
+# Location of internal test files
+internaltestbase = $(outdir)/test/internal
 
 
 # We will generally need headers from 3 places:
@@ -149,6 +158,14 @@ linkcommand = -Wl,-L$(strip $(1)) -Wl,-rpath=$(strip $(1)) -l$(strip $(2))
 # Because we build normal and "internal" versions of the object files, expressing dependencies could become
 # a bit of a chore
 variants = $(outdir)/$(strip $(1)).o $(v8monkeyinternaldir)/$(strip $(1)).o
+
+
+# Expand an api test stem to its object file
+apitest = $(addprefix $(apitestbase)/test_, $(addsuffix .o,  $(strip $(1))))
+
+
+# Expand an internal test stem to its object file
+inttest = $(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o,  $(strip $(1))))
 
 
 # A useful general rule for building files
@@ -299,7 +316,7 @@ $(v8monkeyheadersdir)/v8.h: include/v8.h | $(v8monkeyheadersdir)
 $(v8objects) $(testlibobjects): $(v8monkeyheadersdir)/v8.h
 
 # version.cpp and test/test_version.cpp need SMVERSION defined
-$(call variants, src/engine/version) $(outdir)/test/api/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
+$(call variants, src/engine/version) $(apitestbase)/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
 
 
 # Several files depend on the JSAPI header
@@ -374,7 +391,8 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 
 
 # The "internals" test harness is composed from the following
-internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock persistent platform refcount smartpointer threadID value
+internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock persistent \
+                    platform refcount smartpointer threadID value
 internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
@@ -441,29 +459,29 @@ $(internaltestobjects): src/test.h
 
 
 # Some test files depend on the V8MonkeyCommon class
-$(outdir)/test/internal/test_death_internal.o $(outdir)/test/internal/test_fatalerror_internal.o: src/v8monkey_common.h
+$(internaltestbase)/test_death_internal.o $(internaltestbase)/test_fatalerror_internal.o: src/v8monkey_common.h
 
 
 # Not unexpectedly, test_objectblock_internal depends on the header
-$(outdir)/test/internal/test_handlescope_internal.o $(outdir)/test/internal/test_objectblock_internal.o $(outdir)/test/internal/test_persistent_internal.o: src/data_structures/objectblock.h
+$(internaltestbase)/test_handlescope_internal.o $(internaltestbase)/test_objectblock_internal.o $(internaltestbase)/test_persistent_internal.o: src/data_structures/objectblock.h
 
 
 # some files depend on the base_type definitions
 test_basetypes_deps = destructlist handlescope isolate objectblock persistent refcount smartpointer
-$(addprefix $(outdir)/test/internal/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
+$(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
 
 
 # test_smartptr_internal needs the smart pointer definition
-$(outdir)/test/internal/test_smartpointer_internal.o: src/data_structures/smart_pointer.h
+$(call inttest, smartpointer): src/data_structures/smart_pointer.h
 
 
 # test_destructlist_internal needs the type it tests too
-$(outdir)/test/internal/test_destructlist_internal.o: src/data_structures/destruct_list.h
+$(call inttest, destructlist): src/data_structures/destruct_list.h
 
 
 # Several internal files depend on the JSAPI header
 test_jsapi_stems = isolate smartpointer
-test_jsapi_deps = $(addsuffix _internal.o, $(addprefix $(outdir)/test/internal/test_, $(test_jsapi_stems)))
+test_jsapi_deps = $(addsuffix _internal.o, $(addprefix $(internaltestbase)/test_, $(test_jsapi_stems)))
 $(test_jsapi_deps): $(smheadersdir)/jsapi.h
 
 
