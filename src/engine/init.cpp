@@ -1,20 +1,23 @@
+// exit
+#include <stdlib.h>
+
 // V8
 #include "v8.h"
 
-
-#include "init.h"
+// InternalIsolate
 #include "runtime/isolate.h"
-#include "platform.h"
-#include "test.h"
-#include "v8monkey_common.h"
 
+// Print
+#include "platform.h"
+
+// TestUtils
+#include "test.h"
+
+// V8MonkeyCommon class
+#include "v8monkey_common.h"
 
 // Spidermonkey
 #include "jsapi.h"
-
-
-// exit
-#include <stdlib.h>
 
 
 /*
@@ -23,8 +26,11 @@
  */
 
 
+// XXX This file really needs tidied up
+
+
 namespace {
-  // Was SpiderMonkey initted succesfully? This should only be read while holding the relevant mutex
+  // Was SpiderMonkey initted succesfully?
   bool engineInitAttempted = false;
   bool engineInitSucceeded = false;
 
@@ -68,32 +74,46 @@ namespace {
   }
 
 
-  // The single static initializer for our global state, to avoid running into static initialization ordering problems across
-  // translation unit boundaries.
+  /*
+   * The single static initializer for our global state, to avoid running into static initialization ordering problems across
+   * translation unit boundaries.
+   *
+   */
+
   class OneTrueStaticInitializer {
     public:
       OneTrueStaticInitializer() {
         v8::V8Monkey::V8MonkeyCommon::InitTLSKeys();
-        v8::V8Monkey::V8MonkeyCommon::EnsureDefaultIsolate();
-        v8::V8Monkey::V8MonkeyCommon::InitPrimitiveSingletons();
 
-        // Just go ahead and init SpiderMonkey here too. We don't acquire the mutex: we should be single-threaded at this point
+        // Just go ahead and init SpiderMonkey here too. We don't use a mutex here: we should be single-threaded at this point
         engineInitAttempted = true;
         engineInitSucceeded = JS_Init();
+
+        if (engineInitSucceeded) {
+          v8::V8Monkey::InternalIsolate::EnsureDefaultIsolateForStaticInitializerThread();
+        }
+
+        v8::V8Monkey::V8MonkeyCommon::InitPrimitiveSingletons();
       }
 
-      // SpiderMonkey docs state that a call to JS_Shutdown-which releases any remaining resources not tied to specific
-      // runtimes or contexts-is currently optional, but warns that this might not always be so. Thus we ensure we shut
-      // things down in this destructor.
+      /*
+       * SpiderMonkey docs state that a call to JS_Shutdown-which releases any remaining resources not tied to specific
+       * runtimes or contexts-is currently optional, but warns that this might not always be so. Thus we ensure we shut
+       * things down in this destructor.
+       *
+       */
+
       ~OneTrueStaticInitializer() {
         v8::V8Monkey::V8MonkeyCommon::TearDownPrimitiveSingletons();
 
         // Ensure default isolate is disposed
         delete v8::V8Monkey::InternalIsolate::GetCurrent();
 
-        // Force any extant threads to dispose of their JSRuntimes and JSContexts
-        v8::V8Monkey::V8MonkeyCommon::ForceRTCXDisposal();
-        JS_ShutDown();
+        if (engineInitSucceeded) {
+          // Force any extant threads to dispose of their JSRuntimes and JSContexts
+          v8::V8Monkey::V8MonkeyCommon::ForceMainThreadRTCXDisposal();
+          JS_ShutDown();
+        }
       }
   } staticInitializer;
 }
@@ -177,14 +197,18 @@ if (InternalIsolate::IsEntered(i)) {
       }
 
 
-      // Many API functions implicitly init V8 but first confirm it's not dead. They test this by setting up a fatal
-      // error handler and triggering the implicitly initting function. There are a couple of key problems: calling
-      // TriggerFatalError, though killing V8, invokes the fatal error handler itself, defeating the point of the
-      // test, and calling SetFatalErrorHandler implicitly inits V8, which is again something the test needs to
-      // control.
-      //
-      // The following function thus circumvents API conventions, and installs an error handler without init, and kills
-      // V8 without triggering the handler.
+      /*
+       * Many API functions implicitly init V8 but first confirm it's not dead. They test this by setting up a fatal
+       * error handler and triggering the implicitly initting function. There are a couple of key problems: calling
+       * TriggerFatalError, though killing V8, invokes the fatal error handler itself, defeating the point of the
+       * test, and calling SetFatalErrorHandler implicitly inits V8, which is again something the test needs to
+       * control.
+       *
+       * The following function thus circumvents API conventions, and installs an error handler without init, and kills
+       * V8 without triggering the handler.
+       *
+       */
+
       void TestUtils::SetHandlerAndKill(FatalErrorCallback f) {
         InternalIsolate* i = InternalIsolate::GetCurrent();
         i->SetFatalErrorHandler(f);
