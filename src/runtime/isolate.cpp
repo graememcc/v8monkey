@@ -26,16 +26,16 @@
  * Clearly then, when fully emulating the V8 API, we cannot have a 1-1 correspondence from V8 Isolates to JSAPI
  * JSRuntimes. Now, although I've pulled multithreading support for the moment-I wasn't satisfied I would be able to
  * satisfactorily clean up threads leaving isolates, particularly once it became necessary to hook up isolates to
- * GC rooting-but the current implementation is based on the outline of my plan for a multi-threaded world, hence the
- * otherwise unneccessary use of Thread-Local Storage.
+ * GC rooting-the current implementation is based on the outline of my plan for a multi-threaded world, in case it
+ * proves possible to reinstate multithreading, hence the otherwise unneccessary use of Thread-Local Storage.
  *
- * Essentially, the plan was to look out for the first time a thread enters any isolate, and assign a JSRuntime and
- * JSContext then, with a destructor attached to the TLS key to teardown those objects on thread exit, with some separate
- * machinery to teardown the main thread's objects (as thread destruction in that case would imply the static object whose
- * destructor shuts down SpiderMonkey has already ran).
+ * Essentially, we look out for the first time a thread enters any isolate, and assign a JSRuntime and JSContext then.
+ * A destructor is attached to the TLS key to teardown those objects on thread exit, and there is some separate
+ * machinery to teardown the main thread's JSRuntime and JSContext: thread destruction in that case would imply that
+ * OneTrueStaticInitializer's destructor has ran, and that destructor tears down SpiderMonkey, so we're too late.
  *
  * TODO: If the differences in the threading models prove insurmountable, then there are a lot of opportunities here
- *       and elsewhere for simplficication and possibly optimization.
+ *       and elsewhere for simplificication and possibly optimization.
  *
  * In terms of API implementation, we follow the lead of V8 here. The public-facing Isolate class is made of air; it
  * simply wraps pointers to the corresponding internal class.
