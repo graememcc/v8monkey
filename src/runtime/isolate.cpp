@@ -383,11 +383,56 @@ namespace v8 {
       ASSERT(!ContainsThreads(), "InternalIsolate::~InternalIsolate", "Threads still active");
       ASSERT(isDisposed || IsDefaultIsolate(this), "InternalIsolate::~InternalIsolate", "Isolate not disposed");
 
-      // Ensure default isolate deregisters for SpiderMonkey GC rooting
-      if (!isDisposed) {
-        Dispose();
-      }
-    }
+    /*
+     * Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
+     * "unlock" themselves to yield the isolate, we can't even be sure that threads will enter and exit in a LIFO
+     * order-the ordering will be at the mercy of the locking mechanism. Thus we need some way of answering the
+     * following questions:
+     *
+     * - Which threads have entered a given isolate?
+     * - How many times has a given thread entered an isolate?
+     * - When a thread leaves, which isolate (if any) is it returning to?
+     *
+     * We use the following class to answer such questions. The isolate maintains a linked list of these objects. We
+     * expect the following invariants to hold:
+     *
+     * - There is only one ThreadData object for a thread, regardless of how many times a thread has entered the
+     *   isolate. The entryCount member will correctly reflect the number of times a thread has entered the isolate
+     *
+     * - If a thread has not entered an isolate, there will be no ThreadData entry for that thread
+     *
+     * - When no threads have entered the isolate, or all threads have exited the isolate, the isolate's threadData
+     *   member will be null
+     *
+     * Note that we do not assume an ordering on the linked list. In particular, we don't assume the head of the linked
+     * list is the currently entered thread's data.
+     *
+     */
+
+    struct InternalIsolate::ThreadData {
+      int entryCount;
+      int threadID;
+      InternalIsolate* previousIsolate;
+      ThreadData* prev;
+      ThreadData* next;
+
+      ThreadData(int id, InternalIsolate* previous, ThreadData* previousElement, ThreadData* nextElement) :
+        entryCount(0), threadID(id), previousIsolate(previous), prev(previousElement), next(nextElement) {}
+    };
+
+    /*
+     * When an InternalIsolate is entered, we will assign that thread a JSRuntime and a JSContext if the thread has
+     * not yet had one assigned. Likewise, and in common with V8, at this point we will assign the thread a unique
+     * numeric ID.
+     *
+     * When any thread enters an isolate, we must notify SpiderMonkey that the isolate will be participating in GC
+     * rooting. Once in an isolate, a thread is free to start creating objects, and some of those objects may wrap
+     * SpiderMonkey objects.
+     *
+     * Isolates stack: if a thread enters isolate A, and then creates and enters isolate B from A, then on exiting B,
+     * the thread should be considered in A once more. Some book-keeping here handles this.
+     *
+     */
 
 
       // We need to ensure this thread has an ID. GetCurrentThreadId creates one if necessary

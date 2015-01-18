@@ -170,25 +170,6 @@ namespace v8 {
         bool IsInitted() const { return isInitted; }
         void Init() { isInitted = true; }
 
-        // Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
-        // "unlock" themselves to yield the isolate, we can't even be sure that threads will enter and exit in a LIFO
-        // order-the ordering will be at the mercy of the locking mechanism. Thus we need some way of answering the
-        // following questions:
-        //   Which threads have entered us?
-        //   How many times has a given thread entered us?
-        //   When a thread leaves, which isolate is it returning to?
-        // We use this class to answer such questions
-        struct ThreadData {
-          int entryCount;
-          int threadID;
-          InternalIsolate* previousIsolate;
-          ThreadData* prev;
-          ThreadData* next;
-
-          ThreadData(int id, InternalIsolate* previous, ThreadData* previousElement, ThreadData* nextElement) :
-            entryCount(0), threadID(id), previousIsolate(previous), prev(previousElement), next(nextElement) {}
-        };
-
         #ifdef V8MONKEY_INTERNAL_TEST
         static InternalIsolate* FromIsolate(Isolate* i) {
           return reinterpret_cast<InternalIsolate*>(i);
@@ -210,10 +191,11 @@ namespace v8 {
         static JSContext* GetJSContextForThread();
 
       private:
+        struct ThreadData;
+
         // Tell SpiderMonkey about this isolate
         void AddGCRooter();
 
-        // Unfortunately needs to be public so the DestructList function can access it
         // Has this isolate been disposed?
         bool isDisposed;
 
@@ -251,7 +233,7 @@ namespace v8 {
         // ThreadData linked list manipulations
         ThreadData* FindOrCreateThreadData(int threadID, InternalIsolate* previousIsolate);
         ThreadData* FindThreadData(int threadID);
-        void DeleteThreadData(ThreadData* data);
+        void DeleteAndFreeThreadData(ThreadData* data);
 
         // V8 compat
         bool isInitted;
