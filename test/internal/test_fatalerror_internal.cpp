@@ -1,8 +1,16 @@
+// InternalIsolate
+#include "runtime/isolate.h"
+
+// TestUtils
+#include "test.h"
+
+// TriggerFatalError
+#include "v8monkey_common.h"
+
+// Isolate SetFatalErrorHandler
 #include "v8.h"
 
-#include "runtime/isolate.h"
-#include "test.h"
-#include "v8monkey_common.h"
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
@@ -48,7 +56,7 @@ V8MONKEY_TEST(FatalHandler002, "Calling SetFatalErrorHandler doesn't change isol
   i->Enter();
 
   V8::SetFatalErrorHandler(callback1);
-  V8MONKEY_CHECK(V8Monkey::InternalIsolate::IsEntered(AsInternal(i)), "Correctly stayed in isolate");
+  V8MONKEY_CHECK(V8Monkey::InternalIsolate::IsEntered(AsInternal(i)), "Correctly remained in isolate");
 }
 
 
