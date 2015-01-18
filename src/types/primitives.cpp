@@ -1,11 +1,27 @@
-#include "v8.h"
-
-#include "jsapi.h"
-
-#include "runtime/isolate.h"
+// V8MonkeyObject
 #include "types/base_types.h"
+
+// V8Boolean V8SpecialValue V8Value
 #include "types/value_types.h"
 
+// Boolean Handle Null Primitive Undefined
+#include "v8.h"
+
+// InitPrimitiveSingletons TearDownPrimitiveSingletons
+#include "v8monkey_common.h"
+
+
+/*
+ * This file, and the V8Boolean and V8SpecialValue types in value_types.h, provide the implementation of booleans,
+ * undefined and null.
+ *
+ * Whilst we could use the SpiderMonkey versions, the API documentation makes no guarantees that the given values are
+ * constants (although I believe they are), and reminds clients not to rely on any internal details of JS::Values.
+ * By rolling our own, we can guarantee that they are singletons, and we avoid a complication if/when we get threads
+ * working: by extension, we wouldn't be able to rely on the SpiderMonkey versions being constant across JSRuntimes,
+ * so would need to create fresh versions for every thread.
+ *
+ */
 
 namespace {
   using namespace v8;
@@ -18,6 +34,8 @@ namespace {
   V8MonkeyObject** falsePtr = &falseValue;
   V8MonkeyObject* undefinedValue;
   V8MonkeyObject** undefinedPtr = &undefinedValue;
+  V8MonkeyObject* nullValue;
+  V8MonkeyObject** nullPtr = &nullValue;
 }
 
 
@@ -46,6 +64,12 @@ namespace v8 {
   }
 
 
+  Handle<Primitive> Null() {
+    Handle<Primitive> h(reinterpret_cast<Primitive*>(nullPtr));
+    return h;
+  }
+
+
   namespace V8Monkey {
     void V8MonkeyCommon::InitPrimitiveSingletons() {
       // Booleans
@@ -57,6 +81,10 @@ namespace v8 {
       // Undefined
       undefinedValue = new V8Monkey::V8SpecialValue(false, true);
       undefinedValue->AddRef();
+
+      // Null
+      nullValue = new V8Monkey::V8SpecialValue(true, false);
+      nullValue->AddRef();
     }
 
 
@@ -64,6 +92,7 @@ namespace v8 {
       trueValue->Release();
       falseValue->Release();
       undefinedValue->Release();
+      nullValue->Release();
     }
   }
 }

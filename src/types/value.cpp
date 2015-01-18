@@ -1,13 +1,19 @@
+// std::isnan, std::isfinite
 #include <cmath>
+
+// int32_t, int64_t, uint32_t
 #include <cinttypes>
+
+// std::numeric_limits
 #include <limits>
 
+// V8Value
+#include "types/value_types.h"
+
+// Boolean Handle Integer Int32 Local Number Uint32 Value
 #include "v8.h"
 
-#include "jsapi.h"
-
-#include "runtime/isolate.h"
-#include "types/value_types.h"
+// CheckDeath
 #include "v8monkey_common.h"
 
 
@@ -87,6 +93,7 @@ namespace v8 {
   #undef FORWARD_TO_INTERNAL
 
 
+  // XXX Need to respect V8 behaviour with respect to having entered a context
   double Value::NumberValue() const {
     if (IsNumber()) {
       return static_cast<Number*>(const_cast<Value*>(this))->Value();
@@ -102,6 +109,9 @@ namespace v8 {
       return std::numeric_limits<double>::quiet_NaN();
     }
 
+    if (IsNull()) {
+      return 0.0;
+    }
 
     return 0xdead;
   }
@@ -124,6 +134,10 @@ namespace v8 {
 
     if (IsUndefined()) {
       return 0;
+    }
+
+    if (IsNull()) {
+      return 0.0;
     }
 
     // XXX Finish
@@ -161,6 +175,10 @@ namespace v8 {
       return 0;
     }
 
+    if (IsNull()) {
+      return 0.0;
+    }
+
     // XXX Finish
     return 0x4;
   }
@@ -194,12 +212,17 @@ namespace v8 {
       return 0;
     }
 
+    if (IsNull()) {
+      return 0.0;
+    }
+
     // XXX Finish
     return 12;
   }
 
 
   Local<Number> Value::ToNumber() const {
+    // XXX Check this assumption
     // The caller should be in a handlescope already
 
     if (IsNumber()) {
@@ -211,6 +234,7 @@ namespace v8 {
 
 
   Local<Integer> Value::ToInteger() const {
+    // XXX Check this assumption
     // The caller should be in a handlescope already
 
     if (IsNumber()) {
@@ -242,6 +266,7 @@ namespace v8 {
 
 
   Local<Int32> Value::ToInt32() const {
+    // XXX Check this assumption
     // The caller should be in a handlescope already
 
     if (IsNumber()) {
@@ -263,6 +288,7 @@ namespace v8 {
 
 
   Local<Uint32> Value::ToUint32() const {
+    // XXX Check this assumption
     // The caller should be in a handlescope already
 
     if (IsNumber()) {
@@ -284,6 +310,7 @@ namespace v8 {
 
 
   Local<Uint32> Value::ToArrayIndex() const {
+    // XXX Check this assumption
     // The caller should be in a handlescope already
     Local<Uint32> empty;
 
@@ -318,7 +345,7 @@ namespace v8 {
       return reinterpret_cast<Uint32*>(*temp);
     }
 
-    if (IsUndefined()) {
+    if (IsUndefined() || IsNull()) {
       return empty;
     }
 
@@ -347,6 +374,9 @@ namespace v8 {
 
 
   Local<Boolean> Value::ToBoolean() const {
+    // XXX Check this assumption
+    // The caller should be in a handlescope already
+
     if (IsBoolean()) {
       return reinterpret_cast<Boolean*>(const_cast<Value*>(this));
     }
@@ -381,7 +411,21 @@ namespace v8 {
     }
 
     if (IsUndefined()) {
+      // 11.9.3.3
+      if (that->IsNull()) {
+        return true;
+      }
+
       return that->IsUndefined();
+    }
+
+    if (IsNull()) {
+      // 11.9.3.2
+      if (that->IsUndefined()) {
+        return true;
+      }
+
+      return that->IsNull();
     }
 
     // FINISH

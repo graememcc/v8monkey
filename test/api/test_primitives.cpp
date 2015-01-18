@@ -1,9 +1,13 @@
+// std::isnan
 #include <cmath>
+
+// std::numeric_limits
 #include <limits>
 
+// Boolean Integer Int32 Handle HandleScope Isolate Local Null Number Primitive Uint32 Undefined V8 Value
 #include "v8.h"
 
-#include "test.h"
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
@@ -689,12 +693,44 @@ V8MONKEY_TEST(Boolean062, "Equals works correctly (10)") {
 }
 
 
-BOOLEANEQUALITYTEST(063, 1, true, StrictEquals)
-BOOLEANEQUALITYTEST(064, 2, false, StrictEquals)
+V8MONKEY_TEST(Boolean063, "Equals works correctly (11)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> b = Boolean::New(true);
+    Handle<Value> n = Null();
+
+    V8MONKEY_CHECK(!b->Equals(n), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Boolean064, "Equals works correctly (12)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> b = Boolean::New(false);
+    Handle<Value> n = Null();
+
+    V8MONKEY_CHECK(!b->Equals(n), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+BOOLEANEQUALITYTEST(065, 1, true, StrictEquals)
+BOOLEANEQUALITYTEST(066, 2, false, StrictEquals)
 #undef BOOLEANEQUALITYTEST
 
 
-V8MONKEY_TEST(Boolean065, "StrictEquals works correctly (3)") {
+V8MONKEY_TEST(Boolean067, "StrictEquals works correctly (3)") {
   V8::Initialize();
 
   {
@@ -710,7 +746,7 @@ V8MONKEY_TEST(Boolean065, "StrictEquals works correctly (3)") {
 }
 
 
-V8MONKEY_TEST(Boolean066, "StrictEquals works correctly (4)") {
+V8MONKEY_TEST(Boolean068, "StrictEquals works correctly (4)") {
   V8::Initialize();
 
   {
@@ -726,7 +762,7 @@ V8MONKEY_TEST(Boolean066, "StrictEquals works correctly (4)") {
 }
 
 
-V8MONKEY_TEST(Boolean067, "StrictEquals works correctly (5)") {
+V8MONKEY_TEST(Boolean069, "StrictEquals works correctly (5)") {
   V8::Initialize();
 
   {
@@ -742,7 +778,7 @@ V8MONKEY_TEST(Boolean067, "StrictEquals works correctly (5)") {
 }
 
 
-V8MONKEY_TEST(Boolean068, "StrictEquals works correctly (6)") {
+V8MONKEY_TEST(Boolean070, "StrictEquals works correctly (6)") {
   V8::Initialize();
 
   {
@@ -758,7 +794,7 @@ V8MONKEY_TEST(Boolean068, "StrictEquals works correctly (6)") {
 }
 
 
-V8MONKEY_TEST(Boolean069, "StrictEquals works correctly (6)") {
+V8MONKEY_TEST(Boolean071, "StrictEquals works correctly (6)") {
   V8::Initialize();
 
   {
@@ -774,7 +810,7 @@ V8MONKEY_TEST(Boolean069, "StrictEquals works correctly (6)") {
 }
 
 
-V8MONKEY_TEST(Boolean070, "StrictEquals works correctly (7)") {
+V8MONKEY_TEST(Boolean072, "StrictEquals works correctly (7)") {
   V8::Initialize();
 
   {
@@ -790,7 +826,7 @@ V8MONKEY_TEST(Boolean070, "StrictEquals works correctly (7)") {
 }
 
 
-V8MONKEY_TEST(Boolean071, "StrictEquals works correctly (8)") {
+V8MONKEY_TEST(Boolean073, "StrictEquals works correctly (8)") {
   V8::Initialize();
 
   {
@@ -806,7 +842,7 @@ V8MONKEY_TEST(Boolean071, "StrictEquals works correctly (8)") {
 }
 
 
-V8MONKEY_TEST(Boolean072, "StrictEquals works correctly (9)") {
+V8MONKEY_TEST(Boolean074, "StrictEquals works correctly (9)") {
   V8::Initialize();
 
   {
@@ -822,7 +858,7 @@ V8MONKEY_TEST(Boolean072, "StrictEquals works correctly (9)") {
 }
 
 
-V8MONKEY_TEST(Boolean073, "StrictEquals works correctly (10)") {
+V8MONKEY_TEST(Boolean075, "StrictEquals works correctly (10)") {
   V8::Initialize();
 
   {
@@ -831,6 +867,38 @@ V8MONKEY_TEST(Boolean073, "StrictEquals works correctly (10)") {
     Handle<Value> u = Undefined();
 
     V8MONKEY_CHECK(!b->StrictEquals(u), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Boolean076, "StrictEquals works correctly (11)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> b = Boolean::New(true);
+    Handle<Value> n = Null();
+
+    V8MONKEY_CHECK(!b->StrictEquals(n), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Boolean077, "StrictEquals works correctly (12)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> b = Boolean::New(false);
+    Handle<Value> n = Null();
+
+    V8MONKEY_CHECK(!b->StrictEquals(n), "Equality works correctly");
   }
 
   Isolate::GetCurrent()->Exit();
@@ -1311,7 +1379,23 @@ V8MONKEY_TEST(Undefined036, "Equals works correctly (5)") {
 }
 
 
-V8MONKEY_TEST(Undefined037, "StrictEquals works correctly (1)") {
+V8MONKEY_TEST(Undefined037, "Equals works correctly (6)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> u = Undefined();
+    Handle<Value> n = Null();
+
+    V8MONKEY_CHECK(u->Equals(n), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Undefined038, "StrictEquals works correctly (1)") {
   V8::Initialize();
 
   {
@@ -1327,7 +1411,7 @@ V8MONKEY_TEST(Undefined037, "StrictEquals works correctly (1)") {
 }
 
 
-V8MONKEY_TEST(Undefined038, "StrictEquals works correctly (2)") {
+V8MONKEY_TEST(Undefined039, "StrictEquals works correctly (2)") {
   V8::Initialize();
 
   {
@@ -1343,7 +1427,7 @@ V8MONKEY_TEST(Undefined038, "StrictEquals works correctly (2)") {
 }
 
 
-V8MONKEY_TEST(Undefined039, "StrictEquals works correctly (3)") {
+V8MONKEY_TEST(Undefined040, "StrictEquals works correctly (3)") {
   V8::Initialize();
 
   {
@@ -1359,7 +1443,7 @@ V8MONKEY_TEST(Undefined039, "StrictEquals works correctly (3)") {
 }
 
 
-V8MONKEY_TEST(Undefined040, "StrictEquals works correctly (4)") {
+V8MONKEY_TEST(Undefined041, "StrictEquals works correctly (4)") {
   V8::Initialize();
 
   {
@@ -1375,7 +1459,7 @@ V8MONKEY_TEST(Undefined040, "StrictEquals works correctly (4)") {
 }
 
 
-V8MONKEY_TEST(Undefined041, "StrictEquals works correctly (5)") {
+V8MONKEY_TEST(Undefined042, "StrictEquals works correctly (5)") {
   V8::Initialize();
 
   {
@@ -1384,6 +1468,562 @@ V8MONKEY_TEST(Undefined041, "StrictEquals works correctly (5)") {
     Handle<Boolean> b = Boolean::New(false);
 
     V8MONKEY_CHECK(!u->StrictEquals(b), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Undefined043, "StrictEquals works correctly (6)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> u = Undefined();
+    Handle<Value> n = Null();
+
+    V8MONKEY_CHECK(!u->StrictEquals(n), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null001, "IsNull works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(n->IsNull(), "IsNull reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null002, "IsUndefined works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsUndefined(), "IsUndefined reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null003, "IsString works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsString(), "IsString reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null004, "IsFunction works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsFunction(), "IsFunction reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null005, "IsArray works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsArray(), "IsArray reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null006, "IsObject works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsObject(), "IsObject reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null007, "IsNumber works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsNumber(), "IsNumber reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+}
+
+
+V8MONKEY_TEST(Null008, "IsExternal works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsExternal(), "IsExternal reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null009, "IsDate works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsDate(), "IsDate reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null010, "IsBooleanObject works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsBooleanObject(), "IsNullObject reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null011, "IsNumberObject works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsNumberObject(), "IsNumberObject reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null012, "IsStringObject works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsStringObject(), "IsStringObject reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null013, "IsNativeError works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsNativeError(), "IsNativeError reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null014, "IsRegExp works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsRegExp(), "IsRegExp reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null015, "IsInt32 works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsInt32(), "IsInt32 reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null016, "IsUint32 works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsUint32(), "IsUint32 reports correct result");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null017, "IsBoolean works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsBoolean(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null018, "IsTrue works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsTrue(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null019, "IsFalse works correctly") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null();
+
+    V8MONKEY_CHECK(!n->IsFalse(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+#define NULLVALUETEST(testNumber, variant, method, expected) \
+V8MONKEY_TEST(Null##testNumber, #method " works correctly (" #variant ")") { \
+  V8::Initialize(); \
+\
+  { \
+    HandleScope h; \
+    Handle<Value> n = Null(); \
+\
+    V8MONKEY_CHECK(n->method() == expected, "Correct value returned"); \
+  } \
+ \
+  Isolate::GetCurrent()->Exit(); \
+  V8::Dispose(); \
+}
+
+
+NULLVALUETEST(020, 1, NumberValue, 0)
+NULLVALUETEST(021, 1, IntegerValue, 0)
+NULLVALUETEST(022, 1, Int32Value, 0)
+NULLVALUETEST(023, 1, Uint32Value, 0)
+NULLVALUETEST(024, 1, BooleanValue, false)
+#undef NULLVALUETEST
+
+
+#define NULLTOTYPETEST(testNumber, variant, type) \
+V8MONKEY_TEST(Null##testNumber, "To" #type " works correctly (" #variant ")") { \
+  V8::Initialize(); \
+\
+  { \
+    HandleScope h; \
+    Handle<Value> n = Null(); \
+    Local<type> other = n->To##type(); \
+\
+    V8MONKEY_CHECK(other->Value() == n->type##Value(), "Correct value returned"); \
+  } \
+ \
+  Isolate::GetCurrent()->Exit(); \
+  V8::Dispose(); \
+}
+
+
+NULLTOTYPETEST(025, 1, Number)
+NULLTOTYPETEST(026, 1, Integer)
+NULLTOTYPETEST(027, 1, Int32)
+NULLTOTYPETEST(028, 1, Uint32)
+NULLTOTYPETEST(029, 1, Boolean)
+#undef NULLTOTYPETEST
+
+
+V8MONKEY_TEST(Null030, "ToArrayIndex returns correct value") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> n = Null();
+    Local<Uint32> indexHandle = n->ToArrayIndex();
+
+    V8MONKEY_CHECK(indexHandle.IsEmpty(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null031, "Null with isolate returns correct value") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Primitive> n = Null(Isolate::GetCurrent());
+
+    V8MONKEY_CHECK(n == Null(), "Correct value returned");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null032, "Equals works correctly (1)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> n = Null();
+
+    V8MONKEY_CHECK(n->Equals(n), "Self-equality works correctly");
+    V8MONKEY_CHECK(n->Equals(Null()), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null033, "Equals works correctly (2)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> n = Null();
+    Local<Value> other = Number::New(1);
+
+    V8MONKEY_CHECK(!n->Equals(other), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null034, "Equals works correctly (3)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> n = Null();
+    Local<Value> other = Number::New(std::numeric_limits<double>::quiet_NaN());
+
+    V8MONKEY_CHECK(!n->Equals(other), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null035, "Equals works correctly (4)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> n = Null();
+    Handle<Boolean> b = Boolean::New(true);
+
+    V8MONKEY_CHECK(!n->Equals(b), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null036, "Equals works correctly (5)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> n = Null();
+    Handle<Boolean> b = Boolean::New(false);
+
+    V8MONKEY_CHECK(!n->Equals(b), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null037, "Equals works correctly (6)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> n = Null();
+    Handle<Value> u = Undefined();
+
+    V8MONKEY_CHECK(n->Equals(u), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null038, "StrictEquals works correctly (1)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> n = Null();
+
+    V8MONKEY_CHECK(n->StrictEquals(n), "Self-equality works correctly");
+    V8MONKEY_CHECK(n->StrictEquals(Null()), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null039, "StrictEquals works correctly (2)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> n = Null();
+    Local<Value> other = Number::New(1);
+
+    V8MONKEY_CHECK(!n->StrictEquals(other), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null040, "StrictEquals works correctly (3)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> n = Null();
+    Handle<Boolean> b = Boolean::New(true);
+
+    V8MONKEY_CHECK(!n->StrictEquals(b), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null041, "StrictEquals works correctly (4)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> n = Null();
+    Handle<Boolean> b = Boolean::New(false);
+
+    V8MONKEY_CHECK(!n->StrictEquals(b), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Null042, "StrictEquals works correctly (5)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    Handle<Value> n = Null();
+    Handle<Value> u = Undefined();
+
+    V8MONKEY_CHECK(!n->StrictEquals(u), "Equality works correctly");
   }
 
   Isolate::GetCurrent()->Exit();

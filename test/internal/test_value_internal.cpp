@@ -1,7 +1,17 @@
+// InternalIsolate
+#include "src/runtime/isolate.h"
+
+// ISOLATE_INIT_TESTS TestUtils
+#include "test.h"
+
+// Unit-testing support
+#include "V8MonkeyTest.h"
+
+// HandleScope Integer Int32 Local Number Uint32 Value V8
 #include "v8.h"
 
-#include "test.h"
-#include "V8MonkeyTest.h"
+// TriggerFatalError
+#include "v8monkey_common.h"
 
 
 using namespace v8;
@@ -78,6 +88,9 @@ BASE_TESTS(031, 032, IsNumberObject)
 BASE_TESTS(033, 034, IsStringObject)
 BASE_TESTS(035, 036, IsNativeError)
 BASE_TESTS(037, 038, IsRegExp)
+#undef BASE_TESTS
+#undef RETURNS_FALSE_TEST
+#undef TRIGGERS_ERROR_TEST
 
 
 V8MONKEY_TEST(IntNumber001, "Number::IsNumber triggers error if V8 dead") {
@@ -384,6 +397,7 @@ V8MONKEY_TEST(IntInteger016, "Uint32::Value triggers error if V8 dead") {
 
 
 // XXX Add value tests for IsNumber once we have implemented a non-number type
+// XXX Do we need similar tests for Boolean Null Undefined String?
 /*
       Local<Boolean> ToBoolean() const;
 */

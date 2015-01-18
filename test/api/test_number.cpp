@@ -1,9 +1,13 @@
+// std::is_nan
 #include <cmath>
+
+// std::numeric_limits
 #include <limits>
 
+// Boolean Integer Int32 Handle HandleScope Isolate Local Null Number Primitive Uint32 Undefined V8 Value
 #include "v8.h"
 
-#include "test.h"
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
@@ -844,6 +848,23 @@ V8MONKEY_TEST(Number205, "Equals works correctly (16)") {
 }
 
 
+V8MONKEY_TEST(Number206, "Equals works correctly (17)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = 0.0;
+    Local<Value> n = Number::New(value);
+    Handle<Value> other = Null();
+
+    V8MONKEY_CHECK(!n->Equals(other), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
 #define NUMBERSTRICTEQUALTEST(testNumber, variant, val) \
 V8MONKEY_TEST(Number##testNumber, "StrictEquals works correctly (" #variant ")") { \
   V8::Initialize(); \
@@ -866,19 +887,19 @@ V8MONKEY_TEST(Number##testNumber, "StrictEquals works correctly (" #variant ")")
 }
 
 
-NUMBERSTRICTEQUALTEST(206, 1, 123.45)
-NUMBERSTRICTEQUALTEST(207, 2, 123.65)
-NUMBERSTRICTEQUALTEST(208, 3, -123.45)
-NUMBERSTRICTEQUALTEST(209, 4, -123.67)
-NUMBERSTRICTEQUALTEST(210, 5, 123)
-NUMBERSTRICTEQUALTEST(211, 6, -1)
-NUMBERSTRICTEQUALTEST(212, 7, 0xffffffff)
-NUMBERSTRICTEQUALTEST(213, 8, -0.0)
-NUMBERSTRICTEQUALTEST(214, 9, 0.0)
+NUMBERSTRICTEQUALTEST(207, 1, 123.45)
+NUMBERSTRICTEQUALTEST(208, 2, 123.65)
+NUMBERSTRICTEQUALTEST(209, 3, -123.45)
+NUMBERSTRICTEQUALTEST(210, 4, -123.67)
+NUMBERSTRICTEQUALTEST(211, 5, 123)
+NUMBERSTRICTEQUALTEST(212, 6, -1)
+NUMBERSTRICTEQUALTEST(213, 7, 0xffffffff)
+NUMBERSTRICTEQUALTEST(214, 8, -0.0)
+NUMBERSTRICTEQUALTEST(215, 9, 0.0)
 #undef NUMBERSTRICTEQUALTEST
 
 
-V8MONKEY_TEST(Number215, "StrictEquals works correctly (10)") {
+V8MONKEY_TEST(Number216, "StrictEquals works correctly (10)") {
   V8::Initialize();
 
   {
@@ -898,7 +919,7 @@ V8MONKEY_TEST(Number215, "StrictEquals works correctly (10)") {
 }
 
 
-V8MONKEY_TEST(Number216, "StrictEquals works correctly (11)") {
+V8MONKEY_TEST(Number217, "StrictEquals works correctly (11)") {
   V8::Initialize();
 
   {
@@ -916,7 +937,7 @@ V8MONKEY_TEST(Number216, "StrictEquals works correctly (11)") {
 }
 
 
-V8MONKEY_TEST(Number217, "StrictEquals works correctly (12)") {
+V8MONKEY_TEST(Number218, "StrictEquals works correctly (12)") {
   V8::Initialize();
 
   {
@@ -933,7 +954,7 @@ V8MONKEY_TEST(Number217, "StrictEquals works correctly (12)") {
 }
 
 
-V8MONKEY_TEST(Number218, "StrictEquals works correctly (13)") {
+V8MONKEY_TEST(Number219, "StrictEquals works correctly (13)") {
   V8::Initialize();
 
   {
@@ -950,7 +971,7 @@ V8MONKEY_TEST(Number218, "StrictEquals works correctly (13)") {
 }
 
 
-V8MONKEY_TEST(Number219, "Equals works correctly (14)") {
+V8MONKEY_TEST(Number220, "StrictEquals works correctly (14)") {
   V8::Initialize();
 
   {
@@ -960,6 +981,23 @@ V8MONKEY_TEST(Number219, "Equals works correctly (14)") {
     Handle<Value> u = Undefined();
 
     V8MONKEY_CHECK(!n->StrictEquals(u), "Equality works correctly");
+  }
+
+  Isolate::GetCurrent()->Exit();
+  V8::Dispose();
+}
+
+
+V8MONKEY_TEST(Number221, "StrictEquals works correctly (15)") {
+  V8::Initialize();
+
+  {
+    HandleScope h;
+    double value = 0.0;
+    Local<Value> n = Number::New(value);
+    Handle<Value> other = Null();
+
+    V8MONKEY_CHECK(!n->StrictEquals(other), "Equality works correctly");
   }
 
   Isolate::GetCurrent()->Exit();

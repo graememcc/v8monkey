@@ -341,79 +341,79 @@ namespace v8 {
 
 
 
-  class APIEXPORT Value : public Data {
+  class Value : public Data {
     public:
-      bool IsUndefined() const;
+      APIEXPORT bool IsUndefined() const;
 
-      bool IsNull() const;
+      APIEXPORT bool IsNull() const;
 
-      bool IsTrue() const;
+      APIEXPORT bool IsTrue() const;
 
-      bool IsFalse() const;
+      APIEXPORT bool IsFalse() const;
 
-      bool IsString() const;
+      APIEXPORT bool IsString() const;
 
-      bool IsFunction() const;
+      APIEXPORT bool IsFunction() const;
 
-      bool IsArray() const;
+      APIEXPORT bool IsArray() const;
 
-      bool IsObject() const;
+      APIEXPORT bool IsObject() const;
 
-      bool IsBoolean() const;
+      APIEXPORT bool IsBoolean() const;
 
-      bool IsNumber() const;
+      APIEXPORT bool IsNumber() const;
 
-      bool IsExternal() const;
+      APIEXPORT bool IsExternal() const;
 
-      bool IsInt32() const;
+      APIEXPORT bool IsInt32() const;
 
-      bool IsUint32() const;
+      APIEXPORT bool IsUint32() const;
 
-      bool IsDate() const;
+      APIEXPORT bool IsDate() const;
 
-      bool IsBooleanObject() const;
+      APIEXPORT bool IsBooleanObject() const;
 
-      bool IsNumberObject() const;
+      APIEXPORT bool IsNumberObject() const;
 
-      bool IsStringObject() const;
+      APIEXPORT bool IsStringObject() const;
 
-      bool IsNativeError() const;
+      APIEXPORT bool IsNativeError() const;
 
-      bool IsRegExp() const;
+      APIEXPORT bool IsRegExp() const;
 
-      Local<Boolean> ToBoolean() const;
+      APIEXPORT Local<Boolean> ToBoolean() const;
 
-      Local<Number> ToNumber() const;
+      APIEXPORT Local<Number> ToNumber() const;
 
 /*
-      Local<String> ToString() const;
+      APIEXPORT Local<String> ToString() const;
 
-      Local<String> ToDetailString() const;
+      APIEXPORT Local<String> ToDetailString() const;
 
-      Local<Object> ToObject() const;
+      APIEXPORT Local<Object> ToObject() const;
 */
 
-      Local<Integer> ToInteger() const;
+      APIEXPORT Local<Integer> ToInteger() const;
 
-      Local<Uint32> ToUint32() const;
+      APIEXPORT Local<Uint32> ToUint32() const;
 
-      Local<Int32> ToInt32() const;
+      APIEXPORT Local<Int32> ToInt32() const;
 
-      Local<Uint32> ToArrayIndex() const;
+      APIEXPORT Local<Uint32> ToArrayIndex() const;
 
-      bool BooleanValue() const;
+      APIEXPORT bool BooleanValue() const;
 
-      double NumberValue() const;
+      APIEXPORT double NumberValue() const;
 
-      int64_t IntegerValue() const;
+      APIEXPORT int64_t IntegerValue() const;
 
-      uint32_t Uint32Value() const;
+      APIEXPORT uint32_t Uint32Value() const;
 
-      int32_t Int32Value() const;
+      APIEXPORT int32_t Int32Value() const;
 
-      bool Equals(Handle<Value> that) const;
+      APIEXPORT bool Equals(Handle<Value> that) const;
 
-      bool StrictEquals(Handle<Value> that) const;
+      APIEXPORT bool StrictEquals(Handle<Value> that) const;
 
     private:
       // XXX Needed?
@@ -426,22 +426,22 @@ namespace v8 {
       inline bool QuickIsString() const;
 
       // XXX Needed?
-      bool FullIsUndefined() const;
+      APIEXPORT bool FullIsUndefined() const;
 
       // XXX Needed?
-      bool FullIsNull() const;
+      APIEXPORT bool FullIsNull() const;
 
       // XXX Needed?
-      bool FullIsString() const;
+      APIEXPORT bool FullIsString() const;
   };
 
 
   class Primitive : public Value {};
 
 
-  class APIEXPORT Boolean : public Primitive {
+  class Boolean : public Primitive {
     public:
-      bool Value() const;
+      APIEXPORT bool Value() const;
 
       static inline Handle<Boolean> New(bool value);
   };
@@ -451,54 +451,53 @@ namespace v8 {
     public:
       double Value() const;
 
-      static Local<Number> New(double value);
+      APIEXPORT static Local<Number> New(double value);
 
       static inline Number* Cast(v8::Value* obj);
 
     private:
-      Number();
+      APIEXPORT Number();
 
       // XXX Needed?
-      static void CheckCast(v8::Value* obj);
+      APIEXPORT static void CheckCast(v8::Value* obj);
   };
 
 
-  class APIEXPORT Integer : public Number {
+  class Integer : public Number {
     public:
-      static Local<Integer> New(int32_t value);
+      APIEXPORT static Local<Integer> New(int32_t value);
 
-      static Local<Integer> NewFromUnsigned(uint32_t value);
+      APIEXPORT static Local<Integer> NewFromUnsigned(uint32_t value);
 
-      static Local<Integer> New(int32_t value, Isolate*);
+      APIEXPORT static Local<Integer> New(int32_t value, Isolate*);
 
-      static Local<Integer> NewFromUnsigned(uint32_t value, Isolate*);
+      APIEXPORT static Local<Integer> NewFromUnsigned(uint32_t value, Isolate*);
 
-      int64_t Value() const;
+      APIEXPORT int64_t Value() const;
 
       static inline Integer* Cast(v8::Value* obj);
     private:
-      Integer();
+      APIEXPORT Integer();
 
       // XXX Needed?
-      static void CheckCast(v8::Value* obj);
+      APIEXPORT static void CheckCast(v8::Value* obj);
   };
 
 
-  class APIEXPORT Int32 : public Integer {
+  class Int32 : public Integer {
     public:
-      int32_t Value() const;
+      APIEXPORT int32_t Value() const;
     private:
-      Int32();
+      APIEXPORT Int32();
   };
 
 
-  class APIEXPORT Uint32 : public Integer {
+  class Uint32 : public Integer {
     public:
-      uint32_t Value() const;
+      APIEXPORT uint32_t Value() const;
     private:
-      Uint32();
+      APIEXPORT Uint32();
   };
-
 
 
   Handle<Primitive> APIEXPORT Undefined();
@@ -822,20 +821,26 @@ namespace v8 {
 
 
   Handle<Boolean> True(v8::Isolate* isolate) {
-    // XXX What should we do with the isolate?
+    // I believe we can ignore the isolate
     return True();
   }
 
 
   Handle<Boolean> False(v8::Isolate* isolate) {
-    // XXX What should we do with the isolate?
+    // I believe we can ignore the isolate
     return False();
   }
 
 
   Handle<Primitive> Undefined(v8::Isolate* isolate) {
-    // XXX What should we do with the isolate?
+    // I believe we can ignore the isolate
     return Undefined();
+  }
+
+
+  Handle<Primitive> Null(v8::Isolate* isolate) {
+    // I believe we can ignore the isolate
+    return Null();
   }
 }
 
