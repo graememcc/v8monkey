@@ -1,7 +1,13 @@
+// InternalIsolate (via ISOLATE_INIT_TESTS)
+#include "runtime/isolate.h"
+
+// ISOLATE_INIT_TESTS
+#include "test.h"
+
+// GetCurrentThreadID
 #include "v8.h"
 
-#include "runtime/isolate.h"
-#include "test.h"
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
