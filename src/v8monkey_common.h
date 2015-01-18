@@ -33,19 +33,12 @@ namespace v8 {
         // Intended to be called only by the static initializer's destructor to clean up singleton primitives
         static void TearDownPrimitiveSingletons();
 
-        // Ensure TLS destructor for default isolate doesn't run after main thread exit
-        static void ClearOutMainThreadIsolateTLS();
-
-        // Used by static destructor in init to ensure main thread's JSRuntime and JSContext are disposed of before
-        // SpiderMonkey
-        static void ForceRTCXDisposal();
+        // Used by static destructor in init to enforce an ordering constraint: the main thread's JSRuntime and JSContext
+        // must be disposed of before SpiderMonkey itself is disposed
+        static void ForceMainThreadRTCXDisposal();
 
         // Uh-oh. Something's gone awry.
         static void TriggerFatalError(const char* location, const char* message);
-
-        // Ensure SpiderMonkey is initted independent of the API's calls to V8::Initialize
-        // XXX Is this still needed?
-        static void EnsureSpiderMonkey();
 
         // Returns true if V8 is dead, but also triggers a fatal error handler call, reporting it
         static bool CheckDeath(const char* method);

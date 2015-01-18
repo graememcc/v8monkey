@@ -689,15 +689,24 @@ namespace v8 {
     }
 
 
-    // Force JSRuntime and JSContext disposal for the thread that runs static initializers
-    void V8MonkeyCommon::ForceRTCXDisposal() {
-      void* raw = Platform::GetTLSData(rtcxKey);
-      if (raw == nullptr) {
+    /*
+     * The thread's assigned JSRuntime and JSContext are normally torn down when the thread exits. However, in the
+     * case of the last surviving thread, this will be too late, as OneTrueStaticInitializer's destructor may have
+     * ran by that point, killing SpiderMonkey. This function is intended to be called by OneTrueStaticInitializer's
+     * destructor to force the teardown of the SpiderMonkey objects (preceded by the disposal of any isolates that
+     * are still participating in rooting).
+     *
+     */
+
+    void V8MonkeyCommon::ForceMainThreadRTCXDisposal() {
+      void* raw = Platform::GetTLSData(smDataKey);
+      if (!raw) {
         return;
       }
 
       tearDownCXAndRT(raw);
-      Platform::StoreTLSData(rtcxKey, 0);
+      // Ensure the TLSKey destructor is not invoked when we do exit
+      Platform::StoreTLSData(smDataKey, nullptr);
     }
 
 
