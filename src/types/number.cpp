@@ -1,13 +1,20 @@
-#include <cmath>
+// int32_t, int64_t, uint32_t
 #include <cinttypes>
 
+// fpclassify
+#include <cmath>
+
+// Integer Int32 Local Number Uint32
 #include "v8.h"
 
-#include "jsapi.h"
-
-#include "runtime/isolate.h"
+// V8MonkeyObject
 #include "types/base_types.h"
+
+// V8Number
 #include "types/value_types.h"
+
+// CheckDeath
+#include "v8monkey_common.h"
 
 
 namespace {
@@ -31,9 +38,7 @@ namespace {
     V8::Initialize();
 
     V8Monkey::V8Number* number = new V8Monkey::V8Number(value);
-    // After creating a handle, the value will be rooted by the isolate
     V8Monkey::V8MonkeyObject** handle = HandleScope::CreateHandle(number);
-
     return handle;
   }
 }
@@ -50,7 +55,7 @@ namespace v8 {
       return 0;
     }
 
-    V8Monkey::V8Number* v8number = CONVERT_FROM_API(Number, V8Number, this);
+    V8Monkey::V8Number* v8number = V8Monkey::V8Value::ConvertFromAPI<V8Number, Number>(this);
     return v8number->Value();
   }
 
@@ -82,12 +87,13 @@ namespace v8 {
   }
 
 
+  // XXX Look again at these casts
   int64_t Integer::Value() const {
     if (V8Monkey::V8MonkeyCommon::CheckDeath("Integer::Value")) {
       return 0;
     }
 
-    V8Monkey::V8Number* v8number = CONVERT_FROM_API(Integer, V8Number, this);
+    V8Monkey::V8Number* v8number = V8Monkey::V8Value::ConvertFromAPI<V8Number, Integer>(this);
     return static_cast<int64_t>(v8number->Value());
   }
 
@@ -97,7 +103,7 @@ namespace v8 {
       return 0;
     }
 
-    V8Monkey::V8Number* v8number = CONVERT_FROM_API(Int32, V8Number, this);
+    V8Monkey::V8Number* v8number = V8Monkey::V8Value::ConvertFromAPI<V8Number, Int32>(this);
     return static_cast<int64_t>(v8number->Value());
   }
 
@@ -107,7 +113,7 @@ namespace v8 {
       return 0;
     }
 
-    V8Monkey::V8Number* v8number = CONVERT_FROM_API(Uint32, V8Number, this);
+    V8Monkey::V8Number* v8number = V8Monkey::V8Value::ConvertFromAPI<V8Number, Uint32>(this);
     return static_cast<int64_t>(v8number->Value());
   }
 
@@ -115,7 +121,7 @@ namespace v8 {
   namespace V8Monkey {
     void V8Number::classifyNumber() {
       // Classify the number. We follow V8, and build a union to capture the bit pattern to distinguish -0.0. The V8
-      // code assumes doubles are IEEE 754 double-precision, so we shall too.
+      // code assumes doubles are IEEE 754 double-precision; we shall too.
       union Bits {
         double dval;
         uint64_t uval;

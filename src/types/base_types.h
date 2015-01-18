@@ -1,11 +1,17 @@
 #ifndef V8MONKEY_BASETYPES_H
 #define V8MONKEY_BASETYPES_H
 
-#include "v8.h"
+// is_base_of
+#include <type_traits>
 
+// JSRuntime JSTracer
 #include "jsapi.h"
 
+// EXPORT_FOR_TESTING_ONLY
 #include "test.h"
+
+// Value
+#include "v8.h"
 
 
 namespace v8 {
@@ -144,10 +150,17 @@ namespace v8 {
         bool StrictEquals(Handle<Value> that) const;
         */
 
-
         virtual void Trace(JSRuntime* runtime, JSTracer* tracer) {
           // Need to call ShouldTrace for weak callbacks
           ShouldTrace();
+        }
+
+        template <typename T, typename U>
+        static T* ConvertFromAPI(const U* val) {
+          static_assert(std::is_base_of<V8Value, T>::value, "ConvertFromAPI target is not a V8Value type");
+          static_assert(std::is_base_of<Value, U>::value, "ConvertFromAPI source is not a V8 API Value type");
+
+          return *(reinterpret_cast<T**>(const_cast<U*>(val)));
         }
     };
 

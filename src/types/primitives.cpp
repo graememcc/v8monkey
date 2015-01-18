@@ -53,7 +53,7 @@ namespace v8 {
 
 
   bool Boolean::Value() const {
-    V8Monkey::V8Boolean* v8bool = CONVERT_FROM_API(Boolean, V8Boolean, this);
+    V8Monkey::V8Boolean* v8bool = V8Monkey::V8Value::ConvertFromAPI<V8Boolean, Boolean>(this);
     return v8bool->Value();
   }
 
