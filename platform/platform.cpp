@@ -1,7 +1,14 @@
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
+// fprintf
+#include <cstdio>
 
+// exit
+#include <cstdlib>
+
+// pthread_key_(create|delete|get_specific|set_specific|t) pthread_(create|join|t)
+// pthread_mutex_(destroy|init|lock|t|unlock) pthread_once
+#include <pthread.h>
+
+// Class definition
 #include "platform.h"
 
 
@@ -11,7 +18,7 @@ namespace v8 {
       public:
         POSIXMutex() {
           // XXX Should we abort on failure?
-          pthread_mutex_init(&platformMutex, NULL);
+          pthread_mutex_init(&platformMutex, nullptr);
         };
 
 
@@ -63,7 +70,7 @@ namespace v8 {
         void Run(void* arg) {
           // XXX We should exit or abort if we try to run a thread that has already ran. Which?
           hasRan = true;
-          pthread_create(&identifier, NULL, fn, arg);
+          pthread_create(&identifier, nullptr, fn, arg);
         }
 
 
@@ -96,7 +103,7 @@ namespace v8 {
       pthread_key_t key;
 
       // XXX Should we abort on non-zero return code?
-      pthread_key_create(&key, NULL);
+      pthread_key_create(&key, nullptr);
 
       return reinterpret_cast<TLSKey*>(key);
     }

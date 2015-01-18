@@ -1,6 +1,9 @@
 #ifndef V8MONKEY_PLATFORM_H
 #define V8MONKEY_PLATFORM_H
 
+// size_t
+#include <cstddef>
+
 /*
  * This file abstracts away platform specific details, though at time of writing the only implementation is for Linux
  *
@@ -60,7 +63,7 @@ namespace v8 {
         virtual ~OSThread() {}
 
         // Start the given thread. Undefined if the thread is already running or has already completed.
-        virtual void Run(void* arg = NULL) = 0;
+        virtual void Run(void* arg = nullptr) = 0;
 
         // Has this thread ever started?
         bool HasRan() { return hasRan; }
@@ -158,7 +161,7 @@ namespace v8 {
         Thread(ThreadFunction fn) : thread(Platform::CreateThread(fn)) {}
         ~Thread() { delete thread; }
 
-        void Run(void* arg = NULL) { thread->Run(arg); }
+        void Run(void* arg = nullptr) { thread->Run(arg); }
 
         bool HasRan() { return thread->HasRan(); }
 
