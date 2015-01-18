@@ -1,9 +1,19 @@
+// ObjectBlock
+#include "data_structures/objectblock.h"
+
+// HandleData InternalIsolate
+#include "runtime/isolate.h"
+
+// DeletionObject, DummyV8MonkeyObject, TraceFake, V8MonkeyObject
+#include "types/base_types.h"
+
+// TestUtils
+#include "test.h"
+
+// Integer HandleScope Local
 #include "v8.h"
 
-#include "data_structures/objectblock.h"
-#include "runtime/isolate.h"
-#include "types/base_types.h"
-#include "test.h"
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
@@ -921,6 +931,7 @@ V8MONKEY_TEST(IntHandleScope037, "CreateHandle triggers fatal error if no Handle
 
 V8MONKEY_TEST(IntHandleScope038, "NumberOfHandles correct after creating handles (crossblock)") {
   TestUtils::AutoTestCleanup ac;
+  V8::Initialize();
 
   // We test this here as we have access to the block count
   HandleScope h;
@@ -939,6 +950,7 @@ ISOLATE_INIT_TESTS(IntHandleScope, 039, 040, 041, {
 
 V8MONKEY_TEST(IntLocal001, "Assigning to a local from a handle of unknown provenance increases the refcount") {
   TestUtils::AutoTestCleanup ac;
+  V8::Initialize();
 
   {
     HandleScope h;
@@ -955,6 +967,7 @@ V8MONKEY_TEST(IntLocal001, "Assigning to a local from a handle of unknown proven
 
 V8MONKEY_TEST(IntLocal002, "Assigning to a local from an empty handle works") {
   TestUtils::AutoTestCleanup ac;
+  V8::Initialize();
 
   {
     HandleScope h;
@@ -967,6 +980,7 @@ V8MONKEY_TEST(IntLocal002, "Assigning to a local from an empty handle works") {
 
 V8MONKEY_TEST(IntLocal003, "Object wrapped in local doesn't die if handlescope still in scope") {
   TestUtils::AutoTestCleanup ac;
+  V8::Initialize();
 
   HandleScope h;
   V8MonkeyObject* asObj;
@@ -981,6 +995,7 @@ V8MONKEY_TEST(IntLocal003, "Object wrapped in local doesn't die if handlescope s
 
 V8MONKEY_TEST(IntLocal004, "Object wrapped in local doesn't die if also contained in a parent handlescope") {
   TestUtils::AutoTestCleanup ac;
+  V8::Initialize();
 
   HandleScope h;
   V8MonkeyObject* asObj;
