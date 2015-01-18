@@ -517,14 +517,12 @@ $(smtarget) $(smheadersdir)/jsapi.h: $(depsdir)/Makefile
 
 # To create the Makefile, we must have a config.status script
 $(depsdir)/Makefile: $(depsdir)/config.status
-	rm -f $(smheadersdir)/jsapi.h
-	cd $(depsdir) && $(mozillaroot)/js/src/configure
 
 
 # A config.status script is created by running configure
 $(depsdir)/config.status: $(mozillaroot)/js/src/configure | $(depsdir)
 	rm -f $(depsdir)/Makefile
-	cd $(depsdir) && $(mozillaroot)/js/src/configure
+	cd $(depsdir) && $(mozillaroot)/js/src/configure --disable-optimize --enable-debug
 
 
 # To run configure we must first invoke autoconf
