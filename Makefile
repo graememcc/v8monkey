@@ -23,7 +23,7 @@
 # TODO Provide a target or flag for debug builds. We need to ensure this builds a debug SpiderMonkey library too
 
 # Where does our copy of the mozilla-release codebase live?
-mozillaroot = $(CURDIR)/deps/mozilla_upstream
+mozillaroot = $(CURDIR)/deps/mozilla
 
 
 # There's a perl script in the Mozilla source tree we can use to programatically discover the current version
@@ -528,7 +528,7 @@ $(depsdir)/config.status: $(mozillaroot)/js/src/configure | $(depsdir)
 # To run configure we must first invoke autoconf
 # XXX For some reason, I've been finding it necessary to add declare JS_STANDALONE to avoid build errors. I believe this
 #     shouldn't be necessary. YMMV.
-$(mozillaroot)/js/src/configure:
+$(mozillaroot)/js/src/configure: $(mozillaroot)/js/src/configure.in
 	rm -f $(smheadersdir)/jsapi.h
 	cd $(mozillaroot)/js/src && JS_STANDALONE=1 autoconf
 
