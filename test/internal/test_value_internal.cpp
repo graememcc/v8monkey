@@ -1,5 +1,5 @@
 // InternalIsolate
-#include "src/runtime/isolate.h"
+#include "runtime/isolate.h"
 
 // ISOLATE_INIT_TESTS TestUtils
 #include "test.h"
