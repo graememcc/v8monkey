@@ -400,9 +400,6 @@ namespace v8 {
 
 
   namespace V8Monkey {
-    InternalIsolate::~InternalIsolate() {
-      ASSERT(!ContainsThreads(), "InternalIsolate::~InternalIsolate", "Threads still active");
-      ASSERT(isDisposed || IsDefaultIsolate(this), "InternalIsolate::~InternalIsolate", "Isolate not disposed");
 
     /*
      * Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
@@ -455,15 +452,30 @@ namespace v8 {
      *
      */
 
+    void InternalIsolate::Enter() {
+      // XXX What should we do if we re-enter a disposed isolate? In V8, the Enter function succeeds, although you're
+      //     going to be in a world of pain pretty soon: if the isolate wasn't the default then the dispose call would
+      //     delete it. Should we error out or something, just for appearances sakes?
+      //     In any case, I think we still need the isDisposed marker to note whether there is any outstanding book-keeping
+      isDisposed = false;
 
       // We need to ensure this thread has an ID. GetCurrentThreadId creates one if necessary
       int threadID = fetchOrAssignThreadID();
 
-      while (data && data->threadID != threadID) {
-        data = data->next;
-      }
+      // Likewise, it should have a JSRuntime and JSContext
+      SpiderMonkeyUtils::AssignJSRuntimeAndJSContext();
 
-      return data;
+      // Register this isolate with SpiderMonkey for GC
+      AddGCRooter();
+
+      // What isolate was the thread in previously?
+      InternalIsolate* previousIsolate = GetCurrentIsolateFromTLS();
+
+      // Note a new entry for this thread
+      ThreadData* data = FindOrCreateThreadData(threadID, previousIsolate);
+      data->entryCount++;
+
+      SetCurrentIsolateInTLS(this);
     }
 
 
@@ -480,38 +492,101 @@ namespace v8 {
       int threadID = fetchOrAssignThreadID();
 
       ThreadData* data = FindThreadData(threadID);
-      if (data) {
-        return data;
+      // Attempting to exit a thread we haven't entered is an API misuse error
+      // XXX What does V8 do here? Document. No doubt I'll ask just this question again if you don't.
+      ASSERT(data, "InternalIsolate::Exit", "Exiting a thread we didn't enter?");
+
+      // Note that we have exited the isolate
+      data->entryCount--;
+
+      // Nothing more to do if the thread has other outstanding exits
+      if (data->entryCount > 0) {
+        return;
       }
 
-      // Need to create new ThreadData. We will insert it at the head of the list
-      ThreadData* td = new ThreadData(threadID, previousIsolate, nullptr, threadData);
-      if (threadData) {
-        threadData->prev = td;
-      }
-      threadData = td;
-      return td;
+      // Time for this thread to say goodbye. We need to remove the ThreadData
+      // from the linked list, and pop that thread's isolate stack
+      SetCurrentIsolateInTLS(data->previousIsolate);
+
+      // Note: after this call, data will be a dangling pointer
+      DeleteAndFreeThreadData(data);
     }
 
 
-    // Delete (and free) the given ThreadData
-    // XXX Check invariants here and document
-    // XXX Key question: in the face of locking can threads exit iso in different order from entry
-    void InternalIsolate::DeleteThreadData(ThreadData* td) {
-      // Assumption: td is non-null
-      if (td->prev) {
-        td->prev->next = td->next;
+    // XXX Verify the thing below about HandleScopes. Remind yourself, what checking does V8 do?
+    /*
+     * As hinted at in the comments above, when the isolate is disposed, we are finally able to deregister from
+     * SpiderMonkey GC rooting. At this point, we also delete the contents of our ObjectBlock structure for Persistent
+     * handles (the similar structure for HandleScope/Locals should have already been emptied when HandleScopes were
+     * exited; if there is still an extant HandleScope, this represents an API misuse error on the part of the client,
+     * so he/she can jolly well live with the consequences).
+     *
+     */
+
+    void InternalIsolate::Dispose() {
+      // Don't dispose of the default isolate (or indeed any isolate) multiple times
+      if (isDisposed) {
+        return;
       }
 
-      if (td->next) {
-        td->next->prev = td->prev;
+      // Unhook this isolate from SpiderMonkey GC rooting
+      if (isRegisteredForGC) {
+        DeleteIsolateFromGCTLSList(this);
       }
 
-      if (threadData == td) {
-        threadData = td->next;
+      // Although we have just unhooked ourselves from the garbage collector, there might already be a GC running
+      AutoGCMutex(this);
+
+      // Ensure we don't attempt to delete the default isolate multiple times
+      isDisposed = true;
+
+      // As we no longer participate in rooting, we must release any remaining objects if their persistents failed to
+      // do so. Once a particular isolate is destroyed, it is an API misuse error to dereference Persistents containing
+      // references to objects created in that isolate.
+      // XXX This seems to be the case: need to break on Utils::OpenHandle and look further
+      if (persistentData.limit != nullptr) {
+        // We assume if one field in persistentData is non-null then they both are, i.e. handles exist
+        ObjectBlock<V8MonkeyObject>::Delete(persistentData.limit, persistentData.next, nullptr, persistentTearDown);
       }
 
-      delete td;
+      // There should be no extant HandleScopes at this point-if there is, the client has misused the API. HandleScopes
+      // contain pointers to our Local handle object block. Those pointers will be dangling shortly.
+      ASSERT(handleScopeData.limit == nullptr && handleScopeData.next == nullptr, "Isolate::Dispose",
+             "HandleScopes not destroyed!");
+
+      // The default isolate gets deleted by OneTrueStaticInitializer. This is consistent with V8 behaviour.
+      if (this != defaultIsolate) {
+        delete this;
+      } else {
+        // Clear out TLS so the destructor doesn't run again (unless on main thread)
+        int threadID = fetchOrAssignThreadID();
+        if (threadID != 1) {
+          SetCurrentIsolateInTLS(nullptr);
+        }
+      }
+    }
+
+
+    /*
+     * The destructor must check to see if the isolate is the default isolate, and if so dispose it to force
+     * GC unrooting in case the client never called Dispose. For all other isolates, this should be a no-op.
+     *
+     */
+
+    InternalIsolate::~InternalIsolate() {
+      // XXX Should we assert about containing threads on Dispose too/instead of?
+      ASSERT(!ContainsThreads(), "InternalIsolate::~InternalIsolate", "Threads still active");
+      // XXX Why are we asserting isDisposed here? Is that a V8 compat thing?
+      ASSERT(isDisposed || IsDefaultIsolate(this), "InternalIsolate::~InternalIsolate", "Isolate not disposed");
+
+      // XXX Does V8 assert if the default isolate has not been disposed? Reword comment below based on the results of
+      //     your investigation.
+      // It's possible the client never called dispose for the default isolate, although they probably should have.
+      // In those circumstances, we must ensure that Dispose is called in order to cease GC Rooting. This must happen
+      // before JSRuntime and JSContext teardown, which, if the default isolate is being deleted, is about to happen.
+      if (!isDisposed) {
+        Dispose();
+      }
     }
 
 
