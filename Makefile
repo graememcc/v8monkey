@@ -537,6 +537,9 @@ $(call apitest, isolate): $(v8monkeyheadersdir)/v8.h platform/platform.h src/tes
 $(call apitest, locker): $(v8monkeyheadersdir)/v8.h  platform/platform.h
 
 
+$(call apitest, number): $(v8monkeyheadersdir)/v8.h
+
+
 $(call inttest, destructlist): src/data_structures/destruct_list.h src/types/base_types.h
 
 
