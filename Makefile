@@ -86,6 +86,10 @@ depsdir = $(outdir)/deps
 smheadersdir = $(depsdir)/dist/include
 
 
+# What is the path of the JSAPI header
+JSAPIheader = $(smheadersdir)/jsapi.h
+
+
 # What directory will the SpiderMonkey library be in after building?
 smlibdir = $(depsdir)/dist/lib
 
@@ -273,7 +277,11 @@ $(addprefix $(v8monkeyinternaldir)/, $(typeobjects)): | $(v8monkeyinternaldir)/s
 # TODO pthread is POSIX specific: need to factor this out
 $(v8platformtarget): $(platformobjects) $(v8monkeyheadersdir)/platform.h
 	@echo
-	@echo Building platform abstraction library...
+	@echo "********************************************************************************"
+	@echo "*                                                                              *"
+	@echo "*                   Building platform abstraction library...                   * "
+	@echo "*                                                                              *"
+	@echo "********************************************************************************"
 	@echo
 	$(CXX) -shared -o $@ $(platformobjects) -lpthread
 
@@ -298,7 +306,11 @@ all: $(v8monkeytarget) $(testsuites)
 # The main task is building the shared library
 $(v8monkeytarget): $(v8objects) $(v8monkeyheadersdir)/v8.h $(smtarget) $(v8platformtarget)
 	@echo
-	@echo Building V8Monkey...
+	@echo "********************************************************************************"
+	@echo "*                                                                              *"
+	@echo "*                                Building V8...                                *"
+	@echo "*                                                                              *"
+	@echo "********************************************************************************"
 	@echo
 	$(CXX) -shared -o $@ $(v8objects) $(call linkcommand, $(smlibdir), $(smlib)) $(v8platformtarget)
 
@@ -383,7 +395,11 @@ testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))
 # Build the "standard" test harness
 $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobjects) $(outdir)/test/harness/V8MonkeyTest.o $(v8monkeytarget) $(platformtarget)
 	@echo
-	@echo Building API testsuite...
+	@echo "********************************************************************************"
+	@echo "*                                                                              *"
+	@echo "*                          Building API Testsuite...                           *"
+	@echo "*                                                                              *"
+	@echo "********************************************************************************"
 	@echo
 	$(CXX) $(CXXFLAGS) -g -o $@ test/harness/run_v8monkey_tests.cpp $(outdir)/test/harness/V8MonkeyTest.o $(testobjects) \
                         $(call linkcommand, $(outdir), $(v8lib))\
@@ -407,6 +423,13 @@ $(outdir)/test/internalLib/%.o: %.cpp $(v8monkeyheadersdir)/v8.h | $(outdir)/tes
 # Build a version of the shared library for internal tests
 $(v8monkeytesttarget): $(testlibobjects) $(outdir)/include/v8.h $(smtarget)
 	@echo
+	@echo "********************************************************************************"
+	@echo "*                                                                              *"
+	@echo "*           Building custom V8Monkey library for internal testing...           *"
+	@echo "*                                                                              *"
+	@echo "********************************************************************************"
+	@echo
+	@echo
 	@echo Building internal version of V8Monkey...
 	@echo
 	$(CXX) -shared -o $@ $(testlibobjects) $(call linkcommand, $(smlibdir), $(smlib)) $(v8platformtarget)
@@ -416,7 +439,11 @@ $(v8monkeytesttarget): $(testlibobjects) $(outdir)/include/v8.h $(smtarget)
 # Note: we reuse the driver file run_v8monkey_tests.cpp. That isn't a copy/paste error
 $(outdir)/test/run_v8monkey_internal_tests: test/harness/run_v8monkey_tests.cpp $(internaltestobjects) test/harness/V8MonkeyTest.cpp $(v8monkeytesttarget) $(v8platformtarget)
 	@echo
-	@echo Building internal testsuite...
+	@echo "********************************************************************************"
+	@echo "*                                                                              *"
+	@echo "*                        Building Internal Testsuite...                        *"
+	@echo "*                                                                              *"
+	@echo "********************************************************************************"
 	@echo
 	$(CXX) $(CXXFLAGS) -o $@ test/harness/run_v8monkey_tests.cpp $(outdir)/test/harness/V8MonkeyTest.o $(internaltestobjects) \
                         $(call linkcommand, $(outdir)/test/internalLib, $(v8testlib)) \
@@ -510,7 +537,11 @@ $(outdir)/test/harness/V8MonkeyTest.o: $(outdir)/test/harness
 # If the library doesn't exist, we must explicitly build it
 $(smtarget) $(smheadersdir)/jsapi.h: $(depsdir)/Makefile
 	@echo
-	@echo Building SpiderMonkey...
+	@echo "********************************************************************************"
+	@echo "*                                                                              *"
+	@echo "*                           Building SpiderMonkey...                           *"
+	@echo "*                                                                              *"
+	@echo "********************************************************************************"
 	@echo
 	$(MAKE) -C $(depsdir)
 	touch $(mozillaroot)/js/src/jsapi.h
