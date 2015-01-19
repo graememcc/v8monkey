@@ -395,6 +395,7 @@ $(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
 
 
 # Most files depend on the miscellaneous functions in the V8MonkeyCommon class
+# XXX Remove when dealing with isolate deps
 $(v8objects) $(testlibobjects): src/v8monkey_common.h
 
 
@@ -507,18 +508,8 @@ $(testobjects) $(internaltestobjects) $(testsuites): test/harness/V8MonkeyTest.h
 $(testsuites): $(outdir)/test/harness/V8MonkeyTest.o
 
 
-# Virtually all test files use threads
-$(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
-
-
-# Various files depend on isolate.h
-api_isolate_deps = $(addprefix api/test_, isolate)
-internal_isolate_depstems = isolate threadID
-internal_isolate_deps = $(addsuffix _internal, $(addprefix internal/test_, $(internal_isolate_depstems)))
-$(addprefix $(outdir)/test/, $(addsuffix .o, $(api_isolate_deps) $(internal_isolate_deps))): src/runtime/isolate.h
-
-
 # Most internal test files require the TestUtils class
+# XXX Remove when isolate deps dealt with
 $(internaltestobjects): src/test.h
 
 
@@ -583,6 +574,9 @@ $(call inttest, refcount): $(v8monkeyheadersdir)/v8.h src/types/base_types.h
 
 
 $(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/base_types.h
+
+
+$(call inttest, threadID): $(v8monkeyheadersdir)/v8.h src/test.h
 
 
 $(call inttest, value): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h src/test.h src/v8monkey_common.h

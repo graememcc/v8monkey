@@ -1,6 +1,3 @@
-// InternalIsolate (via ISOLATE_INIT_TESTS)
-#include "runtime/isolate.h"
-
 // ISOLATE_INIT_TESTS
 #include "test.h"
 
