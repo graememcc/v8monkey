@@ -1,7 +1,14 @@
+// XXX This can be removed if threading cannot be resurrected
+// Thread
+#include "platform.h"
+
+// V8MONKEY_TEST_HELPER
+#include "test.h"
+
+// Isolate, V8::{Initialize, SetFatalErrorHandler}
 #include "v8.h"
 
-#include "runtime/isolate.h"
-#include "platform.h"
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
