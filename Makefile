@@ -529,6 +529,8 @@ $(internaltestbase)/test_death_internal.o $(internaltestbase)/test_fatalerror_in
 test_basetypes_deps = isolate  refcount
 $(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
 
+$(call apitest, death): $(v8monkeyheadersdir)/v8.h
+
 
 $(call apitest, handlescope): $(v8monkeyheadersdir)/v8.h
 
