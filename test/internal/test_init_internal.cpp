@@ -1,7 +1,17 @@
+// Isolate, V8
 #include "v8.h"
 
-#include "runtime/isolate.h"
+// XXX Can be removed if threading is not restored
+// Thread
 #include "platform.h"
+
+// InternalIsolate::IsEntered
+#include "runtime/isolate.h"
+
+// TestUtils
+#include "src/test.h"
+
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
@@ -10,6 +20,7 @@ using namespace v8::V8Monkey;
 
 
 namespace {
+  // XXX I think this can be replaced by FromIsolate
   InternalIsolate* AsInternal(Isolate* i) {
     return reinterpret_cast<InternalIsolate*>(i);
   }

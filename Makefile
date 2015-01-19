@@ -518,6 +518,9 @@ $(call inttest, handlescope): $(v8monkeyheadersdir)/v8.h src/data_structures/obj
                               src/test.h src/v8monkey_common.h
 
 
+$(call inttest, init): $(v8monkeyheadersdir)/v8.h platform/platform.h src/runtime/isolate.h src/test.h
+
+
 $(call inttest, objectblock): src/data_structures/objectblock.h
 
 
