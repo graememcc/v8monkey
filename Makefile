@@ -345,10 +345,16 @@ $(call variants, src/runtime/persistent): $(v8monkeyheadersdir)/v8.h src/data_st
 src/runtime/isolate.h: $(smtarget) $(v8monkeyheadersdir)/v8.h src/types/base_types.h platform/platform.h src/test.h
 
 
+src/test.h: $(v8monkeyheadersdir)/v8.h
+
+
 src/threads/autolock.h: platform/platform.h
 
 
 $(call variants, src/threads/locker): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h
+
+
+src/v8monkey_common.h: src/test.h
 
 
 # Several files depend on the JSAPI header
