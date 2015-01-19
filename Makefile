@@ -291,6 +291,7 @@ $(platformobjects): $(v8monkeyheadersdir)/platform.h | $(outdir)/platform
 
 
 # Ensure the header is in the right place
+# XXX I'm not sure this is correct?
 $(v8monkeyheadersdir)/platform.h: platform/platform.h | $(v8monkeyheadersdir)
 	cp platform/platform.h $(v8monkeyheadersdir)
 
@@ -569,6 +570,9 @@ $(call inttest, locker): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h src/te
 
 
 $(call inttest, objectblock): src/data_structures/objectblock.h
+
+
+$(call inttest, platform): platform/platform.h
 
 
 $(call inttest, persistent): $(v8monkeyheadersdir)/v8.h src/data_structures/objectblock.h src/runtime/isolate.h \

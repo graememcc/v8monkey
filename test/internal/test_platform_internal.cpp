@@ -1,8 +1,14 @@
-#include <inttypes.h>
-#include <pthread.h>
+// intptr_t
+#include <cinttypes>
 
-#include "V8MonkeyTest.h"
+// Class under test
 #include "platform.h"
+
+// Unit-testing support
+#include "V8MonkeyTest.h"
+
+
+// XXX I think we need to fix some of these casts
 
 
 namespace {
