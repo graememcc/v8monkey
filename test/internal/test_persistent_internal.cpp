@@ -1,6 +1,3 @@
-// HandleScope Integer Isolate Local Number Persistent Value V8
-#include "v8.h"
-
 // ObjectBlock
 #include "data_structures/objectblock.h"
 
@@ -12,6 +9,9 @@
 
 // TestUtils
 #include "test.h"
+
+// HandleScope Integer Isolate Local Number Persistent Value V8
+#include "v8.h"
 
 // Unit-testing support
 #include "V8MonkeyTest.h"
