@@ -1,3 +1,4 @@
+// V8 class definition
 #include "v8.h"
 
 
@@ -8,5 +9,6 @@
 
 
 namespace v8 {
+  // XXX Check compatability: does real V8 have a similar member?
   const char* V8::version_string = VERSION_STRING;
 }

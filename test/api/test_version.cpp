@@ -1,6 +1,10 @@
-#include <string.h>
+// strlen strstr
+#include <cstring>
 
+// GetVersion
 #include "v8.h"
+
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
