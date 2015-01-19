@@ -327,14 +327,17 @@ $(v8monkeyheadersdir)/v8.h: include/v8.h | $(v8monkeyheadersdir)
 # Virtually all files will depend on the v8 header
 $(v8objects) $(testlibobjects): $(v8monkeyheadersdir)/v8.h
 
-# version.cpp and test/test_version.cpp need SMVERSION defined
 $(call variants, src/engine/version) $(apitestbase)/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
+
+
+$(call variants, src/engine/init): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h platform/platform.h src/test.h \
+                                   src/v8monkey_common.h $(smtarget)
 
 
 # Several files depend on the JSAPI header
 jsapi_deps = $(call variants, src/engine/init) $(call variants, src/runtime/isolate)
 jsapitype_deps = $(call variants, src/types/number) $(call variants, src/types/value)
-src/runtime/isolate.h src/types/base_types.h $(jsapi_deps) $(jsapitype_deps): $(smheadersdir)/jsapi.h
+src/runtime/isolate.h src/types/base_types.h $(jsapi_deps) $(jsapitype_deps): $(smtarget)
 
 
 # init depends on the RAII autolock class
@@ -498,6 +501,9 @@ test_basetypes_deps = destructlist handlescope isolate objectblock persistent re
 $(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
 
 
+$(call apitest, init): $(v8monkeyheadersdir)/v8.h platform/platform.h src/v8monkey_common.h
+
+
 $(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/base_types.h
 
 
@@ -510,7 +516,7 @@ $(call inttest, objectblock): src/data_structures/objectblock.h
 # Several internal files depend on the JSAPI header
 test_jsapi_stems = isolate smartpointer
 test_jsapi_deps = $(addsuffix _internal.o, $(addprefix $(internaltestbase)/test_, $(test_jsapi_stems)))
-$(test_jsapi_deps): $(smheadersdir)/jsapi.h
+$(test_jsapi_deps): $(smtarget)
 
 
 # The individual object files depend on the existence of their output directory

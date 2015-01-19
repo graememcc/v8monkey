@@ -1,6 +1,11 @@
+// Isolate::New, V8::Initialize
 #include "v8.h"
 
+// XXX May be removed if threading support not reinstated
+// Thread
 #include "platform.h"
+
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
