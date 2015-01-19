@@ -1,10 +1,23 @@
+// HandleScope Integer Isolate Local Number Persistent Value V8
 #include "v8.h"
 
+// ObjectBlock
 #include "data_structures/objectblock.h"
+
+// Get/SetPersistentData
 #include "runtime/isolate.h"
+
+// DeletionObject DummyV8MonkeyObject V8MonkeyObject
 #include "types/base_types.h"
+
+// TestUtils
 #include "test.h"
+
+// Unit-testing support
 #include "V8MonkeyTest.h"
+
+// TriggerFatalError
+#include "v8monkey_common.h"
 
 
 using namespace v8;

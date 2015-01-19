@@ -338,6 +338,10 @@ $(call variants, src/runtime/handlescope): $(v8monkeyheadersdir)/v8.h src/data_s
                                            src/runtime/isolate.h src/types/base_types.h src/v8monkey_common.h
 
 
+$(call variants, src/runtime/persistent): $(v8monkeyheadersdir)/v8.h src/data_structures/objectblock.h \
+                                           src/runtime/isolate.h src/types/base_types.h src/v8monkey_common.h
+
+
 src/runtime/isolate.h: $(smtarget) $(v8monkeyheadersdir)/v8.h src/types/base_types.h platform/platform.h src/test.h
 
 
@@ -486,7 +490,7 @@ $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 
 # Various files depend on isolate.h
 api_isolate_deps = $(addprefix api/test_, isolate)
-internal_isolate_depstems = fatalerror init isolate locker persistent threadID
+internal_isolate_depstems = fatalerror isolate locker threadID
 internal_isolate_deps = $(addsuffix _internal, $(addprefix internal/test_, $(internal_isolate_depstems)))
 $(addprefix $(outdir)/test/, $(addsuffix .o, $(api_isolate_deps) $(internal_isolate_deps))): src/runtime/isolate.h
 
@@ -499,12 +503,8 @@ $(internaltestobjects): src/test.h
 $(internaltestbase)/test_death_internal.o $(internaltestbase)/test_fatalerror_internal.o: src/v8monkey_common.h
 
 
-# Not unexpectedly, test_objectblock_internal depends on the header
-$(internaltestbase)/test_persistent_internal.o: src/data_structures/objectblock.h
-
-
 # some files depend on the base_type definitions
-test_basetypes_deps = isolate persistent refcount
+test_basetypes_deps = isolate  refcount
 $(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
 
 
@@ -528,6 +528,10 @@ $(call inttest, init): $(v8monkeyheadersdir)/v8.h platform/platform.h src/runtim
 
 
 $(call inttest, objectblock): src/data_structures/objectblock.h
+
+
+$(call inttest, persistent): $(v8monkeyheadersdir)/v8.h src/data_structures/objectblock.h src/runtime/isolate.h \
+							 src/types/base_types.h src/test.h src/v8monkey_common.h
 
 
 $(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/base_types.h

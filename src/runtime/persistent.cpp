@@ -1,7 +1,17 @@
+// ObjectBlock
+#include "data_structures/objectblock.h"
+
+// AutoGCMutex, GetCurrent, Get/SetPersistentHandleData
+#include "runtime/isolate.h"
+
+// V8MonkeyObject
+#include "types/base_types.h"
+
+// V8 interface, WeakReferenceCallback
 #include "v8.h"
 
-#include "data_structures/objectblock.h"
-#include "runtime/isolate.h"
+// CheckDeath
+#include "v8monkey_common.h"
 
 
 namespace v8 {
