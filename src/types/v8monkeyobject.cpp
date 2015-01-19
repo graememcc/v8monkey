@@ -1,8 +1,9 @@
+// V8MonkeyObject interface
+#include "base_types.h"
+
+// Handle Persistent Value
 #include "v8.h"
 
-#include "jsapi.h"
-
-#include "base_types.h"
 
 
 namespace v8 {

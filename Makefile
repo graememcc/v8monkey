@@ -371,6 +371,9 @@ $(call variants, src/types/primitives): $(v8monkeyheadersdir)/v8.h src/types/bas
 $(call variants, src/types/value): $(v8monkeyheadersdir)/v8.h src/types/value_types.h src/v8monkey_common.h
 
 
+$(call variants, src/types/v8monkeyobject): $(v8monkeyheadersdir)/v8.h src/types/base_types.h
+
+
 src/v8monkey_common.h: src/test.h
 
 
@@ -395,8 +398,7 @@ $(v8objects) $(testlibobjects): src/v8monkey_common.h
 
 
 # Various files need the base_type definitions
-typedeps = $(call variants, src/types/v8monkeyobject)
-$(typedeps) ($(call variants, src/runtime/isolate): src/types/base_types.h
+$(call variants, src/runtime/isolate): src/types/base_types.h
 
 
 # HandleScopes and isolates use object blocks
