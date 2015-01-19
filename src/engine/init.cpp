@@ -1,22 +1,22 @@
 // exit
 #include <stdlib.h>
 
-// V8
+// V8 interface
 #include "v8.h"
 
-// InternalIsolate
+// InternalIsolate::{EnsureInIsolate, GetCurrent, GetDefaultIsolate, GetFatalErrorHandler}
 #include "runtime/isolate.h"
 
 // Print
 #include "platform.h"
 
-// TestUtils
+// TestUtils interface
 #include "test.h"
 
-// V8MonkeyCommon class
+// V8MonkeyCommon interface
 #include "v8monkey_common.h"
 
-// Spidermonkey
+// JS_Init, JS_Shutdown
 #include "jsapi.h"
 
 

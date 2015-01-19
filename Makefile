@@ -334,18 +334,22 @@ $(call variants, src/engine/init): $(v8monkeyheadersdir)/v8.h src/runtime/isolat
                                    src/v8monkey_common.h $(smtarget)
 
 
+$(call variants, src/runtime/handlescope): $(v8monkeyheadersdir)/v8.h src/data_structures/objectblock.h \
+                                           src/runtime/isolate.h src/types/base_types.h src/v8monkey_common.h
+
+
 # Several files depend on the JSAPI header
-jsapi_deps = $(call variants, src/engine/init) $(call variants, src/runtime/isolate)
+jsapi_deps = $(call variants, src/runtime/isolate)
 jsapitype_deps = $(call variants, src/types/number) $(call variants, src/types/value)
 src/runtime/isolate.h src/types/base_types.h $(jsapi_deps) $(jsapitype_deps): $(smtarget)
 
 
 # init depends on the RAII autolock class
-$(call variants, src/engine/init) $(call variants, src/runtime/isolate): src/threads/autolock.h
+$(call variants, src/runtime/isolate): src/threads/autolock.h
 
 
 # Several files depend on isolate.h
-$(call variants, src/init) $(call variants, src/runtime/handlescope) $(call variants, src/runtime/isolate) $(call variants, src/types/value) $(call variants, src/threads/locker): src/runtime/isolate.h
+$(call variants, src/runtime/isolate) $(call variants, src/types/value) $(call variants, src/threads/locker): src/runtime/isolate.h
 
 
 # Several files depend on platform capabilities
@@ -367,7 +371,7 @@ $(call variants, src/types/number) $(call variants, src/type/value): src/types/v
 
 
 # HandleScopes and isolates use object blocks
-$(call variants, src/runtime/handlescope) $(call variants, src/runtime/isolate): src/data_structures/objectblock.h
+$(call variants, src/runtime/isolate): src/data_structures/objectblock.h
 
 
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
@@ -479,7 +483,7 @@ $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 
 # Various files depend on isolate.h
 api_isolate_deps = $(addprefix api/test_, isolate)
-internal_isolate_depstems = fatalerror handlescope init isolate locker persistent threadID
+internal_isolate_depstems = fatalerror init isolate locker persistent threadID
 internal_isolate_deps = $(addsuffix _internal, $(addprefix internal/test_, $(internal_isolate_depstems)))
 $(addprefix $(outdir)/test/, $(addsuffix .o, $(api_isolate_deps) $(internal_isolate_deps))): src/runtime/isolate.h
 
@@ -493,7 +497,7 @@ $(internaltestbase)/test_death_internal.o $(internaltestbase)/test_fatalerror_in
 
 
 # Not unexpectedly, test_objectblock_internal depends on the header
-$(internaltestbase)/test_handlescope_internal.o $(internaltestbase)/test_persistent_internal.o: src/data_structures/objectblock.h
+$(internaltestbase)/test_persistent_internal.o: src/data_structures/objectblock.h
 
 
 # some files depend on the base_type definitions
@@ -504,17 +508,24 @@ $(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o, $(test_basetypes
 $(call apitest, init): $(v8monkeyheadersdir)/v8.h platform/platform.h src/v8monkey_common.h
 
 
-$(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/base_types.h
+$(call apitest, handlescope): $(v8monkeyheadersdir)/v8.h
 
 
 $(call inttest, destructlist): src/data_structures/destruct_list.h src/types/base_types.h
 
 
+$(call inttest, handlescope): $(v8monkeyheadersdir)/v8.h src/data_structures/objectblock.h src/runtime/isolate.h \
+                              src/test.h src/v8monkey_common.h
+
+
 $(call inttest, objectblock): src/data_structures/objectblock.h
 
 
+$(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/base_types.h
+
+
 # Several internal files depend on the JSAPI header
-test_jsapi_stems = isolate smartpointer
+test_jsapi_stems = isolate
 test_jsapi_deps = $(addsuffix _internal.o, $(addprefix $(internaltestbase)/test_, $(test_jsapi_stems)))
 $(test_jsapi_deps): $(smtarget)
 

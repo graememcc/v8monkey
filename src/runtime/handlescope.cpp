@@ -1,10 +1,16 @@
+// HandleScope interface, Locker
 #include "v8.h"
 
+// ObjectBlock
 #include "data_structures/objectblock.h"
+
+// InternalIsolate::{AutoGCMutex, GetCurrent, Get/SetLocalHandleData, IsLockedForThisThread}
 #include "runtime/isolate.h"
-#include "threads/autolock.h"
+
+// V8MonkeyObject
 #include "types/base_types.h"
-#include "test.h"
+
+// TriggerFatalError, ASSERT
 #include "v8monkey_common.h"
 
 
@@ -44,8 +50,13 @@
 
 
 namespace {
-  // Deletion function to pass to the slab allocator, which will iterate over all the values falling out of scope and
-  // call this function to adjust the refcount.
+
+  /*
+   * Deletion function to pass to the slab allocator, which will iterate over all the values falling out of scope and
+   * call this function to adjust the refcount.
+   *
+   */
+
   void deleteRefCount(v8::V8Monkey::V8MonkeyObject* obj) {
     // We null out references to escaping values
     if (obj != nullptr) {
@@ -54,7 +65,11 @@ namespace {
   }
 
 
-  // Common handle creation code, used by both CreateHandle and Close, which differ on whether they addref or not
+  /*
+   * Common handle creation code, used by both CreateHandle and Close, which differ on whether they addref or not
+   *
+   */
+
   v8::V8Monkey::V8MonkeyObject** AddHandle(v8::V8Monkey::InternalIsolate* i, v8::V8Monkey::V8MonkeyObject* obj,
                                            bool shouldAddRef) {
     using namespace v8::V8Monkey;

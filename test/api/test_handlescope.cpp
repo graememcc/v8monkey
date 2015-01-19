@@ -1,9 +1,13 @@
+// HandleScope, Integer, Isolate, Local, Locker, Number, V8
 #include "v8.h"
 
+// XXX Check consistency: "testing support" vs "test support"
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
 using namespace v8;
+
 
 namespace {
   int errorCaught = 0;
