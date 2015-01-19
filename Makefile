@@ -357,6 +357,9 @@ src/types/base_types.h: $(v8monkeyheadersdir)/v8.h $(smtarget) src/test.h
 src/types/value_types.h: $(smtarget) src/test.h src/types/base_types.h
 
 
+$(call variants, number): $(v8monkeyheadersdir)/v8.h src/types/base_types.h src/types/value_types.h src/v8monkey_common.h
+
+
 $(call variants, src/threads/locker): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h
 
 
@@ -365,7 +368,7 @@ src/v8monkey_common.h: src/test.h
 
 # Several files depend on the JSAPI header
 jsapi_deps = $(call variants, src/runtime/isolate)
-jsapitype_deps = $(call variants, src/types/number) $(call variants, src/types/value)
+jsapitype_deps = $(call variants, src/types/value)
 $(jsapi_deps) $(jsapitype_deps): $(smtarget)
 
 
@@ -385,12 +388,12 @@ $(v8objects) $(testlibobjects): src/v8monkey_common.h
 
 
 # Various files need the base_type definitions
-typedeps = $(call variants, src/types/number) $(call variants, src/types/v8monkeyobject)
+typedeps = $(call variants, src/types/v8monkeyobject)
 $(typedeps) ($(call variants, src/runtime/isolate): src/types/base_types.h
 
 
 # Various files need the value definition
-$(call variants, src/types/number) $(call variants, src/type/value): src/types/value_types.h
+$(call variants, src/type/value): src/types/value_types.h
 
 
 # HandleScopes and isolates use object blocks
