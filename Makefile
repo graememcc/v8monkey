@@ -351,6 +351,9 @@ src/test.h: $(v8monkeyheadersdir)/v8.h
 src/threads/autolock.h: platform/platform.h
 
 
+src/types/base_types.h: $(v8monkeyheadersdir)/v8.h $(smtarget) src/test.h
+
+
 $(call variants, src/threads/locker): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h
 
 
@@ -360,7 +363,7 @@ src/v8monkey_common.h: src/test.h
 # Several files depend on the JSAPI header
 jsapi_deps = $(call variants, src/runtime/isolate)
 jsapitype_deps = $(call variants, src/types/number) $(call variants, src/types/value)
-src/types/base_types.h $(jsapi_deps) $(jsapitype_deps): $(smtarget)
+$(jsapi_deps) $(jsapitype_deps): $(smtarget)
 
 
 # init depends on the RAII autolock class
@@ -380,7 +383,7 @@ $(v8objects) $(testlibobjects): src/v8monkey_common.h
 
 # Various files need the base_type definitions
 typedeps = $(call variants, src/types/number) $(call variants, src/types/v8monkeyobject)
-src/runtime/isolate.h $(typedeps) ($(call variants, src/runtime/isolate): src/types/base_types.h
+$(typedeps) ($(call variants, src/runtime/isolate): src/types/base_types.h
 
 
 # Various files need the value definition
@@ -393,13 +396,11 @@ $(call variants, src/runtime/isolate): src/data_structures/objectblock.h
 
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
 # internal test lib or not
-headers_needing_test_stems = types/base_types
-headers_needing_test = $(addprefix src/, $(addsuffix .h, $(headers_needing_test_stems)))
-visibility_changes = $(call variants, src/engine/init) $(call variants, src/runtime/isolate) $(headers_needing_test): src/test.h
+visibility_changes = $(call variants, src/runtime/isolate)
 
 
 # We can now declare the visibility changers dependent on a test header file
-visibility_changes: src/test.h
+$(visibility_changes): src/test.h
 
 
 # *********************************************************************************************************************
