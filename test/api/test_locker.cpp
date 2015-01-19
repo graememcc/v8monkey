@@ -1,6 +1,10 @@
+// Thread
+#include "platform.h"
+
+// Class definition, Isolate::New
 #include "v8.h"
 
-#include "platform.h"
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 

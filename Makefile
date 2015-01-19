@@ -348,6 +348,9 @@ src/runtime/isolate.h: $(smtarget) $(v8monkeyheadersdir)/v8.h src/types/base_typ
 src/threads/autolock.h: platform/platform.h
 
 
+$(call variants, src/threads/locker): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h
+
+
 # Several files depend on the JSAPI header
 jsapi_deps = $(call variants, src/runtime/isolate)
 jsapitype_deps = $(call variants, src/types/number) $(call variants, src/types/value)
@@ -359,7 +362,7 @@ $(call variants, src/runtime/isolate): src/threads/autolock.h
 
 
 # Several files depend on isolate.h
-$(call variants, src/runtime/isolate) $(call variants, src/types/value) $(call variants, src/threads/locker): src/runtime/isolate.h
+$(call variants, src/runtime/isolate) $(call variants, src/types/value): src/runtime/isolate.h
 
 
 $(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
@@ -491,7 +494,7 @@ $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 
 # Various files depend on isolate.h
 api_isolate_deps = $(addprefix api/test_, isolate)
-internal_isolate_depstems = fatalerror isolate locker threadID
+internal_isolate_depstems = fatalerror isolate threadID
 internal_isolate_deps = $(addsuffix _internal, $(addprefix internal/test_, $(internal_isolate_depstems)))
 $(addprefix $(outdir)/test/, $(addsuffix .o, $(api_isolate_deps) $(internal_isolate_deps))): src/runtime/isolate.h
 
@@ -518,6 +521,9 @@ $(call apitest, init): $(v8monkeyheadersdir)/v8.h platform/platform.h src/v8monk
 $(call apitest, isolate): $(v8monkeyheadersdir)/v8.h platform/platform.h src/test.h
 
 
+$(call apitest, locker): $(v8monkeyheadersdir)/v8.h  platform/platform.h
+
+
 $(call inttest, destructlist): src/data_structures/destruct_list.h src/types/base_types.h
 
 
@@ -526,6 +532,9 @@ $(call inttest, handlescope): $(v8monkeyheadersdir)/v8.h src/data_structures/obj
 
 
 $(call inttest, init): $(v8monkeyheadersdir)/v8.h platform/platform.h src/runtime/isolate.h src/test.h
+
+
+$(call inttest, locker): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h src/test.h
 
 
 $(call inttest, objectblock): src/data_structures/objectblock.h

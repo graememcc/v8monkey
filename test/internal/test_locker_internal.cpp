@@ -1,12 +1,21 @@
+// GetDefaultIsolate IsEntered
+#include "runtime/isolate.h"
+
+// TestUtils
+#include "test.h"
+
+// Class definition, Isolate, V8
 #include "v8.h"
 
-#include "runtime/isolate.h"
-#include "test.h"
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
 using namespace v8;
 using namespace v8::V8Monkey;
+
+
+// XXX Opportunities to use FromIsolate
 
 
 V8MONKEY_TEST(IntLocker001, "Locking default isolate implicitly initializes") {

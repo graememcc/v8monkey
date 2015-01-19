@@ -1,6 +1,8 @@
-#include "v8.h"
-
+// Enter Exit GetDefaultIsolate Lock Unlock
 #include "runtime/isolate.h"
+
+// Locker interface
+#include "v8.h"
 
 
 /*
@@ -8,6 +10,9 @@
  *       be simplified if multithreading cannot be reinstated. (Most of these operations should become NO-OPS).
  *
  */
+
+
+// XXX Need to use FromIsolate here. Also looks like we want an equivalent ToIsolate
 
 
 namespace v8 {
