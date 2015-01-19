@@ -1,4 +1,4 @@
-// InternalIsolate
+// IsEntered
 #include "runtime/isolate.h"
 
 // TestUtils
@@ -32,6 +32,7 @@ namespace {
   }
 
 
+// XXX Switch to FromIsolate
   v8::V8Monkey::InternalIsolate* AsInternal(v8::Isolate* i) {
     return reinterpret_cast<v8::V8Monkey::InternalIsolate*>(i);
   }

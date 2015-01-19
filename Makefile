@@ -512,17 +512,13 @@ $(testobjects) $(internaltestobjects): $(v8monkeyheadersdir)/platform.h
 
 # Various files depend on isolate.h
 api_isolate_deps = $(addprefix api/test_, isolate)
-internal_isolate_depstems = fatalerror isolate threadID
+internal_isolate_depstems = isolate threadID
 internal_isolate_deps = $(addsuffix _internal, $(addprefix internal/test_, $(internal_isolate_depstems)))
 $(addprefix $(outdir)/test/, $(addsuffix .o, $(api_isolate_deps) $(internal_isolate_deps))): src/runtime/isolate.h
 
 
 # Most internal test files require the TestUtils class
 $(internaltestobjects): src/test.h
-
-
-# Some test files depend on the V8MonkeyCommon class
-$(internaltestbase)/test_fatalerror_internal.o: src/v8monkey_common.h
 
 
 # some files depend on the base_type definitions
@@ -553,10 +549,13 @@ $(call apitest, primitives): $(v8monkeyheadersdir)/v8.h
 $(call apitest, threadID): $(v8monkeyheadersdir)/v8.h platform/platform.h
 
 
-$(call inttest, death): $(v8monkeyheadersdir)/v8.h src/v8monkey_common.h src/test.h
+$(call inttest, death): $(v8monkeyheadersdir)/v8.h src/test.h src/v8monkey_common.h
 
 
 $(call inttest, destructlist): src/data_structures/destruct_list.h src/types/base_types.h
+
+
+$(call inttest, fatalerror): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h src/test.h src/v8monkey_common.h
 
 
 $(call inttest, handlescope): $(v8monkeyheadersdir)/v8.h src/data_structures/objectblock.h src/runtime/isolate.h \
