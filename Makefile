@@ -354,6 +354,9 @@ src/threads/autolock.h: platform/platform.h
 src/types/base_types.h: $(v8monkeyheadersdir)/v8.h $(smtarget) src/test.h
 
 
+src/types/value_types.h: $(smtarget) src/test.h src/types/base_types.h
+
+
 $(call variants, src/threads/locker): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h
 
 

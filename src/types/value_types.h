@@ -1,19 +1,18 @@
 #ifndef V8MONKEY_VALUETYPES_H
 #define V8MONKEY_VALUETYPES_H
 
-#include "v8.h"
-
+// JS_CallValueTracer JS::Handle JS::Heap JSRuntime JSTracer JS::Value
 #include "jsapi.h"
 
+// EXPORT_FOR_TESTING_ONLY
+#include "test.h"
+
+// V8Value
 #include "types/base_types.h"
 
 
-#define CONVERT_FROM_API(APIType, Type, val) *(reinterpret_cast<V8Monkey::Type**>(const_cast<APIType*>(val)))
-
 namespace v8 {
   namespace V8Monkey {
-
-
     class EXPORT_FOR_TESTING_ONLY V8Number: public V8Value {
       public:
         enum NumberTag {UNKNOWN, NUMBER, INT32, UINT32, VAL32};
@@ -97,6 +96,7 @@ namespace v8 {
     };
 
 
+    // XXX Does anybody use this?
     /*
      * The base class of all V8 values that wrap values from SpiderMonkey
      *
