@@ -345,6 +345,9 @@ $(call variants, src/runtime/persistent): $(v8monkeyheadersdir)/v8.h src/data_st
 src/runtime/isolate.h: $(smtarget) $(v8monkeyheadersdir)/v8.h src/types/base_types.h platform/platform.h src/test.h
 
 
+src/threads/autolock.h: platform/platform.h
+
+
 # Several files depend on the JSAPI header
 jsapi_deps = $(call variants, src/runtime/isolate)
 jsapitype_deps = $(call variants, src/types/number) $(call variants, src/types/value)
@@ -359,9 +362,7 @@ $(call variants, src/runtime/isolate): src/threads/autolock.h
 $(call variants, src/runtime/isolate) $(call variants, src/types/value) $(call variants, src/threads/locker): src/runtime/isolate.h
 
 
-# Several files depend on platform capabilities
-header_platform_deps = $(addprefix src/, threads/autolock.h)
-$(header_platform_deps) $(call variants, src/engine/init) $(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
+$(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
 
 
 # Most files depend on the miscellaneous functions in the V8MonkeyCommon class
