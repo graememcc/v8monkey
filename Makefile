@@ -523,7 +523,7 @@ $(internaltestobjects): src/test.h
 
 
 # some files depend on the base_type definitions
-test_basetypes_deps = isolate  refcount
+test_basetypes_deps = isolate
 $(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
 
 $(call apitest, death): $(v8monkeyheadersdir)/v8.h
@@ -577,6 +577,9 @@ $(call inttest, platform): platform/platform.h
 
 $(call inttest, persistent): $(v8monkeyheadersdir)/v8.h src/data_structures/objectblock.h src/runtime/isolate.h \
 							 src/types/base_types.h src/test.h src/v8monkey_common.h
+
+
+$(call inttest, refcount): $(v8monkeyheadersdir)/v8.h src/types/base_types.h
 
 
 $(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/base_types.h

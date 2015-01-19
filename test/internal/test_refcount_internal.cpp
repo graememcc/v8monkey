@@ -1,8 +1,10 @@
+// DeletionObject DummyV8MonkeyObject V8MonkeyObject
+#include "types/base_types.h"
+
+// Persistent Value
 #include "v8.h"
 
-#include "types/base_types.h"
-#include "test.h"
-#include "v8monkey_common.h"
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
