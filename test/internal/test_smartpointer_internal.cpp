@@ -2,10 +2,13 @@
 
 #include "jsapi.h"
 
-#include "types/base_types.h"
+// The class under test
 #include "data_structures/smart_pointer.h"
-#include "test.h"
-#include "v8monkey_common.h"
+
+// DummyV8MonkeyObject, DeletionObject
+#include "types/base_types.h"
+
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 

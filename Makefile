@@ -463,7 +463,7 @@ $(internaltestbase)/test_death_internal.o $(internaltestbase)/test_fatalerror_in
 
 
 # Not unexpectedly, test_objectblock_internal depends on the header
-$(internaltestbase)/test_handlescope_internal.o $(internaltestbase)/test_objectblock_internal.o $(internaltestbase)/test_persistent_internal.o: src/data_structures/objectblock.h
+$(internaltestbase)/test_handlescope_internal.o $(internaltestbase)/test_persistent_internal.o: src/data_structures/objectblock.h
 
 
 # some files depend on the base_type definitions
@@ -471,12 +471,13 @@ test_basetypes_deps = destructlist handlescope isolate objectblock persistent re
 $(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
 
 
-# test_smartptr_internal needs the smart pointer definition
-$(call inttest, smartpointer): src/data_structures/smart_pointer.h
+$(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/base_types.h
 
 
-# test_destructlist_internal needs the type it tests too
-$(call inttest, destructlist): src/data_structures/destruct_list.h
+$(call inttest, destructlist): src/data_structures/destruct_list.h src/types/base_types.h
+
+
+$(call inttest, objectblock): src/data_structures/objectblock.h
 
 
 # Several internal files depend on the JSAPI header
@@ -533,6 +534,7 @@ $(mozillaroot)/js/src/configure: $(mozillaroot)/js/src/configure.in
 	cd $(mozillaroot)/js/src && JS_STANDALONE=1 autoconf
 
 
+# XXX MOVE THE BELOW
 # Run the testsuite
 # XXX If we can't find a way to capture the number of tests ran, remove the summary lines
 check: $(testsuites)
@@ -572,4 +574,4 @@ valgrind: $(testsuites)
 # ---------------------------------------------------------------OLD
 # XXX Remove me!
 temp: $(v8monkeytarget) temp.cpp
-	$(CXX) -v -Wl,-v -o temp temp.cpp -std=c++0x -I $(v8monkeyheadersdir) $(call linkcommand, $(outdir), $(v8lib))
+	$(CXX) -v -Wl,-v -g -o temp temp.cpp -std=c++0x -I $(v8monkeyheadersdir) $(call linkcommand, $(outdir), $(v8lib)) -lpthread

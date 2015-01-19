@@ -1,8 +1,10 @@
-#include "v8.h"
-
+// Class under test
 #include "data_structures/objectblock.h"
+
+// DeletionObject
 #include "types/base_types.h"
-#include "test.h"
+
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
