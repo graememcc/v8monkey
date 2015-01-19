@@ -338,10 +338,13 @@ $(call variants, src/runtime/handlescope): $(v8monkeyheadersdir)/v8.h src/data_s
                                            src/runtime/isolate.h src/types/base_types.h src/v8monkey_common.h
 
 
+src/runtime/isolate.h: $(smtarget) $(v8monkeyheadersdir)/v8.h src/types/base_types.h platform/platform.h src/test.h
+
+
 # Several files depend on the JSAPI header
 jsapi_deps = $(call variants, src/runtime/isolate)
 jsapitype_deps = $(call variants, src/types/number) $(call variants, src/types/value)
-src/runtime/isolate.h src/types/base_types.h $(jsapi_deps) $(jsapitype_deps): $(smtarget)
+src/types/base_types.h $(jsapi_deps) $(jsapitype_deps): $(smtarget)
 
 
 # init depends on the RAII autolock class
@@ -353,12 +356,12 @@ $(call variants, src/runtime/isolate) $(call variants, src/types/value) $(call v
 
 
 # Several files depend on platform capabilities
-header_platform_deps = $(addprefix src/, threads/autolock.h, runtime/isolate.h)
+header_platform_deps = $(addprefix src/, threads/autolock.h)
 $(header_platform_deps) $(call variants, src/engine/init) $(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
 
 
 # Most files depend on the miscellaneous functions in the V8MonkeyCommon class
-src/runtime/isolate.h $(v8objects) $(testlibobjects): src/v8monkey_common.h
+$(v8objects) $(testlibobjects): src/v8monkey_common.h
 
 
 # Various files need the base_type definitions
@@ -376,7 +379,7 @@ $(call variants, src/runtime/isolate): src/data_structures/objectblock.h
 
 # Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
 # internal test lib or not
-headers_needing_test_stems = data_structures/objectblock data_structures/smart_pointer runtime/handlescope types/base_types
+headers_needing_test_stems = types/base_types
 headers_needing_test = $(addprefix src/, $(addsuffix .h, $(headers_needing_test_stems)))
 visibility_changes = $(call variants, src/engine/init) $(call variants, src/runtime/isolate) $(headers_needing_test): src/test.h
 
@@ -501,14 +504,17 @@ $(internaltestbase)/test_persistent_internal.o: src/data_structures/objectblock.
 
 
 # some files depend on the base_type definitions
-test_basetypes_deps = destructlist handlescope isolate objectblock persistent refcount smartpointer
+test_basetypes_deps = isolate persistent refcount
 $(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
+
+
+$(call apitest, handlescope): $(v8monkeyheadersdir)/v8.h
 
 
 $(call apitest, init): $(v8monkeyheadersdir)/v8.h platform/platform.h src/v8monkey_common.h
 
 
-$(call apitest, handlescope): $(v8monkeyheadersdir)/v8.h
+$(call apitest, isolate): $(v8monkeyheadersdir)/v8.h platform/platform.h src/test.h
 
 
 $(call inttest, destructlist): src/data_structures/destruct_list.h src/types/base_types.h
