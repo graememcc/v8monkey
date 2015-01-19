@@ -1,9 +1,9 @@
+#ifndef V8MONKEY_TEST_H
+#define V8MONKEY_TEST_H
+
 // FatalErrorCallbackFn
 #include "v8.h"
 
-
-#ifndef V8MONKEY_TEST_H
-#define V8MONKEY_TEST_H
 
 // Export extra symbols when building the test library
 #ifdef V8MONKEY_INTERNAL_TEST
