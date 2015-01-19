@@ -1,8 +1,8 @@
-// std::isnan, std::isfinite
-#include <cmath>
-
 // int32_t, int64_t, uint32_t
 #include <cinttypes>
+
+// std::isnan, std::isfinite
+#include <cmath>
 
 // std::numeric_limits
 #include <limits>
@@ -42,6 +42,7 @@ namespace {
 
 namespace v8 {
   // TODO: Empty handle checks in debug builds, per V8
+  // XXX Can we use ConvertFromAPI in this macro?
   #define FORWARD_TO_INTERNAL(name) \
   bool Value::name() const {\
     if (V8Monkey::V8MonkeyCommon::CheckDeath("Value::" #name)) { \

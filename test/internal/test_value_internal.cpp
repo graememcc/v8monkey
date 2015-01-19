@@ -14,6 +14,9 @@
 #include "v8monkey_common.h"
 
 
+// XXX We are using InternalIsolates and I can't see any reason why. Switch to normal ones, and remove the isolate.h dependency
+
+
 using namespace v8;
 using namespace v8::V8Monkey;
 

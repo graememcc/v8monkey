@@ -351,6 +351,9 @@ src/test.h: $(v8monkeyheadersdir)/v8.h
 src/threads/autolock.h: platform/platform.h
 
 
+$(call variants, src/threads/locker): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h
+
+
 src/types/base_types.h: $(v8monkeyheadersdir)/v8.h $(smtarget) src/test.h
 
 
@@ -365,7 +368,7 @@ $(call variants, src/types/primitives): $(v8monkeyheadersdir)/v8.h src/types/bas
                                         src/v8monkey_common.h
 
 
-$(call variants, src/threads/locker): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h
+$(call variants, src/types/value): $(v8monkeyheadersdir)/v8.h src/types/value_types.h src/v8monkey_common.h
 
 
 src/v8monkey_common.h: src/test.h
@@ -373,8 +376,7 @@ src/v8monkey_common.h: src/test.h
 
 # Several files depend on the JSAPI header
 jsapi_deps = $(call variants, src/runtime/isolate)
-jsapitype_deps = $(call variants, src/types/value)
-$(jsapi_deps) $(jsapitype_deps): $(smtarget)
+$(jsapi_deps): $(smtarget)
 
 
 # init depends on the RAII autolock class
@@ -382,7 +384,7 @@ $(call variants, src/runtime/isolate): src/threads/autolock.h
 
 
 # Several files depend on isolate.h
-$(call variants, src/runtime/isolate) $(call variants, src/types/value): src/runtime/isolate.h
+$(call variants, src/runtime/isolate): src/runtime/isolate.h
 
 
 $(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
@@ -395,10 +397,6 @@ $(v8objects) $(testlibobjects): src/v8monkey_common.h
 # Various files need the base_type definitions
 typedeps = $(call variants, src/types/v8monkeyobject)
 $(typedeps) ($(call variants, src/runtime/isolate): src/types/base_types.h
-
-
-# Various files need the value definition
-$(call variants, src/type/value): src/types/value_types.h
 
 
 # HandleScopes and isolates use object blocks
@@ -569,6 +567,9 @@ $(call inttest, persistent): $(v8monkeyheadersdir)/v8.h src/data_structures/obje
 
 
 $(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/base_types.h
+
+
+$(call inttest, value): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h src/test.h src/v8monkey_common.h
 
 
 # Several internal files depend on the JSAPI header
