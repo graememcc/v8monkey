@@ -357,7 +357,12 @@ src/types/base_types.h: $(v8monkeyheadersdir)/v8.h $(smtarget) src/test.h
 src/types/value_types.h: $(smtarget) src/test.h src/types/base_types.h
 
 
-$(call variants, number): $(v8monkeyheadersdir)/v8.h src/types/base_types.h src/types/value_types.h src/v8monkey_common.h
+$(call variants, src/types/number): $(v8monkeyheadersdir)/v8.h src/types/base_types.h src/types/value_types.h \
+                                    src/v8monkey_common.h
+
+
+$(call variants, src/types/primitives): $(v8monkeyheadersdir)/v8.h src/types/base_types.h src/types/value_types.h \
+                                        src/v8monkey_common.h
 
 
 $(call variants, src/threads/locker): $(v8monkeyheadersdir)/v8.h src/runtime/isolate.h
@@ -538,6 +543,9 @@ $(call apitest, locker): $(v8monkeyheadersdir)/v8.h  platform/platform.h
 
 
 $(call apitest, number): $(v8monkeyheadersdir)/v8.h
+
+
+$(call apitest, primitives): $(v8monkeyheadersdir)/v8.h
 
 
 $(call inttest, destructlist): src/data_structures/destruct_list.h src/types/base_types.h

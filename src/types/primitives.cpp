@@ -1,7 +1,7 @@
 // V8MonkeyObject
 #include "types/base_types.h"
 
-// V8Boolean V8SpecialValue V8Value
+// ConvertFromAPI V8Boolean V8SpecialValue
 #include "types/value_types.h"
 
 // Boolean Handle Null Primitive Undefined
@@ -37,6 +37,9 @@ namespace {
   V8MonkeyObject* nullValue;
   V8MonkeyObject** nullPtr = &nullValue;
 }
+
+
+// XXX Do we want a ConvertToAPI equivalent of ConvertFromAPI?
 
 
 namespace v8 {
