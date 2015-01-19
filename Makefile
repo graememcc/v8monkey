@@ -522,7 +522,7 @@ $(internaltestobjects): src/test.h
 
 
 # Some test files depend on the V8MonkeyCommon class
-$(internaltestbase)/test_death_internal.o $(internaltestbase)/test_fatalerror_internal.o: src/v8monkey_common.h
+$(internaltestbase)/test_fatalerror_internal.o: src/v8monkey_common.h
 
 
 # some files depend on the base_type definitions
@@ -551,6 +551,9 @@ $(call apitest, primitives): $(v8monkeyheadersdir)/v8.h
 
 
 $(call apitest, threadID): $(v8monkeyheadersdir)/v8.h platform/platform.h
+
+
+$(call inttest, death): $(v8monkeyheadersdir)/v8.h src/v8monkey_common.h src/test.h
 
 
 $(call inttest, destructlist): src/data_structures/destruct_list.h src/types/base_types.h

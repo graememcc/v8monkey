@@ -1,7 +1,13 @@
+// TestUtils
+#include "test.h"
+
+// Initialize, SetFatalErrorHandler
 #include "v8.h"
 
-#include "test.h"
+// TriggerFatalError
 #include "v8monkey_common.h"
+
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
