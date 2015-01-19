@@ -1,8 +1,6 @@
 #ifndef V8MONKEY_DESTRUCTLIST_H
 #define V8MONKEY_DESTRUCTLIST_H
 
-#include "test.h"
-
 
 /*
  * A class that wraps a linked list of pointers to a given type T, but which also takes a function that will be called
@@ -24,7 +22,7 @@ namespace v8 {
   namespace V8Monkey {
 
     template <class T>
-    class EXPORT_FOR_TESTING_ONLY DestructingList {
+    class DestructingList {
       public:
         DestructingList() : destructionFunction(nullptr), head(nullptr) {}
         DestructingList(void (*destructionFn)(T*)) : destructionFunction(destructionFn), head(nullptr) {}

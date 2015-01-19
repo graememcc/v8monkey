@@ -1,14 +1,13 @@
 #ifndef V8MONKEY_SMARTPOINTER_H
 #define V8MONKEY_SMARTPOINTER_H
 
-#include "test.h"
-
 
 namespace v8 {
 namespace V8Monkey {
 
+
 template <class T>
-class EXPORT_FOR_TESTING_ONLY SmartPtr {
+class SmartPtr {
   public:
     SmartPtr() : ptr(NULL) {}
 
