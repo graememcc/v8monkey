@@ -550,6 +550,9 @@ $(call apitest, number): $(v8monkeyheadersdir)/v8.h
 $(call apitest, primitives): $(v8monkeyheadersdir)/v8.h
 
 
+$(call apitest, threadID): $(v8monkeyheadersdir)/v8.h platform/platform.h
+
+
 $(call inttest, destructlist): src/data_structures/destruct_list.h src/types/base_types.h
 
 

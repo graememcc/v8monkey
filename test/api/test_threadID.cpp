@@ -2,7 +2,7 @@
 // Thread
 #include "platform.h"
 
-// V8::GetCurrentThreadID Isolate::GetCurrent V8::Intialize
+// V8::GetCurrentThreadID Isolate::GetCurrent V8::Initialize
 #include "v8.h"
 
 // Unit-testing support
