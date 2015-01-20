@@ -18,9 +18,11 @@
 
 .DEFAULT_GOAL = all
 
-.PHONY: all clean clobber check valgrind
 
-# TODO Provide a target or flag for debug builds. We need to ensure this builds a debug SpiderMonkey library too
+#**********************************************************************************************************************#
+#                                                      Variables                                                       #
+#**********************************************************************************************************************#
+
 
 # Where does our copy of the mozilla-release codebase live?
 mozillaroot = $(CURDIR)/deps/mozilla
@@ -34,16 +36,16 @@ milestonecommand = $(mozillaroot)/config/milestone.pl
 smmajorversion = $(shell $(milestonecommand) --topsrcdir=$(mozillaroot) --symbolversion)
 
 
+# Function for calculating library filenames
+libname = $(addprefix lib, $(addsuffix .so, $(strip $(1))))
+
+
 # Our own V8Monkey library will have a suffix which denotes the full SpiderMonkey version we were built from
 smfullversion = $(shell $(milestonecommand) --topsrcdir=$(mozillaroot))
 
 
 # Compute the name of the SpiderMonkey library that we can pass as a -l flag to the linker
 smlib = mozjs-$(smmajorversion)
-
-
-# Compute the full name of the shared library file that will be built when building SpiderMonkey
-smlibraryfile = lib$(smlib).so
 
 
 # Likewise, compute the name of our library for linking purposes
@@ -56,14 +58,8 @@ v8lib = v8monkey-$(smfullversion)
 v8testlib = v8monkey-test-$(smfullversion)
 
 
-# And their corresponding full names
-v8libraryfile = lib$(v8lib).so
-v8testlibraryfile = lib$(v8testlib).so
-
-
 # We also build a shared library for platform abstractions, which can be used both by V8Monkey and the test harnesses
 platformlib = v8monkey-platform
-platformlibfile = lib$(platformlib).so
 
 
 # TODO: Do we need to specify a SONAME for our libraries?
@@ -95,20 +91,27 @@ smlibdir = $(depsdir)/dist/lib
 
 
 # Absolute filename of the SpiderMonkey shared library
-smtarget = $(smlibdir)/$(smlibraryfile)
+smtarget = $(smlibdir)/$(call libname, $(smlib))
 
 
 # Where will we write the V8 header?
 v8monkeyheadersdir = $(outdir)/include
+
+
+# The V8 header (for dependency purposes)
 v8monkeyheader = $(v8monkeyheadersdir)/v8.h
 
 
+# The platform header (for dependency purposes)
+v8platformheader = $(v8monkeyheadersdir)/platform.h
+
+
 # Absolute filename of the V8Monkey library
-v8monkeytarget = $(outdir)/$(v8libraryfile)
+v8monkeytarget = $(outdir)/$(call libname, $(v8lib))
 
 
 # Absolute filename of the platform library
-v8platformtarget = $(outdir)/$(platformlibfile)
+v8platformtarget = $(outdir)/$(call libname, $(platformlib))
 
 
 # Directory where the "internal" library object files will be built
@@ -116,7 +119,7 @@ v8monkeyinternaldir = $(outdir)/test/internalLib
 
 
 # Absolute filename of the internal test variant of the V8Monkey library
-v8monkeytesttarget = $(v8monkeyinternaldir)/$(v8testlibraryfile)
+v8monkeytesttarget = $(v8monkeyinternaldir)/$(call libname, $(v8testlib))
 
 
 # Location of API test files
@@ -125,6 +128,11 @@ apitestbase = $(outdir)/test/api
 
 # Location of internal test files
 internaltestbase = $(outdir)/test/internal
+
+
+#**********************************************************************************************************************#
+#                                                     Compilation                                                      #
+#**********************************************************************************************************************#
 
 
 # We will generally need headers from 3 places:
@@ -153,7 +161,8 @@ warnings = -Wall -Wextra -Wmissing-include-dirs
 # XXX Remove -DDEBUG
 # XXX Remove suggest
 # XXX Remove conversion
-CXXFLAGS += -MMD -Wpedantic -Wsuggest-attribute=const -Wconversion -g -DDEBUG=1 $(warnings) $(includeopt) -fPIC -fvisibility=hidden -std=c++0x
+CXXFLAGS += -MMD -Wpedantic -Wsuggest-attribute=const -Wconversion -g -DDEBUG=1 $(warnings) $(includeopt) -fPIC \
+            -fvisibility=hidden -std=c++0x
 
 
 # Define a command that will produce a link command for the given library name
@@ -165,21 +174,24 @@ linkcommand = -Wl,-L$(strip $(1)) -Wl,-rpath=$(strip $(1)) -l$(strip $(2))
 variants = $(outdir)/$(strip $(1)).o $(v8monkeyinternaldir)/$(strip $(1)).o
 
 
-# Expand an api test stem to its object file
-apitest = $(addprefix $(apitestbase)/test_, $(addsuffix .o,  $(strip $(1))))
-
-
-# Expand an internal test stem to its object file
-inttest = $(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o,  $(strip $(1))))
-
-
 # A useful general rule for building files
-$(outdir)/%.o: %.cpp $(v8monkeyheader)
+# This rule will catch everything except the "internals lib" versions of the source files
+# XXX Does this really do what I think it does?
+$(outdir)/%.o: %.cpp
 	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
 
 
-#**********************************************************************************************************************
-# Sources
+# Rule for headers: primarily to capture transitive header-only dependencies
+include/%.h platform/%.h src/%.h:
+	touch $@
+
+# Certain files need to be aware of the SpiderMonkey version
+$(call variants, src/engine/version) $(call apitest, version): CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
+
+
+#**********************************************************************************************************************#
+#                                                       Sources                                                        #
+#**********************************************************************************************************************#
 
 
 # The V8Monkey library is composed of the following files
@@ -270,378 +282,14 @@ $(addprefix $(v8monkeyinternaldir)/, $(threadobjects)): | $(v8monkeyinternaldir)
 $(addprefix $(v8monkeyinternaldir)/, $(typeobjects)): | $(v8monkeyinternaldir)/src/types
 
 
-#**********************************************************************************************************************
-# Platform abstraction library
+#**********************************************************************************************************************#
+#                                                        Goals                                                         #
+#**********************************************************************************************************************#
 
 
-# To build the shared library, we need to build the platform
-# TODO pthread is POSIX specific: need to factor this out
-$(v8platformtarget): $(platformobjects) $(v8monkeyheadersdir)/platform.h
-	@echo
-	@echo "********************************************************************************"
-	@echo "*                                                                              *"
-	@echo "*                   Building platform abstraction library...                   * "
-	@echo "*                                                                              *"
-	@echo "********************************************************************************"
-	@echo
-	$(CXX) -shared -o $@ $(platformobjects) -lpthread
+.PHONY: all clean clobber check make_sm valgrind
 
 
-# The platform objects depend on the header
-$(platformobjects): $(v8monkeyheadersdir)/platform.h | $(outdir)/platform
-
-
-# Ensure the header is in the right place
-# XXX I'm not sure this is correct?
-$(v8monkeyheadersdir)/platform.h: platform/platform.h | $(v8monkeyheadersdir)
-	cp platform/platform.h $(v8monkeyheadersdir)
-
-
-#**********************************************************************************************************************
-# V8Monkey
-
-
-# Our default goal is to build the v8monkey shared library, and the testsuites
-all: $(v8monkeytarget) $(testsuites)
-
-
-# The main task is building the shared library
-$(v8monkeytarget): $(v8objects) $(v8monkeyheadersdir)/v8.h $(smtarget) $(v8platformtarget)
-	@echo
-	@echo "********************************************************************************"
-	@echo "*                                                                              *"
-	@echo "*                                Building V8...                                *"
-	@echo "*                                                                              *"
-	@echo "********************************************************************************"
-	@echo
-	$(CXX) -shared -o $@ $(v8objects) $(call linkcommand, $(smlibdir), $(smlib)) $(v8platformtarget)
-
-
-# We need to copy the V8 header to dist
-$(v8monkeyheader): include/v8.h | $(v8monkeyheadersdir)
-	cp include/v8.h $(v8monkeyheadersdir)
-
-
-# *********************************************************************************************************************
-# Individual file dependencies below
-
-
-# Virtually all files will depend on the v8 header
-$(v8objects) $(testlibobjects): $(v8monkeyheader)
-
-$(call variants, src/engine/version) $(apitestbase)/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
-
-
-$(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h platform/platform.h src/test.h \
-                                   src/v8monkey_common.h $(smtarget)
-
-
-$(call variants, src/runtime/handlescope): $(v8monkeyheader) src/data_structures/objectblock.h \
-                                           src/runtime/isolate.h src/types/base_types.h src/v8monkey_common.h
-
-
-$(call variants, src/runtime/persistent): $(v8monkeyheader) src/data_structures/objectblock.h \
-                                           src/runtime/isolate.h src/types/base_types.h src/v8monkey_common.h
-
-
-src/runtime/isolate.h: $(smtarget) $(v8monkeyheader) src/types/base_types.h platform/platform.h src/test.h
-
-
-src/test.h: $(v8monkeyheader)
-
-
-src/threads/autolock.h: platform/platform.h
-
-
-$(call variants, src/threads/locker): $(v8monkeyheader) src/runtime/isolate.h
-
-
-src/types/base_types.h: $(v8monkeyheader) $(smtarget) src/test.h
-
-
-src/types/value_types.h: $(smtarget) src/test.h src/types/base_types.h
-
-
-$(call variants, src/types/number): $(v8monkeyheader) src/types/base_types.h src/types/value_types.h \
-                                    src/v8monkey_common.h
-
-
-$(call variants, src/types/primitives): $(v8monkeyheader) src/types/base_types.h src/types/value_types.h \
-                                        src/v8monkey_common.h
-
-
-$(call variants, src/types/value): $(v8monkeyheader) src/types/value_types.h src/v8monkey_common.h
-
-
-$(call variants, src/types/v8monkeyobject): $(v8monkeyheader) src/types/base_types.h
-
-
-src/v8monkey_common.h: src/test.h
-
-
-# Several files depend on the JSAPI header
-jsapi_deps = $(call variants, src/runtime/isolate)
-$(jsapi_deps): $(smtarget)
-
-
-# init depends on the RAII autolock class
-$(call variants, src/runtime/isolate): src/threads/autolock.h
-
-
-# Several files depend on isolate.h
-$(call variants, src/runtime/isolate): src/runtime/isolate.h
-
-
-$(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
-
-
-# Most files depend on the miscellaneous functions in the V8MonkeyCommon class
-# XXX Remove when dealing with isolate deps
-$(v8objects) $(testlibobjects): src/v8monkey_common.h
-
-
-# Various files need the base_type definitions
-$(call variants, src/runtime/isolate): src/types/base_types.h
-
-
-# HandleScopes and isolates use object blocks
-$(call variants, src/runtime/isolate): src/data_structures/objectblock.h
-
-
-# Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
-# internal test lib or not
-visibility_changes = $(call variants, src/runtime/isolate)
-
-
-# We can now declare the visibility changers dependent on a test header file
-$(visibility_changes): src/test.h
-
-
-# *********************************************************************************************************************
-# Testsuites
-
-# The test harness is composed from the following
-teststems = death handlescope init isolate locker number primitives threadID version
-testfiles = $(addprefix test/api/test_, $(teststems))
-testsources = $(addsuffix .cpp, $(testfiles))
-testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))
-
-
-# TODO Our little trick with building the linked list of functions is neat, but is sensitive to compilation order. It will
-#      segfault if the test files are specified before the V8MonkeyTest file
-
-
-# Build the "standard" test harness
-$(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobjects) $(outdir)/test/harness/V8MonkeyTest.o $(v8monkeytarget) $(platformtarget)
-	@echo
-	@echo "********************************************************************************"
-	@echo "*                                                                              *"
-	@echo "*                          Building API Testsuite...                           *"
-	@echo "*                                                                              *"
-	@echo "********************************************************************************"
-	@echo
-	$(CXX) $(CXXFLAGS) -g -o $@ test/harness/run_v8monkey_tests.cpp $(outdir)/test/harness/V8MonkeyTest.o $(testobjects) \
-                        $(call linkcommand, $(outdir), $(v8lib))\
-                        $(call linkcommand, $(outdir), $(platformlib))
-
-
-# The "internals" test harness is composed from the following
-internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock persistent \
-                    platform refcount smartpointer threadID value
-internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
-internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
-internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
-
-
-# TODO The directory prereq here isn't quite right
-# XXX Really need to fix this. It's annoying me. Prereq for code reorg
-$(outdir)/test/internalLib/%.o: %.cpp $(v8monkeyheader) | $(outdir)/test/internalLib/src
-	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
-
-
-# Build a version of the shared library for internal tests
-$(v8monkeytesttarget): $(testlibobjects) $(outdir)/include/v8.h $(smtarget)
-	@echo
-	@echo "********************************************************************************"
-	@echo "*                                                                              *"
-	@echo "*           Building custom V8Monkey library for internal testing...           *"
-	@echo "*                                                                              *"
-	@echo "********************************************************************************"
-	@echo
-	@echo
-	@echo Building internal version of V8Monkey...
-	@echo
-	$(CXX) -shared -o $@ $(testlibobjects) $(call linkcommand, $(smlibdir), $(smlib)) $(v8platformtarget)
-
-
-# Build the internal test harness
-# Note: we reuse the driver file run_v8monkey_tests.cpp. That isn't a copy/paste error
-$(outdir)/test/run_v8monkey_internal_tests: test/harness/run_v8monkey_tests.cpp $(internaltestobjects) test/harness/V8MonkeyTest.cpp $(v8monkeytesttarget) $(v8platformtarget)
-	@echo
-	@echo "********************************************************************************"
-	@echo "*                                                                              *"
-	@echo "*                        Building Internal Testsuite...                        *"
-	@echo "*                                                                              *"
-	@echo "********************************************************************************"
-	@echo
-	$(CXX) $(CXXFLAGS) -o $@ test/harness/run_v8monkey_tests.cpp $(outdir)/test/harness/V8MonkeyTest.o $(internaltestobjects) \
-                        $(call linkcommand, $(outdir)/test/internalLib, $(v8testlib)) \
-                        $(call linkcommand, $(outdir), $(platformlib))
-
-
-# *********************************************************************************************************************
-#  Specific test file dependencies below
-
-
-# Modify compilation of internal library versions
-$(testlibobjects) $(internaltestobjects): CXXFLAGS += -DV8MONKEY_INTERNAL_TEST=1
-
-
-# Test objects need to locate the V8MonkeyTest test header
-$(testobjects) $(internaltestobjects) $(testsuites) $(outdir)/test/harness/V8MonkeyTest.o: CXXFLAGS += -I$(CURDIR)/test/harness
-
-
-# All test files depend on the V8MonkeyTest header
-$(testobjects) $(internaltestobjects) $(testsuites): test/harness/V8MonkeyTest.h
-
-
-# The testsuites depend on the additional machinery supplied by V8MonkeyTest
-$(testsuites): $(outdir)/test/harness/V8MonkeyTest.o
-
-
-# Most internal test files require the TestUtils class
-# XXX Remove when isolate deps dealt with
-$(internaltestobjects): src/test.h
-
-
-# some files depend on the base_type definitions
-test_basetypes_deps = isolate
-$(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
-
-$(call apitest, death): $(v8monkeyheader)
-
-
-$(call apitest, handlescope): $(v8monkeyheader)
-
-
-$(call apitest, init): $(v8monkeyheader) platform/platform.h src/v8monkey_common.h
-
-
-$(call apitest, isolate): $(v8monkeyheader) platform/platform.h src/test.h
-
-
-$(call apitest, locker): $(v8monkeyheader)  platform/platform.h
-
-
-$(call apitest, number): $(v8monkeyheader)
-
-
-$(call apitest, primitives): $(v8monkeyheader)
-
-
-$(call apitest, threadID): $(v8monkeyheader) platform/platform.h
-
-
-$(call inttest, death): $(v8monkeyheader) src/test.h src/v8monkey_common.h
-
-
-$(call inttest, destructlist): src/data_structures/destruct_list.h src/types/base_types.h
-
-
-$(call inttest, fatalerror): $(v8monkeyheader) src/runtime/isolate.h src/test.h src/v8monkey_common.h
-
-
-$(call inttest, handlescope): $(v8monkeyheader) src/data_structures/objectblock.h src/runtime/isolate.h \
-                              src/test.h src/v8monkey_common.h
-
-
-$(call inttest, init): $(v8monkeyheader) platform/platform.h src/runtime/isolate.h src/test.h
-
-
-$(call inttest, locker): $(v8monkeyheader) src/runtime/isolate.h src/test.h
-
-
-$(call inttest, objectblock): src/data_structures/objectblock.h
-
-
-$(call inttest, platform): platform/platform.h
-
-
-$(call inttest, persistent): $(v8monkeyheader) src/data_structures/objectblock.h src/runtime/isolate.h \
-							 src/types/base_types.h src/test.h src/v8monkey_common.h
-
-
-$(call inttest, refcount): $(v8monkeyheader) src/types/base_types.h
-
-
-$(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/base_types.h
-
-
-$(call inttest, threadID): $(v8monkeyheader) src/test.h
-
-
-$(call inttest, value): $(v8monkeyheader) src/runtime/isolate.h src/test.h src/v8monkey_common.h
-
-
-# Several internal files depend on the JSAPI header
-test_jsapi_stems = isolate
-test_jsapi_deps = $(addsuffix _internal.o, $(addprefix $(internaltestbase)/test_, $(test_jsapi_stems)))
-$(test_jsapi_deps): $(smtarget)
-
-
-# The individual object files depend on the existence of their output directory
-$(testobjects): | $(outdir)/test/api
-
-
-# ... as do the internal object files
-$(internaltestobjects): | $(outdir)/test/internal
-
-
-# V8MonkeyTest also depends on its output directory
-$(outdir)/test/harness/V8MonkeyTest.o: $(outdir)/test/harness
-
-
-# *********************************************************************************************************************
-# Code from here on down is concerned with building the SpiderMonkey shared library
-
-# In the below, I was shelling out to the Mozilla make unneccesarily, as make apparently compares the real file's
-# timestamp when it encounters symlinks, and it turns out that the dist/include created by building SpiderMonkey
-# contains symlinks. GNU make 3.81 provides a command-line flag to compare the symlink time, but we shouldn't require
-# our users to remember to explicitly use such a flag. Thus, after an update, we touch the source jsapi.h header to fix
-# the timestamp vs the Makefile
-
-# If the library doesn't exist, we must explicitly build it
-$(smtarget) $(smheadersdir)/jsapi.h: $(depsdir)/Makefile
-	@echo
-	@echo "********************************************************************************"
-	@echo "*                                                                              *"
-	@echo "*                           Building SpiderMonkey...                           *"
-	@echo "*                                                                              *"
-	@echo "********************************************************************************"
-	@echo
-	$(MAKE) -C $(depsdir)
-	touch $(mozillaroot)/js/src/jsapi.h
-
-
-# To create the Makefile, we must have a config.status script
-$(depsdir)/Makefile: $(depsdir)/config.status
-
-
-# A config.status script is created by running configure
-$(depsdir)/config.status: $(mozillaroot)/js/src/configure | $(depsdir)
-	rm -f $(depsdir)/Makefile
-	cd $(depsdir) && $(mozillaroot)/js/src/configure --disable-optimize --enable-debug
-
-
-# To run configure we must first invoke autoconf
-# XXX For some reason, I've been finding it necessary to add declare JS_STANDALONE to avoid build errors. I believe this
-#     shouldn't be necessary. YMMV.
-$(mozillaroot)/js/src/configure: $(mozillaroot)/js/src/configure.in
-	rm -f $(smheadersdir)/jsapi.h
-	cd $(mozillaroot)/js/src && JS_STANDALONE=1 autoconf
-
-
-# XXX MOVE THE BELOW
 # Run the testsuite
 # XXX If we can't find a way to capture the number of tests ran, remove the summary lines
 check: $(testsuites)
@@ -682,3 +330,428 @@ valgrind: $(testsuites)
 # XXX Remove me!
 temp: $(v8monkeytarget) temp.cpp
 	$(CXX) -v -Wl,-v -g -o temp temp.cpp -std=c++0x -I $(v8monkeyheadersdir) $(call linkcommand, $(outdir), $(v8lib)) -lpthread
+
+
+# TODO Provide a target or flag for debug builds. We need to ensure this builds a debug SpiderMonkey library too
+
+
+#**********************************************************************************************************************#
+#                                             Platform abstraction library                                             #
+#**********************************************************************************************************************#
+
+
+# To build the shared library, we need to build the platform
+# TODO: pthread is POSIX specific: need to factor this out
+$(v8platformtarget): $(platformobjects) $(v8platformheader)
+	@echo && \
+	echo "********************************************************************************" && \
+	echo "*                                                                              *" && \
+	echo "*                   Building platform abstraction library...                   * " && \
+	echo "*                                                                              *" && \
+	echo "********************************************************************************" && \
+	echo
+	$(CXX) -shared -o $@ $(platformobjects) -lpthread
+
+
+# The platform objects depend on the header
+$(platformobjects): $(v8platformheader) | $(outdir)/platform
+
+
+# The include file should also be copied
+$(v8platformheader): platform/platform.h
+	cp $< $(@D)
+
+
+#**********************************************************************************************************************#
+#                                                       V8Monkey                                                       #
+#**********************************************************************************************************************#
+
+
+# Our default goal is to build the v8monkey shared library, and the testsuites
+all: $(v8monkeytarget) $(testsuites)
+
+
+# The main task is building the shared library
+$(v8monkeytarget): $(v8objects) $(v8monkeyheaderstarget) $(smtarget) $(v8platformtarget)
+	@echo && \
+	echo "********************************************************************************" && \
+	echo "*                                                                              *" && \
+	echo "*                               Linking V8Monkey                               *" && \
+	echo "*                                                                              *" && \
+	echo "********************************************************************************" && \
+	echo
+	$(CXX) -shared -o $@ $(v8objects) $(call linkcommand, $(smlibdir), $(smlib)) $(v8platformtarget)
+
+
+# We need to copy the V8 header to dist
+$(v8monkeyheader): include/v8.h | $(v8monkeyheadersdir)
+	cp $< $(@D)
+
+
+#**********************************************************************************************************************#
+#                                              V8Monkey file dependencies                                              #
+#**********************************************************************************************************************#
+
+
+# *********************************************************************************************************************
+# Individual file dependencies below
+
+
+# Virtually all files will depend on the v8 header
+# XXX Remove this when landing the isolate SpiderMonkeyUtils changes
+$(v8objects) $(testlibobjects): $(v8monkeyheader)
+
+
+$(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h $(v8platformheader) src/test.h \
+                                   src/v8monkey_common.h $(JSAPIheader)
+
+
+$(call variants, src/engine/version): $(v8monkeyheader)
+
+
+$(call variants, src/runtime/handlescope): $(v8monkeyheader) src/data_structures/objectblock.h \
+                                           src/runtime/isolate.h src/types/base_types.h src/v8monkey_common.h
+
+
+$(call variants, src/runtime/persistent): $(v8monkeyheader) src/data_structures/objectblock.h \
+                                           src/runtime/isolate.h src/types/base_types.h src/v8monkey_common.h
+
+
+src/runtime/isolate.h: $(v8monkeyheader) $(JSAPIheader) src/types/base_types.h $(v8platformheader) src/test.h
+
+
+src/test.h: $(v8monkeyheader)
+
+
+src/threads/autolock.h: $(v8platformheader)
+
+
+$(call variants, src/threads/locker): $(v8monkeyheader) src/runtime/isolate.h
+
+
+src/types/base_types.h: $(v8monkeyheader) $(JSAPIheader) src/test.h
+
+
+src/types/value_types.h: $(JSAPIheader) src/test.h src/types/base_types.h
+
+
+$(call variants, src/types/number): $(v8monkeyheader) src/types/base_types.h src/types/value_types.h \
+                                    src/v8monkey_common.h
+
+
+$(call variants, src/types/primitives): $(v8monkeyheader) src/types/base_types.h src/types/value_types.h \
+                                        src/v8monkey_common.h
+
+
+$(call variants, src/types/value): $(v8monkeyheader) src/types/value_types.h src/v8monkey_common.h
+
+
+$(call variants, src/types/v8monkeyobject): $(v8monkeyheader) src/types/base_types.h
+
+
+src/v8monkey_common.h: src/test.h
+
+
+# Several files depend on the JSAPI header
+jsapi_deps = $(call variants, src/runtime/isolate)
+$(jsapi_deps): $(JSAPIheader)
+
+
+# init depends on the RAII autolock class
+$(call variants, src/runtime/isolate): src/threads/autolock.h
+
+
+# Several files depend on isolate.h
+$(call variants, src/runtime/isolate): src/runtime/isolate.h
+
+
+$(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
+
+
+# Most files depend on the miscellaneous functions in the V8MonkeyCommon class
+# XXX Remove when dealing with isolate deps
+$(v8objects) $(testlibobjects): src/v8monkey_common.h
+
+
+# Various files need the base_type definitions
+$(call variants, src/runtime/isolate): src/types/base_types.h
+
+
+# HandleScopes and isolates use object blocks
+$(call variants, src/runtime/isolate): src/data_structures/objectblock.h
+
+
+# Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
+# internal test lib or not
+visibility_changes = $(call variants, src/runtime/isolate)
+
+
+# We can now declare the visibility changers dependent on a test header file
+$(visibility_changes): src/test.h
+
+
+#**********************************************************************************************************************#
+#                                                      Testsuites                                                      #
+#**********************************************************************************************************************#
+
+
+# The API test harness is composed from the following
+teststems = death handlescope init isolate locker number primitives threadID version
+testfiles = $(addprefix test/api/test_, $(teststems))
+testsources = $(addsuffix .cpp, $(testfiles))
+testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))
+
+
+# The "internals" test harness is composed from the following
+internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock persistent \
+                    platform refcount smartpointer threadID value
+internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
+internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
+internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
+
+
+# Test objects need to locate the V8MonkeyTest test header
+$(testobjects) $(internaltestobjects) $(testsuites) $(outdir)/test/harness/V8MonkeyTest.o: CXXFLAGS += -I$(CURDIR)/test/harness
+
+
+# All test files depend on the V8MonkeyTest header
+$(testobjects) $(internaltestobjects) $(testsuites): test/harness/V8MonkeyTest.h
+
+
+# V8MonkeyTest also depends on its output directory
+$(outdir)/test/harness/V8MonkeyTest.o: $(outdir)/test/harness
+
+
+#**********************************************************************************************************************#
+#                                                    API Testsuite                                                     #
+#**********************************************************************************************************************#
+
+
+# TODO The little trick we use in the test harness to build the linked list of test functions is neat, but it is sensitive
+#      to compilation order. It will segfault if the test files are specified before the V8MonkeyTest file
+
+
+# Build the "standard" test harness
+$(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobjects) $(outdir)/test/harness/V8MonkeyTest.o \
+                                   $(v8monkeytarget) $(v8platformtarget)
+	@echo && \
+	echo "********************************************************************************" && \
+	echo "*                                                                              *" && \
+	echo "*                          Building API Testsuite...                           *" && \
+	echo "*                                                                              *" && \
+	echo "********************************************************************************" && \
+	echo
+	$(CXX) $(CXXFLAGS) -g -o $@ test/harness/run_v8monkey_tests.cpp $(outdir)/test/harness/V8MonkeyTest.o $(testobjects) \
+                        $(call linkcommand, $(outdir), $(v8lib))\
+                        $(call linkcommand, $(outdir), $(platformlib))
+
+
+# The individual object files depend on the existence of their output directory
+$(testobjects): | $(outdir)/test/api
+
+
+# Expands an api test stem to its object file
+apitest = $(addprefix $(apitestbase)/test_, $(addsuffix .o,  $(strip $(1))))
+
+
+#**********************************************************************************************************************#
+#                                           API Testsuite file dependencies                                            #
+#**********************************************************************************************************************#
+
+
+$(call apitest, death): $(v8monkeyheader)
+
+
+$(call apitest, handlescope): $(v8monkeyheader)
+
+
+$(call apitest, init): $(v8monkeyheader) $(v8platformheader) src/v8monkey_common.h
+
+
+$(call apitest, isolate): $(v8monkeyheader) $(v8platformheader) src/test.h
+
+
+$(call apitest, locker): $(v8monkeyheader)  $(v8platformheader)
+
+
+$(call apitest, number): $(v8monkeyheader)
+
+
+$(call apitest, primitives): $(v8monkeyheader)
+
+
+$(call apitest, threadID): $(v8monkeyheader) $(v8platformheader)
+
+
+#**********************************************************************************************************************#
+#                                                 Internals Testsuite                                                  #
+#**********************************************************************************************************************#
+
+
+# Modify compilation of the internal library versions of V8Monkey components
+$(testlibobjects) $(internaltestobjects): CXXFLAGS += -DV8MONKEY_INTERNAL_TEST=1
+
+
+# TODO The directory prereq here isn't quite right
+# XXX Really need to fix this. It's annoying me. Prereq for code reorg
+$(outdir)/test/internalLib/%.o: %.cpp | $(outdir)/test/internalLib/src
+	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
+
+
+# The internal test object files depend on the existence of their output directory
+$(internaltestobjects): | $(outdir)/test/internal
+
+
+# TODO The little trick we use in the test harness to build the linked list of test functions is neat, but it is sensitive
+#      to compilation order. It will segfault if the test files are specified before the V8MonkeyTest file
+
+
+# Build a version of the shared library for internal tests
+$(v8monkeytesttarget): $(testlibobjects) $(v8monkeyheader) $(smtarget)
+	@echo && \
+	echo "********************************************************************************" && \
+	echo "*                                                                              *" && \
+	echo "*           Building custom V8Monkey library for internal testing...           *" && \
+	echo "*                                                                              *" && \
+	echo "********************************************************************************" && \
+	echo
+	$(CXX) -shared -o $@ $(testlibobjects) $(call linkcommand, $(smlibdir), $(smlib)) $(v8platformtarget)
+
+
+# Build the internal test harness
+# Note: we reuse the driver file run_v8monkey_tests.cpp. That isn't a copy/paste error
+$(outdir)/test/run_v8monkey_internal_tests: test/harness/run_v8monkey_tests.cpp $(internaltestobjects) \
+                                            $(outdir)/test/harness/V8MonkeyTest.o $(v8monkeytesttarget) \
+                                            $(v8platformtarget)
+	@echo && \
+	echo "********************************************************************************" && \
+	echo "*                                                                              *" && \
+	echo "*                        Building Internal Testsuite...                        *" && \
+	echo "*                                                                              *" && \
+	echo "********************************************************************************" && \
+	echo
+	$(CXX) $(CXXFLAGS) -o $@ test/harness/run_v8monkey_tests.cpp $(outdir)/test/harness/V8MonkeyTest.o \
+                        $(internaltestobjects) \
+                        $(call linkcommand, $(outdir)/test/internalLib, $(v8testlib)) \
+                        $(call linkcommand, $(outdir), $(platformlib))
+
+
+#**********************************************************************************************************************#
+#                                        Internals Testsuite file dependencies                                         #
+#**********************************************************************************************************************#
+
+
+# Most internal test files require the TestUtils class
+# XXX Remove when isolate deps dealt with
+$(internaltestobjects): src/test.h
+
+
+# some files depend on the base_type definitions
+test_basetypes_deps = isolate
+$(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
+
+
+# Expands an internal test stem to its object file
+inttest = $(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o,  $(strip $(1))))
+
+
+$(call inttest, death): $(v8monkeyheader) src/test.h src/v8monkey_common.h
+
+
+$(call inttest, destructlist): src/data_structures/destruct_list.h src/types/base_types.h
+
+
+$(call inttest, fatalerror): $(v8monkeyheader) src/runtime/isolate.h src/test.h src/v8monkey_common.h
+
+
+$(call inttest, handlescope): $(v8monkeyheader) src/data_structures/objectblock.h src/runtime/isolate.h \
+                              src/test.h src/v8monkey_common.h
+
+
+$(call inttest, init): $(v8monkeyheader) $(v8platformheader) src/runtime/isolate.h src/test.h
+
+
+$(call inttest, locker): $(v8monkeyheader) src/runtime/isolate.h src/test.h
+
+
+$(call inttest, objectblock): src/data_structures/objectblock.h
+
+
+$(call inttest, platform): $(v8platformheader)
+
+
+$(call inttest, persistent): $(v8monkeyheader) src/data_structures/objectblock.h src/runtime/isolate.h \
+							 src/types/base_types.h src/test.h src/v8monkey_common.h
+
+
+$(call inttest, refcount): $(v8monkeyheader) src/types/base_types.h
+
+
+$(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/base_types.h
+
+
+$(call inttest, threadID): $(v8monkeyheader) src/test.h
+
+
+$(call inttest, value): $(v8monkeyheader) src/runtime/isolate.h src/test.h src/v8monkey_common.h
+
+
+# Several internal files depend on the JSAPI header
+# XXX Does this really depend on JSAPI?
+test_jsapi_stems = isolate
+test_jsapi_deps = $(addsuffix _internal.o, $(addprefix $(internaltestbase)/test_, $(test_jsapi_stems)))
+$(test_jsapi_deps): $(JSAPIheader)
+
+
+#**********************************************************************************************************************#
+#                                                     Spidermonkey                                                     #
+#**********************************************************************************************************************#
+
+# We always want to run the Makefile to ensure our SpiderMonkey build is up-to-date. This is performed by the make_sm
+# target, which is a prerequisite of the V8Monkey library. make_sm has a prerequisite with an empty rule to ensure that
+# the recipe is always invoked.
+
+
+# We build (and update) the library by running make
+$(smtarget): make_sm
+	@echo && \
+	echo "#******************************************************************************#" && \
+	echo "#                                                                              #" && \
+	echo "#                        Finished building SpiderMonkey                        #" && \
+	echo "#                                                                              #" && \
+	echo "#******************************************************************************#" && \
+	echo
+
+
+# Running the Makefile requires it to exist
+make_sm: $(depsdir)/Makefile FORCE_MAKE
+	@echo && \
+	echo "********************************************************************************" && \
+	echo "*                                                                              *" && \
+	echo "*                           Building SpiderMonkey...                           *" && \
+	echo "*                                                                              *" && \
+	echo "********************************************************************************" && \
+	echo
+	make -C $(depsdir)
+
+
+FORCE_MAKE:
+
+
+# To create the Makefile, we must have a config.status script
+$(depsdir)/Makefile: $(depsdir)/config.status
+
+
+# A config.status script is created by running configure
+$(depsdir)/config.status: $(mozillaroot)/js/src/configure | $(depsdir)
+	rm -f $(depsdir)/Makefile
+	cd $(depsdir) && $< --disable-optimize --enable-debug
+
+
+# To run configure we must first invoke autoconf
+# XXX For some reason, I've been finding it necessary to add declare JS_STANDALONE to avoid build errors. I believe this
+#     shouldn't be necessary. YMMV.
+# XXX Should the JS_STANDALONE be on autoconf or configure?
+$(mozillaroot)/js/src/configure: $(mozillaroot)/js/src/configure.in
+	rm -f $(smheadersdir)/jsapi.h
+	cd $(mozillaroot)/js/src && JS_STANDALONE=1 autoconf
