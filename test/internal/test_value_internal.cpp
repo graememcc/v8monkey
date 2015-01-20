@@ -1,4 +1,4 @@
-// InternalIsolate
+// InternalIsolate. Remove once we deal with the XXX comment below (which it turns out I've commented about twice!)
 #include "runtime/isolate.h"
 
 // ISOLATE_INIT_TESTS TestUtils
@@ -135,6 +135,7 @@ ISOLATE_INIT_TESTS(IntNumber, 003, 004, 005, {
 })
 
 
+// XXX Why are we using internal isolates here?
 V8MONKEY_TEST(IntNumber006, "Number::Value returns 0 if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();

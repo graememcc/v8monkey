@@ -1,6 +1,3 @@
-// int32_t, int64_t, uint32_t
-#include <cinttypes>
-
 // std::isnan, std::isfinite
 #include <cmath>
 

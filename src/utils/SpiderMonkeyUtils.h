@@ -2,11 +2,13 @@
 #define V8MONKEY_SMUTILS_H
 
 
-// JSRuntime JSContext JSCompartment
-#include "jsapi.h"
-
 // EXPORT_FOR_TESTING_ONLY
 #include "test.h"
+
+
+class JSRuntime;
+class JSContext;
+class JSCompartment;
 
 
 namespace v8{

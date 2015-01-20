@@ -1,6 +1,3 @@
-// V8MonkeyObject
-#include "types/base_types.h"
-
 // ConvertFromAPI V8Boolean V8SpecialValue
 #include "types/value_types.h"
 

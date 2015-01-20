@@ -3,6 +3,7 @@
 
 
 #include <stddef.h>
+// XXX V8 includes its own integers. We should copy
 #include <stdint.h>
 
 // XXX Remove

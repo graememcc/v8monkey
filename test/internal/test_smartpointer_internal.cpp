@@ -1,7 +1,3 @@
-#include "v8.h"
-
-#include "jsapi.h"
-
 // The class under test
 #include "data_structures/smart_pointer.h"
 
@@ -13,6 +9,10 @@
 
 
 using namespace v8::V8Monkey;
+
+
+class JSRuntime;
+class JSTracer;
 
 
 V8MONKEY_TEST(SmartPtr001, "Construction bumps refcount") {

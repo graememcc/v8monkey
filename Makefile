@@ -420,7 +420,7 @@ $(call variants, src/runtime/persistent): $(v8monkeyheader) src/data_structures/
                                            src/runtime/isolate.h src/types/base_types.h src/v8monkey_common.h
 
 
-src/runtime/isolate.h: $(v8monkeyheader) $(JSAPIheader) src/types/base_types.h $(v8platformheader) src/test.h
+src/runtime/isolate.h: $(v8monkeyheader) $(JSAPIheader) $(v8platformheader) src/test.h
 
 
 src/test.h: $(v8monkeyheader) src/runtime/isolate.h
@@ -435,7 +435,7 @@ $(call variants, src/threads/locker): $(v8monkeyheader) src/runtime/isolate.h
 src/types/base_types.h: $(v8monkeyheader) $(JSAPIheader) src/test.h
 
 
-src/types/value_types.h: $(JSAPIheader) src/test.h src/types/base_types.h
+src/types/value_types.h: $(JSAPIheader) src/test.h
 
 
 $(call variants, src/types/number): $(v8monkeyheader) src/types/base_types.h src/types/value_types.h \
@@ -458,7 +458,7 @@ src/v8monkey_common.h: src/test.h
 $(call variants, src/utils/SpiderMonkeyUtils): $(v8platformheader) src/utils/SpiderMonkeyUtils.h
 
 
-src/utils/SpiderMonkeyUtils.h: $(JSAPIheader) src/test.h
+src/utils/SpiderMonkeyUtils.h: src/test.h
 
 
 #**********************************************************************************************************************#

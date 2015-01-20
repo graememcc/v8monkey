@@ -70,6 +70,7 @@ namespace {
    *
    */
 
+// XXX Fix warning about shouldAddRef being unused. Is that correct?
   v8::V8Monkey::V8MonkeyObject** AddHandle(v8::V8Monkey::InternalIsolate* i, v8::V8Monkey::V8MonkeyObject* obj,
                                            bool shouldAddRef) {
     using namespace v8::V8Monkey;

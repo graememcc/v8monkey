@@ -4,9 +4,6 @@
 // JSRuntime, JSTracer JSTraceDataOp
 #include "jsapi.h"
 
-// V8MonkeyObject
-#include "types/base_types.h"
-
 // Mutex
 #include "platform.h"
 
