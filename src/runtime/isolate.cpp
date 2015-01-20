@@ -1,13 +1,29 @@
-// V8
-#include "v8.h"
+// DestructList
+// XXX That needs a better name
+#include "data_structures/destruct_list.h"
 
+// Objectblock
+#include "data_structures/objectblock.h"
+
+// JSContext JS_GC JS_NewContext JS_NewRuntime JSRuntime JS::RuntimeOptionsRef JSTracer JSTraceDataOp
 #include "jsapi.h"
 
-#include "data_structures/destruct_list.h"
-#include "data_structures/objectblock.h"
-#include "threads/autolock.h"
+// Class definition
 #include "runtime/isolate.h"
+
+// AssignJSRuntimeAndJSContext, GetJS[Runtime|Context]ForThread, InitialiseSpiderMonkeyDataTLSKeys, RTCXData
+#include "utils/SpiderMonkeyUtils.h"
+
+// TLSKey, CreateTLSKey
 #include "platform.h"
+
+// TestUtils EXPORT_FOR_TESTING_ONLY
+#include "test.h"
+
+// Isolate definition
+#include "v8.h"
+
+// V8MonkeyCommon class definition, TriggerFatalError, ASSERT
 #include "v8monkey_common.h"
 
 
@@ -777,8 +793,10 @@ namespace v8 {
 
       ASSERT(!initialized, "V8MonkeyCommon::InitTLSKeys", "TLS keys already initialised");
       threadIDKey = Platform::CreateTLSKey();
-      isolateKey = Platform::CreateTLSKey();
-      rtcxKey = Platform::CreateTLSKey(tearDownCXAndRT);
+      currentIsolateKey = Platform::CreateTLSKey();
+      smDataKey = Platform::CreateTLSKey(tearDownCXAndRT);
+
+      initialized = true;
     }
 
 
@@ -855,25 +873,30 @@ namespace v8 {
     }
 
 
-    // Return the JSRuntime associated with this thread. May be null
-    JSRuntime* InternalIsolate::GetJSRuntimeForThread() {
-      void* raw = Platform::GetTLSData(rtcxKey);
-      if (raw == nullptr) {
-        return nullptr;
-      }
-      RTCXData* data = reinterpret_cast<RTCXData*>(raw);
-      return data->rt;
+
+    /*
+     * Allocates JSRuntimes and JSContexts to this thread
+     *
+     */
+    void SpiderMonkeyUtils::AssignJSRuntimeAndJSContext() {
+      ensureRuntimeAndContext();
     }
 
 
-    // Return the JSContext associated with this thread. May be null
-    JSContext* InternalIsolate::GetJSContextForThread() {
-      void* raw = Platform::GetTLSData(rtcxKey);
-      if (raw == nullptr) {
-        return nullptr;
+    /*
+     * Although part of SpiderMonkeyUtils, we must implement this here, as the lifetime of the objects in TLS storage
+     * is related to isolate teardown.
+     *
+     */
+
+    RTCXData SpiderMonkeyUtils::GetJSRuntimeAndJSContext() {
+      void* raw = Platform::GetTLSData(smDataKey);
+      if (raw) {
+        SpiderMonkeyData* data = reinterpret_cast<SpiderMonkeyData*>(raw);
+        return {data->rtcx.rt, data->rtcx.cx};
       }
-      RTCXData* data = reinterpret_cast<RTCXData*>(raw);
-      return data->cx;
+
+      return {nullptr, nullptr};
     }
 
 
@@ -928,7 +951,7 @@ namespace v8 {
 
 
     void InternalIsolate::ForceGC() {
-      JS_GC(GetJSRuntimeForThread());
+      JS_GC(SpiderMonkeyUtils::GetJSRuntimeForThread());
     }
 
 

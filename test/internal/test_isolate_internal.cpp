@@ -1,11 +1,25 @@
-#include "v8.h"
-
+// JSTraceDataOp
 #include "jsapi.h"
 
+// Class under test
 #include "runtime/isolate.h"
+
+// Thread
 #include "platform.h"
+
+// TestUtils
 #include "test.h"
+
+// DeletionObject DummyV8MonkeyObject
 #include "types/base_types.h"
+
+// GetJSRuntime/GetJSContext
+#include "utils/SpiderMonkeyUtils.h"
+
+// Isolate, V8
+#include "v8.h"
+
+// Unit-testing support
 #include "V8MonkeyTest.h"
 
 
@@ -27,6 +41,7 @@ using V8Monkey::TestUtils;
 
 // XXX V8 Dispose where necessary
 namespace {
+// XXX Use FromIsolate?
   InternalIsolate* CurrentAsInternal() {
     return InternalIsolate::FromIsolate(Isolate::GetCurrent());
   }
@@ -92,7 +107,7 @@ namespace {
   // Returns a bool denoting whether the runtime associated with a thread is initially null
   V8MONKEY_TEST_HELPER(RuntimeInitiallyNull) {
     TestUtils::AutoIsolateCleanup ac;
-    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() == nullptr;
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSRuntimeForThread() == nullptr;
     return reinterpret_cast<void*>(result);
   }
 
@@ -100,7 +115,7 @@ namespace {
   // Returns a bool denoting whether the context associated with a thread is initially null
   V8MONKEY_TEST_HELPER(ContextInitiallyNull) {
     TestUtils::AutoIsolateCleanup ac;
-    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() == nullptr;
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSContextForThread() == nullptr;
     return reinterpret_cast<void*>(result);
   }
 
@@ -110,7 +125,7 @@ namespace {
     TestUtils::AutoIsolateCleanup ac;
     Isolate* i = Isolate::New();
     i->Enter();
-    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() != nullptr;
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSRuntimeForThread() != nullptr;
     return reinterpret_cast<void*>(result);
   }
 
@@ -120,7 +135,7 @@ namespace {
     TestUtils::AutoIsolateCleanup ac;
     Isolate* i = Isolate::New();
     i->Enter();
-    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() != nullptr;
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSContextForThread() != nullptr;
     return reinterpret_cast<void*>(result);
   }
 
@@ -129,7 +144,7 @@ namespace {
   V8MONKEY_TEST_HELPER(RuntimeNonNullAfterImplicitEntry) {
     TestUtils::AutoIsolateCleanup ac;
     V8::Initialize();
-    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() != nullptr;
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSRuntimeForThread() != nullptr;
     return reinterpret_cast<void*>(result);
   }
 
@@ -138,7 +153,7 @@ namespace {
   V8MONKEY_TEST_HELPER(ContextNonNullAfterImplicitEntry) {
     TestUtils::AutoIsolateCleanup ac;
     V8::Initialize();
-    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() != nullptr;
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSContextForThread() != nullptr;
     return reinterpret_cast<void*>(result);
   }
 
@@ -148,8 +163,8 @@ namespace {
     TestUtils::AutoIsolateCleanup ac;
     Isolate* i = Isolate::New();
     i->Enter();
-    JSRuntime* prev = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread();
-    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() == prev;
+    JSRuntime* prev = v8::V8Monkey::SpiderMonkeyUtils::GetJSRuntimeForThread();
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSRuntimeForThread() == prev;
     return reinterpret_cast<void*>(result);
   }
 
@@ -159,8 +174,8 @@ namespace {
     TestUtils::AutoIsolateCleanup ac;
     Isolate* i = Isolate::New();
     i->Enter();
-    JSContext* prev = v8::V8Monkey::InternalIsolate::GetJSContextForThread();
-    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() == prev;
+    JSContext* prev = v8::V8Monkey::SpiderMonkeyUtils::GetJSContextForThread();
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSContextForThread() == prev;
     return reinterpret_cast<void*>(result);
   }
 
@@ -170,10 +185,10 @@ namespace {
     TestUtils::AutoIsolateCleanup ac;
     Isolate* i = Isolate::New();
     i->Enter();
-    JSRuntime* prev = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread();
+    JSRuntime* prev = v8::V8Monkey::SpiderMonkeyUtils::GetJSRuntimeForThread();
     i->Exit();
     i->Enter();
-    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() == prev;
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSRuntimeForThread() == prev;
     return reinterpret_cast<void*>(result);
   }
 
@@ -183,10 +198,10 @@ namespace {
     TestUtils::AutoIsolateCleanup ac;
     Isolate* i = Isolate::New();
     i->Enter();
-    JSContext* prev = v8::V8Monkey::InternalIsolate::GetJSContextForThread();
+    JSContext* prev = v8::V8Monkey::SpiderMonkeyUtils::GetJSContextForThread();
     i->Exit();
     i->Enter();
-    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() == prev;
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSContextForThread() == prev;
     return reinterpret_cast<void*>(result);
   }
 
@@ -196,11 +211,11 @@ namespace {
     TestUtils::AutoIsolateCleanup ac;
     Isolate* i = Isolate::New();
     i->Enter();
-    JSRuntime* prev = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread();
+    JSRuntime* prev = v8::V8Monkey::SpiderMonkeyUtils::GetJSRuntimeForThread();
     i->Exit();
     Isolate* j = Isolate::New();
     j->Enter();
-    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() == prev;
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSRuntimeForThread() == prev;
     i->Dispose();
 
     return reinterpret_cast<void*>(result);
@@ -212,11 +227,11 @@ namespace {
     TestUtils::AutoIsolateCleanup ac;
     Isolate* i = Isolate::New();
     i->Enter();
-    JSContext* prev = v8::V8Monkey::InternalIsolate::GetJSContextForThread();
+    JSContext* prev = v8::V8Monkey::SpiderMonkeyUtils::GetJSContextForThread();
     i->Exit();
     Isolate* j = Isolate::New();
     j->Enter();
-    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() == prev;
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSContextForThread() == prev;
     i->Dispose();
 
     return reinterpret_cast<void*>(result);
@@ -228,10 +243,10 @@ namespace {
     TestUtils::AutoIsolateCleanup ac;
     Isolate* i = Isolate::New();
     i->Enter();
-    JSRuntime* prev = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread();
+    JSRuntime* prev = v8::V8Monkey::SpiderMonkeyUtils::GetJSRuntimeForThread();
     Isolate* j = Isolate::New();
     j->Enter();
-    bool result = v8::V8Monkey::InternalIsolate::GetJSRuntimeForThread() == prev;
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSRuntimeForThread() == prev;
 
     return reinterpret_cast<void*>(result);
   }
@@ -242,10 +257,10 @@ namespace {
     TestUtils::AutoIsolateCleanup ac;
     Isolate* i = Isolate::New();
     i->Enter();
-    JSContext* prev = v8::V8Monkey::InternalIsolate::GetJSContextForThread();
+    JSContext* prev = v8::V8Monkey::SpiderMonkeyUtils::GetJSContextForThread();
     Isolate* j = Isolate::New();
     j->Enter();
-    bool result = v8::V8Monkey::InternalIsolate::GetJSContextForThread() == prev;
+    bool result = v8::V8Monkey::SpiderMonkeyUtils::GetJSContextForThread() == prev;
 
     return reinterpret_cast<void*>(result);
   }
@@ -260,7 +275,7 @@ namespace {
     {
       Locker l(i);
       i->Enter();
-      rt = InternalIsolate::GetJSRuntimeForThread();
+      rt = V8Monkey::SpiderMonkeyUtils::GetJSRuntimeForThread();
       i->Exit();
     }
     return rt;
@@ -276,7 +291,7 @@ namespace {
     {
       Locker l(i);
       i->Enter();
-      cx = InternalIsolate::GetJSContextForThread();
+      cx = V8Monkey::SpiderMonkeyUtils::GetJSContextForThread();
       i->Exit();
     }
     return cx;

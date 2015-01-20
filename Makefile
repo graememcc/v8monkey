@@ -207,8 +207,11 @@ threadobjects = $(addsuffix .o, $(threadstems))
 typestems = $(addprefix src/types/, number primitives value v8monkeyobject)
 typeobjects = $(addsuffix .o, $(typestems))
 
-allstems = $(enginestems) $(runtimestems) $(threadstems) $(typestems)
-allobjects = $(engineobjects) $(runtimeobjects) $(threadobjects) $(typeobjects)
+utilsstems = $(addprefix src/utils/, SpiderMonkeyUtils)
+utilsobjects = $(addsuffix .o, $(utilsstems))
+
+allstems = $(enginestems) $(runtimestems) $(threadstems) $(typestems) $(utilsstems)
+allobjects = $(engineobjects) $(runtimeobjects) $(threadobjects) $(typeobjects) $(utilsobjects)
 
 v8sources = $(addsuffix .cpp, $(allstems))
 v8objects = $(addprefix $(outdir)/, $(allobjects))
@@ -228,15 +231,16 @@ testharnesses = run_v8monkey_tests run_v8monkey_internal_tests
 testsuites = $(addprefix $(outdir)/test/, $(testharnesses))
 
 
-#**********************************************************************************************************************
-# Output directories
+#**********************************************************************************************************************#
+#                                                  Output directories                                                  #
+#**********************************************************************************************************************#
 
 
 # Here we list all the output directories that will be created in dist
 
 
 # Where are object files placed when we build them in their various guises?
-srctree = engine runtime threads types
+srctree = engine runtime threads types utils
 srcdirs = $(addprefix src/, $(srctree))
 objecthierarchy = $(addprefix $(outdir)/, $(srcdirs))
 internalobjecthierarchy = $(addprefix $(v8monkeyinternaldir)/, $(srcdirs))
@@ -276,10 +280,12 @@ $(addprefix $(outdir)/, $(engineobjects)): | $(outdir)/src/engine
 $(addprefix $(outdir)/, $(runtimeobjects)): | $(outdir)/src/runtime
 $(addprefix $(outdir)/, $(threadobjects)): | $(outdir)/src/threads
 $(addprefix $(outdir)/, $(typeobjects)): | $(outdir)/src/types
+$(addprefix $(outdir)/, $(utilsobjects)): | $(outdir)/src/utils
 $(addprefix $(v8monkeyinternaldir)/, $(engineobjects)): | $(v8monkeyinternaldir)/src/engine
 $(addprefix $(v8monkeyinternaldir)/, $(runtimeobjects)): | $(v8monkeyinternaldir)/src/runtime
 $(addprefix $(v8monkeyinternaldir)/, $(threadobjects)): | $(v8monkeyinternaldir)/src/threads
 $(addprefix $(v8monkeyinternaldir)/, $(typeobjects)): | $(v8monkeyinternaldir)/src/types
+$(addprefix $(v8monkeyinternaldir)/, $(utilsobjects)): | $(v8monkeyinternaldir)/src/utils
 
 
 #**********************************************************************************************************************#
@@ -393,15 +399,6 @@ $(v8monkeyheader): include/v8.h | $(v8monkeyheadersdir)
 #**********************************************************************************************************************#
 
 
-# *********************************************************************************************************************
-# Individual file dependencies below
-
-
-# Virtually all files will depend on the v8 header
-# XXX Remove this when landing the isolate SpiderMonkeyUtils changes
-$(v8objects) $(testlibobjects): $(v8monkeyheader)
-
-
 $(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h $(v8platformheader) src/test.h \
                                    src/v8monkey_common.h $(JSAPIheader)
 
@@ -413,6 +410,12 @@ $(call variants, src/runtime/handlescope): $(v8monkeyheader) src/data_structures
                                            src/runtime/isolate.h src/types/base_types.h src/v8monkey_common.h
 
 
+$(call variants, src/runtime/isolate): $(v8monkeyheader) $(JSAPIheader) src/data_structures/destruct_list.h \
+                                       src/data_structures/objectblock.h src/runtime/isolate.h \
+                                       src/utils/SpiderMonkeyUtils.h platform/platform.h src/test.h \
+                                       src/v8monkey_common.h
+
+
 $(call variants, src/runtime/persistent): $(v8monkeyheader) src/data_structures/objectblock.h \
                                            src/runtime/isolate.h src/types/base_types.h src/v8monkey_common.h
 
@@ -420,7 +423,7 @@ $(call variants, src/runtime/persistent): $(v8monkeyheader) src/data_structures/
 src/runtime/isolate.h: $(v8monkeyheader) $(JSAPIheader) src/types/base_types.h $(v8platformheader) src/test.h
 
 
-src/test.h: $(v8monkeyheader)
+src/test.h: $(v8monkeyheader) src/runtime/isolate.h
 
 
 src/threads/autolock.h: $(v8platformheader)
@@ -452,42 +455,10 @@ $(call variants, src/types/v8monkeyobject): $(v8monkeyheader) src/types/base_typ
 src/v8monkey_common.h: src/test.h
 
 
-# Several files depend on the JSAPI header
-jsapi_deps = $(call variants, src/runtime/isolate)
-$(jsapi_deps): $(JSAPIheader)
+$(call variants, src/utils/SpiderMonkeyUtils): $(v8platformheader) src/utils/SpiderMonkeyUtils.h
 
 
-# init depends on the RAII autolock class
-$(call variants, src/runtime/isolate): src/threads/autolock.h
-
-
-# Several files depend on isolate.h
-$(call variants, src/runtime/isolate): src/runtime/isolate.h
-
-
-$(call variants, src/runtime/isolate): $(v8monkeyheadersdir)/platform.h
-
-
-# Most files depend on the miscellaneous functions in the V8MonkeyCommon class
-# XXX Remove when dealing with isolate deps
-$(v8objects) $(testlibobjects): src/v8monkey_common.h
-
-
-# Various files need the base_type definitions
-$(call variants, src/runtime/isolate): src/types/base_types.h
-
-
-# HandleScopes and isolates use object blocks
-$(call variants, src/runtime/isolate): src/data_structures/objectblock.h
-
-
-# Several files compile differently (exposing different symbols) depending on whether they are being compiled for the
-# internal test lib or not
-visibility_changes = $(call variants, src/runtime/isolate)
-
-
-# We can now declare the visibility changers dependent on a test header file
-$(visibility_changes): src/test.h
+src/utils/SpiderMonkeyUtils.h: $(JSAPIheader) src/test.h
 
 
 #**********************************************************************************************************************#
@@ -504,7 +475,7 @@ testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))
 
 # The "internals" test harness is composed from the following
 internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock persistent \
-                    platform refcount smartpointer threadID value
+                    platform refcount smartpointer spidermonkeyutils threadID value
 internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
 internaltestobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(internaltestfiles)))
@@ -641,16 +612,6 @@ $(outdir)/test/run_v8monkey_internal_tests: test/harness/run_v8monkey_tests.cpp 
 #**********************************************************************************************************************#
 
 
-# Most internal test files require the TestUtils class
-# XXX Remove when isolate deps dealt with
-$(internaltestobjects): src/test.h
-
-
-# some files depend on the base_type definitions
-test_basetypes_deps = isolate
-$(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o, $(test_basetypes_deps))): src/types/base_types.h
-
-
 # Expands an internal test stem to its object file
 inttest = $(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o,  $(strip $(1))))
 
@@ -669,6 +630,10 @@ $(call inttest, handlescope): $(v8monkeyheader) src/data_structures/objectblock.
 
 
 $(call inttest, init): $(v8monkeyheader) $(v8platformheader) src/runtime/isolate.h src/test.h
+
+
+$(call inttest, isolate): $(v8monkeyheader) $(JSAPIheader) $(v8platformheader) src/runtime/isolate.h src/test.h \
+                          src/types/base_types.h src/utils/SpiderMonkeyUtils.h
 
 
 $(call inttest, locker): $(v8monkeyheader) src/runtime/isolate.h src/test.h
@@ -690,17 +655,13 @@ $(call inttest, refcount): $(v8monkeyheader) src/types/base_types.h
 $(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/base_types.h
 
 
+$(call inttest, spidermonkeyutils): src/utils/SpiderMonkeyUtils.h
+
+
 $(call inttest, threadID): $(v8monkeyheader) src/test.h
 
 
 $(call inttest, value): $(v8monkeyheader) src/runtime/isolate.h src/test.h src/v8monkey_common.h
-
-
-# Several internal files depend on the JSAPI header
-# XXX Does this really depend on JSAPI?
-test_jsapi_stems = isolate
-test_jsapi_deps = $(addsuffix _internal.o, $(addprefix $(internaltestbase)/test_, $(test_jsapi_stems)))
-$(test_jsapi_deps): $(JSAPIheader)
 
 
 #**********************************************************************************************************************#
