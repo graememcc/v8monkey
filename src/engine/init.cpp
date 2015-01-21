@@ -11,7 +11,7 @@
 #include "platform.h"
 
 // TestUtils interface
-#include "test.h"
+#include "utils/test.h"
 
 // V8MonkeyCommon interface
 #include "utils/V8MonkeyCommon.h"

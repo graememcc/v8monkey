@@ -8,7 +8,7 @@
 #include "types/base_types.h"
 
 // TestUtils
-#include "test.h"
+#include "utils/test.h"
 
 // Integer HandleScope Local
 #include "v8.h"

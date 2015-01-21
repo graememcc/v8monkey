@@ -11,7 +11,7 @@
 #include "types/base_types.h"
 
 // EXPORT_FOR_TESTING_ONLY
-#include "test.h"
+#include "utils/test.h"
 
 // FatalErrorCallback
 #include "v8.h"

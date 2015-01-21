@@ -9,7 +9,7 @@
 #include "runtime/isolate.h"
 
 // TestUtils
-#include "test.h"
+#include "utils/test.h"
 
 // Unit-testing support
 #include "V8MonkeyTest.h"

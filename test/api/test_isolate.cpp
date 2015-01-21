@@ -3,7 +3,7 @@
 #include "platform.h"
 
 // V8MONKEY_TEST_HELPER
-#include "test.h"
+#include "utils/test.h"
 
 // Isolate, V8::{Initialize, SetFatalErrorHandler}
 #include "v8.h"

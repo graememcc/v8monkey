@@ -2,7 +2,7 @@
 #define V8MONKEY_COMMON_H
 
 // EXPORT_FOR_TESTING_ONLY
-#include "test.h"
+#include "utils/test.h"
 
 
 #ifdef DEBUG

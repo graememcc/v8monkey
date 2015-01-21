@@ -8,7 +8,7 @@
 #include "platform.h"
 
 // TestUtils
-#include "test.h"
+#include "utils/test.h"
 
 // DeletionObject DummyV8MonkeyObject
 #include "types/base_types.h"

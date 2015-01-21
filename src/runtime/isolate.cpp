@@ -18,7 +18,7 @@
 #include "platform.h"
 
 // TestUtils EXPORT_FOR_TESTING_ONLY
-#include "test.h"
+#include "utils/test.h"
 
 // Isolate definition
 #include "v8.h"

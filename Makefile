@@ -400,7 +400,7 @@ $(v8monkeyheader): include/v8.h | $(v8monkeyheadersdir)
 #**********************************************************************************************************************#
 
 
-$(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h $(v8platformheader) src/test.h \
+$(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h $(v8platformheader) src/utils/test.h \
                                    src/utils/V8MonkeyCommon.h $(JSAPIheader)
 
 
@@ -413,7 +413,7 @@ $(call variants, src/runtime/handlescope): $(v8monkeyheader) src/data_structures
 
 $(call variants, src/runtime/isolate): $(v8monkeyheader) $(JSAPIheader) src/data_structures/destruct_list.h \
                                        src/data_structures/objectblock.h src/runtime/isolate.h \
-                                       src/utils/SpiderMonkeyUtils.h platform/platform.h src/test.h \
+                                       src/utils/SpiderMonkeyUtils.h platform/platform.h src/utils/test.h \
                                        src/utils/V8MonkeyCommon.h
 
 
@@ -421,10 +421,10 @@ $(call variants, src/runtime/persistent): $(v8monkeyheader) src/data_structures/
                                            src/runtime/isolate.h src/types/base_types.h src/utils/V8MonkeyCommon.h
 
 
-src/runtime/isolate.h: $(v8monkeyheader) $(JSAPIheader) $(v8platformheader) src/test.h src/types/base_types.h
+src/runtime/isolate.h: $(v8monkeyheader) $(JSAPIheader) $(v8platformheader) src/utils/test.h src/types/base_types.h
 
 
-src/test.h: $(v8monkeyheader) src/runtime/isolate.h
+src/utils/test.h: $(v8monkeyheader) src/runtime/isolate.h
 
 
 src/threads/autolock.h: $(v8platformheader)
@@ -433,10 +433,10 @@ src/threads/autolock.h: $(v8platformheader)
 $(call variants, src/threads/locker): $(v8monkeyheader) src/runtime/isolate.h
 
 
-src/types/base_types.h: $(v8monkeyheader) $(JSAPIheader) src/test.h
+src/types/base_types.h: $(v8monkeyheader) $(JSAPIheader) src/utils/test.h
 
 
-src/types/value_types.h: $(JSAPIheader) src/test.h
+src/types/value_types.h: $(JSAPIheader) src/utils/test.h
 
 
 $(call variants, src/types/number): $(v8monkeyheader) src/types/base_types.h src/types/value_types.h \
@@ -453,13 +453,13 @@ $(call variants, src/types/value): $(v8monkeyheader) src/types/value_types.h src
 $(call variants, src/types/v8monkeyobject): $(v8monkeyheader) src/types/base_types.h
 
 
-src/utils/V8MonkeyCommon.h: src/test.h
+src/utils/V8MonkeyCommon.h: src/utils/test.h
 
 
 $(call variants, src/utils/SpiderMonkeyUtils): $(v8platformheader) src/utils/SpiderMonkeyUtils.h
 
 
-src/utils/SpiderMonkeyUtils.h: src/test.h
+src/utils/SpiderMonkeyUtils.h: src/utils/test.h
 
 
 #**********************************************************************************************************************#
@@ -540,7 +540,7 @@ $(call apitest, handlescope): $(v8monkeyheader)
 $(call apitest, init): $(v8monkeyheader) $(v8platformheader) src/utils/V8MonkeyCommon.h
 
 
-$(call apitest, isolate): $(v8monkeyheader) $(v8platformheader) src/test.h
+$(call apitest, isolate): $(v8monkeyheader) $(v8platformheader) src/utils/test.h
 
 
 $(call apitest, locker): $(v8monkeyheader)  $(v8platformheader)
@@ -617,27 +617,27 @@ $(outdir)/test/run_v8monkey_internal_tests: test/harness/run_v8monkey_tests.cpp 
 inttest = $(addprefix $(internaltestbase)/test_, $(addsuffix _internal.o,  $(strip $(1))))
 
 
-$(call inttest, death): $(v8monkeyheader) src/test.h src/utils/V8MonkeyCommon.h
+$(call inttest, death): $(v8monkeyheader) src/utils/test.h src/utils/V8MonkeyCommon.h
 
 
 $(call inttest, destructlist): src/data_structures/destruct_list.h src/types/base_types.h
 
 
-$(call inttest, fatalerror): $(v8monkeyheader) src/runtime/isolate.h src/test.h src/utils/V8MonkeyCommon.h
+$(call inttest, fatalerror): $(v8monkeyheader) src/runtime/isolate.h src/utils/test.h src/utils/V8MonkeyCommon.h
 
 
 $(call inttest, handlescope): $(v8monkeyheader) src/data_structures/objectblock.h src/runtime/isolate.h \
-                              src/test.h src/utils/V8MonkeyCommon.h
+                              src/utils/test.h src/utils/V8MonkeyCommon.h
 
 
-$(call inttest, init): $(v8monkeyheader) $(v8platformheader) src/runtime/isolate.h src/test.h
+$(call inttest, init): $(v8monkeyheader) $(v8platformheader) src/runtime/isolate.h src/utils/test.h
 
 
-$(call inttest, isolate): $(v8monkeyheader) $(JSAPIheader) $(v8platformheader) src/runtime/isolate.h src/test.h \
+$(call inttest, isolate): $(v8monkeyheader) $(JSAPIheader) $(v8platformheader) src/runtime/isolate.h src/utils/test.h \
                           src/types/base_types.h src/utils/SpiderMonkeyUtils.h
 
 
-$(call inttest, locker): $(v8monkeyheader) src/runtime/isolate.h src/test.h
+$(call inttest, locker): $(v8monkeyheader) src/runtime/isolate.h src/utils/test.h
 
 
 $(call inttest, objectblock): src/data_structures/objectblock.h
@@ -647,7 +647,7 @@ $(call inttest, platform): $(v8platformheader)
 
 
 $(call inttest, persistent): $(v8monkeyheader) src/data_structures/objectblock.h src/runtime/isolate.h \
-							 src/types/base_types.h src/test.h src/utils/V8MonkeyCommon.h
+							 src/types/base_types.h src/utils/test.h src/utils/V8MonkeyCommon.h
 
 
 $(call inttest, refcount): $(v8monkeyheader) src/types/base_types.h
@@ -659,10 +659,10 @@ $(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/bas
 $(call inttest, spidermonkeyutils): src/utils/SpiderMonkeyUtils.h
 
 
-$(call inttest, threadID): $(v8monkeyheader) src/runtime/isolate.h src/test.h
+$(call inttest, threadID): $(v8monkeyheader) src/runtime/isolate.h src/utils/test.h
 
 
-$(call inttest, value): $(v8monkeyheader) src/runtime/isolate.h src/test.h src/utils/V8MonkeyCommon.h
+$(call inttest, value): $(v8monkeyheader) src/runtime/isolate.h src/utils/test.h src/utils/V8MonkeyCommon.h
 
 
 #**********************************************************************************************************************#

@@ -2,7 +2,7 @@
 #include "runtime/isolate.h"
 
 // TestUtils
-#include "test.h"
+#include "utils/test.h"
 
 // Class definition, Isolate, V8
 #include "v8.h"

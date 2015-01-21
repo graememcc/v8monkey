@@ -2,7 +2,7 @@
 #include "runtime/isolate.h"
 
 // TestUtils
-#include "test.h"
+#include "utils/test.h"
 
 // TriggerFatalError
 #include "utils/V8MonkeyCommon.h"

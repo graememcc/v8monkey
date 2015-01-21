@@ -2,7 +2,7 @@
 #include "runtime/isolate.h"
 
 // ISOLATE_INIT_TESTS
-#include "test.h"
+#include "utils/test.h"
 
 // GetCurrentThreadID
 #include "v8.h"

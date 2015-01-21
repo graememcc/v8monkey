@@ -3,7 +3,7 @@
 
 
 // EXPORT_FOR_TESTING_ONLY
-#include "test.h"
+#include "utils/test.h"
 
 
 class JSRuntime;

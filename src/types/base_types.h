@@ -8,7 +8,7 @@
 #include "jsapi.h"
 
 // EXPORT_FOR_TESTING_ONLY
-#include "test.h"
+#include "utils/test.h"
 
 // Value
 #include "v8.h"
