@@ -380,7 +380,7 @@ namespace {
 
 V8MONKEY_TEST(IntIsolate001, "Default InternalIsolate is non-null") {
   TestUtils::AutoTestCleanup ac;
-  V8MONKEY_CHECK(!InternalIsolate::IsDefaultIsolate(NULL), "IsDefaultIsolate returns false for NULL");
+  V8MONKEY_CHECK(!InternalIsolate::IsDefaultIsolate(nullptr), "IsDefaultIsolate returns false for nullptr");
 }
 
 

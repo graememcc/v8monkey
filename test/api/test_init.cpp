@@ -68,10 +68,10 @@ V8MONKEY_TEST(Init004, "After V8 initialization, current isolate unchanged when 
  *
 namespace {
   void* threadInitTest(void* arg) {
-    V8MONKEY_CHECK(Isolate::GetCurrent() == NULL, "Sanity check");
+    V8MONKEY_CHECK(Isolate::GetCurrent() == nullptr, "Sanity check");
     V8::Initialize();
 
-    bool result = Isolate::GetCurrent() != NULL;
+    bool result = Isolate::GetCurrent() != nullptr;
 
     Isolate::GetCurrent()->Exit();
     Isolate::GetCurrent()->Dispose();
@@ -84,7 +84,7 @@ namespace {
 
 V8MONKEY_TEST(Init005, "After V8 Initialization, thread outside any isolate enters default") {
   // The main thread will be associated with the default isolate due to static initializers. A freshly minted thread
-  // will have a NULL current isolate initially.
+  // will have its current isolate equal to nullptr initially.
   V8Platform::Thread t(threadInitTest);
   t.Run();
   V8MONKEY_CHECK(t.Join(), "Default isolate entered");

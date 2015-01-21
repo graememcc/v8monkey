@@ -27,7 +27,7 @@ namespace v8 {
   bool Locker::IsLocked(Isolate* isolate) {
     V8Monkey::InternalIsolate* i;
 
-    if (isolate != NULL) {
+    if (isolate != nullptr) {
       i = reinterpret_cast<V8Monkey::InternalIsolate*>(isolate);
     } else {
       i = V8Monkey::InternalIsolate::GetDefaultIsolate();
@@ -41,7 +41,7 @@ namespace v8 {
 
     V8Monkey::InternalIsolate* i;
 
-    if (iso == NULL) {
+    if (iso == nullptr) {
       i = V8Monkey::InternalIsolate::GetDefaultIsolate();
       isolate = reinterpret_cast<Isolate*>(i);
     } else {
@@ -81,7 +81,7 @@ namespace v8 {
   Unlocker::Unlocker(Isolate* iso) {
     V8Monkey::InternalIsolate* i;
 
-    if (iso == NULL) {
+    if (iso == nullptr) {
       i = V8Monkey::InternalIsolate::GetDefaultIsolate();
       isolate = reinterpret_cast<Isolate*>(i);
     } else {

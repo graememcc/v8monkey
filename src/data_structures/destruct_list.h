@@ -8,7 +8,7 @@
  * the given type. The list will not delete the objects pointed to itself.
  *
  * Pointers can be added multiple times, but will only be stored once. The deletion function is thus guaranteed to only
- * be called once per pointer. Note that NULL pointers are accepted.
+ * be called once per pointer. Note that nullptr pointers are accepted.
  *
  * Constructing without a deletion function will result in a standard linked list.
  *

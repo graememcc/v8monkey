@@ -44,7 +44,7 @@ namespace {
     Isolate* defaultIsolate = reinterpret_cast<Isolate*>(iso);
     Isolate* i = Isolate::GetCurrent();
     // Remember: i will be null for the thread case!
-    bool sanityCheck = i == NULL || i == defaultIsolate;
+    bool sanityCheck = i == nullptr || i == defaultIsolate;
 
     V8::Initialize();
     bool result = InternalIsolate::IsEntered(AsInternal(defaultIsolate));

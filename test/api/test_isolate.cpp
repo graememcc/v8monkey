@@ -251,7 +251,7 @@ namespace {
 
 V8MONKEY_TEST(Isolate001, "Main thread reports Isolate::GetCurrent non-null even when API not used") {
   Isolate* mainThreadIsolate = static_cast<Isolate*>(ReturnCurrentIsolate());
-  V8MONKEY_CHECK(mainThreadIsolate != NULL, "Main thread Isolate::GetCurrent was non-null");
+  V8MONKEY_CHECK(mainThreadIsolate != nullptr, "Main thread Isolate::GetCurrent was non-null");
 }
 
 
@@ -332,7 +332,7 @@ V8MONKEY_TEST(Isolate011, "Embedder data is isolate specific") {
   Isolate* i = Isolate::GetCurrent();
   i->SetData(i);
   Isolate* j = Isolate::New();
-  bool result = i->GetData() == i && j->GetData() == NULL;
+  bool result = i->GetData() == i && j->GetData() == nullptr;
   V8MONKEY_CHECK(result, "Data was correct");
   j->Dispose();
 }
@@ -410,7 +410,7 @@ V8MONKEY_TEST(Isolate002, "Non-main thread reports Isolate::GetCurrent null when
   V8Platform::Thread child(ReturnCurrentIsolate);
   child.Run();
   Isolate* threadIsolate = static_cast<Isolate*>(child.Join());
-  V8MONKEY_CHECK(threadIsolate == NULL, "Thread Isolate::GetCurrent was null");
+  V8MONKEY_CHECK(threadIsolate == nullptr, "Thread Isolate::GetCurrent was null");
 }
 
 

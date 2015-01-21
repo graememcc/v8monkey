@@ -9,7 +9,7 @@ namespace V8Monkey {
 template <class T>
 class SmartPtr {
   public:
-    SmartPtr() : ptr(NULL) {}
+    SmartPtr() : ptr(nullptr) {}
 
     SmartPtr(T* p) : ptr(p) {
       if (ptr) {

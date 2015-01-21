@@ -180,10 +180,10 @@ V8MONKEY_TEST(SmartPtr018, "Copying from an empty smart pointer works") {
 
 
 V8MONKEY_TEST(SmartPtr019, "Constructing with null works") {
-  SmartPtr<DummyV8MonkeyObject> sp(NULL);
+  SmartPtr<DummyV8MonkeyObject> sp(nullptr);
 
   // If we got here, we did't dereference sp2's null pointer
-  V8MONKEY_CHECK(true, "Initializing with NULL works");
+  V8MONKEY_CHECK(true, "Initializing with nullptr works");
 }
 
 

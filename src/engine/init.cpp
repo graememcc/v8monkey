@@ -65,7 +65,7 @@ namespace {
     using namespace v8::V8Monkey;
 
     InternalIsolate* i = InternalIsolate::GetCurrent();
-    if (i == NULL) {
+    if (i == nullptr) {
       i = InternalIsolate::GetDefaultIsolate();
     }
 
@@ -150,7 +150,7 @@ namespace v8 {
     //     For now, this is a no-op: our static object above will really shutdown SpiderMonkey
 
     InternalIsolate* i = InternalIsolate::GetCurrent();
-    if (i == NULL || i != InternalIsolate::GetDefaultIsolate()) {
+    if (i == nullptr || i != InternalIsolate::GetDefaultIsolate()) {
       V8MonkeyCommon::TriggerFatalError("v8::V8::Dispose", "Must dispose V8 from main thread outside any isolate");
       return false;
     }

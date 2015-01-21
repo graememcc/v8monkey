@@ -72,12 +72,12 @@ class V8MonkeyTest {
  * Many tests define an auxillary function which performs the bulk of the test's work and returns a single value
  * cast to void*, allowing the function to be both called from the main thread and supplied as the start procedure
  * when creating a child thread. This macro can be used to define such procedures, giving them the correct signature,
- * and setting up default arguments, so that one doesn't need to explicitly supply a NULL value.
+ * and setting up default arguments, so that one doesn't need to explicitly supply a nullptr value.
  *
  */
 
 #ifndef V8MONKEY_TEST_HELPER
-#define V8MONKEY_TEST_HELPER(name) void* name(void* arg = NULL); \
+#define V8MONKEY_TEST_HELPER(name) void* name(void* arg = nullptr); \
 void* name(void* arg)
 #endif
 
