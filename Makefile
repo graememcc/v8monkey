@@ -185,8 +185,9 @@ $(outdir)/%.o: %.cpp
 include/%.h platform/%.h src/%.h:
 	touch $@
 
+
 # Certain files need to be aware of the SpiderMonkey version
-$(call variants, src/engine/version) $(call apitest, version): CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
+$(call variants, src/engine/version) $(outdir)/test/api/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
 
 
 #**********************************************************************************************************************#
