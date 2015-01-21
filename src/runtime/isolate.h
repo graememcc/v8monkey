@@ -7,6 +7,9 @@
 // Mutex
 #include "platform.h"
 
+// V8MonkeyObject
+#include "types/base_types.h"
+
 // EXPORT_FOR_TESTING_ONLY
 #include "test.h"
 
@@ -16,7 +19,6 @@
 
 namespace v8 {
   namespace V8Monkey {
-    class V8MonkeyObject;
 
 
     /*
