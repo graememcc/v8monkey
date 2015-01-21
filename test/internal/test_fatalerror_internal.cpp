@@ -5,7 +5,7 @@
 #include "test.h"
 
 // TriggerFatalError
-#include "v8monkey_common.h"
+#include "utils/V8MonkeyCommon.h"
 
 // Isolate SetFatalErrorHandler
 #include "v8.h"

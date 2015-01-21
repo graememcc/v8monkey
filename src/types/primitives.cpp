@@ -5,7 +5,7 @@
 #include "v8.h"
 
 // InitPrimitiveSingletons TearDownPrimitiveSingletons
-#include "v8monkey_common.h"
+#include "utils/V8MonkeyCommon.h"
 
 
 /*

@@ -14,7 +14,7 @@
 #include "test.h"
 
 // V8MonkeyCommon interface
-#include "v8monkey_common.h"
+#include "utils/V8MonkeyCommon.h"
 
 // JS_Init, JS_Shutdown
 #include "jsapi.h"

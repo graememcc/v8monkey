@@ -24,7 +24,7 @@
 #include "v8.h"
 
 // V8MonkeyCommon class definition, TriggerFatalError, ASSERT
-#include "v8monkey_common.h"
+#include "utils/V8MonkeyCommon.h"
 
 
 /*

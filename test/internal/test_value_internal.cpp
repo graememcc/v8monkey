@@ -11,7 +11,7 @@
 #include "v8.h"
 
 // TriggerFatalError
-#include "v8monkey_common.h"
+#include "utils/V8MonkeyCommon.h"
 
 
 // XXX We are using InternalIsolates and I can't see any reason why. Switch to normal ones, and remove the isolate.h dependency
