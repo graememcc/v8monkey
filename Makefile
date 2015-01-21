@@ -659,7 +659,7 @@ $(call inttest, smartpointer): src/data_structures/smart_pointer.h src/types/bas
 $(call inttest, spidermonkeyutils): src/utils/SpiderMonkeyUtils.h
 
 
-$(call inttest, threadID): $(v8monkeyheader) src/test.h
+$(call inttest, threadID): $(v8monkeyheader) src/runtime/isolate.h src/test.h
 
 
 $(call inttest, value): $(v8monkeyheader) src/runtime/isolate.h src/test.h src/utils/V8MonkeyCommon.h

@@ -20,7 +20,6 @@
  */
 
 #ifdef V8MONKEY_INTERNAL_TEST
-#include "runtime/isolate.h"
 
 namespace v8 {
   namespace V8Monkey {
@@ -82,7 +81,7 @@ namespace v8 {
 
 /*
  * Macro to exit all extant isolates for this thread and dispose V8. This depends on isolate.h, but I leave it up to
- * each file to include it (to ensure I update the dependencies in the Makefile)
+ * each file to include it (to avoid circular dependencies)
  *
  */
 
