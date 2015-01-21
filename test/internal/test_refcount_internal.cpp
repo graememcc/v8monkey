@@ -14,7 +14,7 @@ namespace {
   int cb1CallCount = 0;
 
 
-  void nopCallback(v8::Persistent<v8::Value> object, void* parameters) {
+  void nopCallback(v8::Persistent<v8::Value>, void* parameters) {
     cb1CallCount++;
     cb1Params = parameters;
     cb1Called = true;
@@ -28,12 +28,12 @@ namespace {
   }
 
 
-  void MakeStrongAgainCallback(v8::Persistent<v8::Value> object, void* parameters) {
+  void MakeStrongAgainCallback(v8::Persistent<v8::Value> object, void*) {
     object.ClearWeak();
   }
 
 
-  void disposeCallback(v8::Persistent<v8::Value> object, void* parameters) {
+  void disposeCallback(v8::Persistent<v8::Value> object, void*) {
     object.Dispose();
   }
 }

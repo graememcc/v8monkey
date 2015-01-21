@@ -149,7 +149,7 @@ V8MONKEY_TEST(SmartPtr016, "Indirection operator works") {
       SP016() {}
       ~SP016() {}
       int GetVal() { return 42; }
-      void Trace(JSRuntime* runtime, JSTracer* tracer) {}
+      void Trace(JSRuntime*, JSTracer*) {}
   };
   SP016* refCounted = new SP016;
 

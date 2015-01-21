@@ -1,4 +1,4 @@
-// InternalIsolate. Remove once we deal with the XXX comment below (which it turns out I've commented about twice!)
+// Required for ISOLATE_INIT_TESTS
 #include "runtime/isolate.h"
 
 // ISOLATE_INIT_TESTS TestUtils
@@ -14,21 +14,18 @@
 #include "utils/V8MonkeyCommon.h"
 
 
-// XXX We are using InternalIsolates and I can't see any reason why. Switch to normal ones, and remove the isolate.h dependency
-
-
 using namespace v8;
 using namespace v8::V8Monkey;
 
 
 namespace {
   // Suppress error abortions
-  void dummyFatalErrorHandler(const char* location, const char* message) {return;}
+  void dummyFatalErrorHandler(const char*, const char*) {return;}
 
 
   bool errorCallbackCalled = false;
 
-  void errorCallback(const char* location, const char* message) {
+  void errorCallback(const char*, const char*) {
     errorCallbackCalled = true;
   }
 }
@@ -130,16 +127,15 @@ V8MONKEY_TEST(IntNumber002, "Number::IsNumber triggers error if V8 dead") {
 ISOLATE_INIT_TESTS(IntNumber, 003, 004, 005, {
   {
     HandleScope h;
-    Local<Value> n = Number::New(123.45);
+    // Deliberate lack of assignment
+    Number::New(123.45);
   }
 })
 
 
-// XXX Why are we using internal isolates here?
 V8MONKEY_TEST(IntNumber006, "Number::Value returns 0 if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;
@@ -157,7 +153,6 @@ V8MONKEY_TEST(IntNumber006, "Number::Value returns 0 if V8 dead") {
 V8MONKEY_TEST(IntNumber007, "Number::Value triggers error if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;
@@ -276,7 +271,8 @@ V8MONKEY_TEST(IntInteger004, "Integer::IsUint32 returns false if V8 dead") {
 ISOLATE_INIT_TESTS(IntInteger, 005, 006, 007, {
   {
     HandleScope h;
-    Local<Value> n = Integer::New(123);
+    // Lack of assignment is deliberate here
+    Integer::New(123);
   }
 })
 
@@ -284,7 +280,8 @@ ISOLATE_INIT_TESTS(IntInteger, 005, 006, 007, {
 ISOLATE_INIT_TESTS(IntInteger, 008, 009, 010, {
   {
     HandleScope h;
-    Local<Value> n = Integer::NewFromUnsigned(123);
+    // Lack of assignment is deliberate here
+    Integer::NewFromUnsigned(123);
   }
 })
 
@@ -292,7 +289,6 @@ ISOLATE_INIT_TESTS(IntInteger, 008, 009, 010, {
 V8MONKEY_TEST(IntInteger011, "Integer::Value returns 0 if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;
@@ -310,7 +306,6 @@ V8MONKEY_TEST(IntInteger011, "Integer::Value returns 0 if V8 dead") {
 V8MONKEY_TEST(IntInteger012, "Integer::Value triggers error if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;
@@ -329,7 +324,6 @@ V8MONKEY_TEST(IntInteger012, "Integer::Value triggers error if V8 dead") {
 V8MONKEY_TEST(IntInteger013, "Int32::Value returns 0 if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;
@@ -347,7 +341,6 @@ V8MONKEY_TEST(IntInteger013, "Int32::Value returns 0 if V8 dead") {
 V8MONKEY_TEST(IntInteger014, "Int32::Value triggers error if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;
@@ -366,7 +359,6 @@ V8MONKEY_TEST(IntInteger014, "Int32::Value triggers error if V8 dead") {
 V8MONKEY_TEST(IntInteger015, "Uint32::Value returns 0 if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;
@@ -384,7 +376,6 @@ V8MONKEY_TEST(IntInteger015, "Uint32::Value returns 0 if V8 dead") {
 V8MONKEY_TEST(IntInteger016, "Uint32::Value triggers error if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;

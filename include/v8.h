@@ -577,7 +577,7 @@ namespace v8 {
 
       ~Locker();
 
-      static void StartPreemption(int every_n_ms) {
+      static void StartPreemption(int /*every_n_ms*/) {
         // TODO: Not implemented
       }
 
@@ -821,25 +821,25 @@ namespace v8 {
   }
 
 
-  Handle<Boolean> True(v8::Isolate* isolate) {
+  Handle<Boolean> True(v8::Isolate*) {
     // I believe we can ignore the isolate
     return True();
   }
 
 
-  Handle<Boolean> False(v8::Isolate* isolate) {
+  Handle<Boolean> False(v8::Isolate*) {
     // I believe we can ignore the isolate
     return False();
   }
 
 
-  Handle<Primitive> Undefined(v8::Isolate* isolate) {
+  Handle<Primitive> Undefined(v8::Isolate*) {
     // I believe we can ignore the isolate
     return Undefined();
   }
 
 
-  Handle<Primitive> Null(v8::Isolate* isolate) {
+  Handle<Primitive> Null(v8::Isolate*) {
     // I believe we can ignore the isolate
     return Null();
   }

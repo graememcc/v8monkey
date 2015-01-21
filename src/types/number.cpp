@@ -74,12 +74,12 @@ namespace v8 {
    * TODO: Should we follow V8 and assert when the isolate != current isolate?
    */
 
-  Local<Integer> Integer::New(int32_t value, Isolate* i) {
+  Local<Integer> Integer::New(int32_t value, Isolate*) {
     return Integer::New(value);
   }
 
 
-  Local<Integer> Integer::NewFromUnsigned(uint32_t value, Isolate* i) {
+  Local<Integer> Integer::NewFromUnsigned(uint32_t value, Isolate*) {
     return Integer::NewFromUnsigned(value);
   }
 

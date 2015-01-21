@@ -13,7 +13,7 @@
 
 namespace {
   // Suppress error arbortions
-  void dummyFatalErrorHandler(const char* location, const char* message) {return;}
+  void dummyFatalErrorHandler(const char*, const char*) {return;}
 }
 
 

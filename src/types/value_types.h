@@ -120,7 +120,7 @@ namespace v8 {
         SMVALUE_IMPL(IsNumber, isNumber)
 
         void Trace(JSRuntime* runtime, JSTracer* tracer) {
-          printf("Value being traced %p\n", this);
+          printf("Value being traced %p\n", static_cast<void*>(this));
           if (runtime != rt || !ShouldTrace()) {
           printf("No tracing required\n");
             return;

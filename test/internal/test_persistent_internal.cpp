@@ -33,26 +33,26 @@ namespace {
   void* weakCallbackParams = nullptr;
 
   // A weak callback that will set weakCallbackCalled when called
-  void weakCallbackChecker(Persistent<Value> p, void* parameter) {
+  void weakCallbackChecker(Persistent<Value>, void* parameter) {
     weakCallbackCalled = true;
     weakCallbackParams = parameter;
   }
 
 
   // A weak callback that strengthens the persistent
-  void strengthenCallback(Persistent<Value> p, void* parameter) {
+  void strengthenCallback(Persistent<Value> p, void*) {
     p.ClearWeak();
   }
 
 
   // A weak callback that disposes the persistent
-  void disposeCallback(Persistent<Value> p, void* parameter) {
+  void disposeCallback(Persistent<Value> p, void*) {
     p.Dispose();
   }
 
 
   // A weak callback that expects its parameter to be a Persistent<Value> pointer, which is then deleted
-  void deleteCallback(Persistent<Value> p, void* parameter) {
+  void deleteCallback(Persistent<Value>, void* parameter) {
     Persistent<Value>* p2 = reinterpret_cast<Persistent<Value>*>(parameter);
     delete p2;
   }
@@ -61,7 +61,7 @@ namespace {
   bool isNearDeath = false;
 
   // A weak callback that notes the result of calling IsNearDeath on the supplied persistent
-  void NearDeathChecker(Persistent<Value> p, void* parameter) {
+  void NearDeathChecker(Persistent<Value> p, void*) {
     isNearDeath = p.IsNearDeath();
   }
 
@@ -76,7 +76,7 @@ namespace {
 
 
   // A weak callback that clears weakness, and checks the result of IsNearDeath
-  void ClearWeakNearDeathChecker(Persistent<Value> p, void* parameter) {
+  void ClearWeakNearDeathChecker(Persistent<Value> p, void*) {
     p.ClearWeak();
     isNearDeath = p.IsNearDeath();
   }
@@ -85,20 +85,20 @@ namespace {
   bool isWeak = false;
 
   // A weak callback that notes the result of calling IsWeak on the supplied persistent
-  void IsWeakChecker(Persistent<Value> p, void* parameter) {
+  void IsWeakChecker(Persistent<Value> p, void*) {
     isWeak = p.IsWeak();
   }
 
 
   // A weak callback that clears weakness, and checks the result of IsWeak
-  void ClearWeakIsWeakChecker(Persistent<Value> p, void* parameter) {
+  void ClearWeakIsWeakChecker(Persistent<Value> p, void*) {
     p.ClearWeak();
     isWeak = p.IsWeak();
   }
 
 
   // A weak callback that clears weakness, reweakens, and checks the result of IsNearDeath
-  void IsNearDeathClearAndReweakenChecker(Persistent<Value> p, void* parameter) {
+  void IsNearDeathClearAndReweakenChecker(Persistent<Value> p, void*) {
     p.ClearWeak();
     p.MakeWeak(nullptr, IsNearDeathClearAndReweakenChecker);
     isNearDeath = p.IsNearDeath();
@@ -106,7 +106,7 @@ namespace {
 
 
   // A weak callback that clears weakness, reweakens, and checks the result of IsWeak
-  void IsWeakClearAndReweakenChecker(Persistent<Value> p, void* parameter) {
+  void IsWeakClearAndReweakenChecker(Persistent<Value> p, void*) {
     p.ClearWeak();
     p.MakeWeak(nullptr, IsWeakClearAndReweakenChecker);
     isWeak = p.IsWeak();
@@ -114,12 +114,12 @@ namespace {
 
 
   // Suppress error abortions
-  void dummyFatalErrorHandler(const char* location, const char* message) {return;}
+  void dummyFatalErrorHandler(const char*, const char*) {return;}
 
 
   bool errorCallbackCalled = false;
 
-  void errorCallback(const char* location, const char* message) {
+  void errorCallback(const char*, const char*) {
     errorCallbackCalled = true;
   }
 }
@@ -171,7 +171,7 @@ V8MONKEY_TEST(IntPersistent003, "InternalIsolate Persistent HandleData changes a
   {
     HandleScope h;
     Local<Integer> l = Integer::New(123);
-    Persistent<Integer> p = Persistent<Integer>::New(l);
+    Persistent<Integer>::New(l);
     HandleData hd = i->GetPersistentHandleData();
 
     V8MONKEY_CHECK(hd.next != nullptr, "HandleData next changed after another persistent created");
@@ -180,7 +180,7 @@ V8MONKEY_TEST(IntPersistent003, "InternalIsolate Persistent HandleData changes a
 }
 
 
-V8MONKEY_TEST(IntPersistent004, "InternalIsolate Persistent HandleData changes after persistent creation (usual case)") {
+V8MONKEY_TEST(IntPersistent004, "InternalIsolate Persistent HandleData changes after persistent creation (typical case)") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
   InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
@@ -188,10 +188,10 @@ V8MONKEY_TEST(IntPersistent004, "InternalIsolate Persistent HandleData changes a
   {
     HandleScope h;
     Local<Integer> l = Integer::New(123);
-    Persistent<Integer> p = Persistent<Integer>::New(l);
+    Persistent<Integer>::New(l);
     HandleData hd = i->GetPersistentHandleData();
     V8MonkeyObject** prevNext = hd.next;
-    Persistent<Integer> p2 = Persistent<Integer>::New(l);
+    Persistent<Integer>::New(l);
     hd = i->GetPersistentHandleData();
 
     V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after another persistent created");
@@ -212,7 +212,7 @@ V8MONKEY_TEST(IntPersistent005, "InternalIsolate Persistent HandleData changes a
     V8MonkeyObject** prevLimit = hd.limit;
 
     for (int j = 0; j < blockSize + 2; j++) {
-      Persistent<Integer> p = Persistent<Integer>::New(l);
+      Persistent<Integer>::New(l);
       hd = i->GetPersistentHandleData();
 
       V8MONKEY_CHECK(hd.next != prevNext, "HandleData next changed after another handle created");
@@ -295,7 +295,7 @@ V8MONKEY_TEST(IntPersistent009, "Persistent refcount changes after persistent cr
     Local<Integer> l = Integer::New(123);
     int refCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
 
-    Persistent<Integer> p = Persistent<Integer>::New(l);
+    Persistent<Integer>::New(l);
     int newRefCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
 
     V8MONKEY_CHECK(newRefCount == refCount + 1, "Refcount bumped");
@@ -333,7 +333,7 @@ V8MONKEY_TEST(IntPersistent011, "Persistent refcount unchanged after persistent 
     int refCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
 
     {
-      Persistent<Integer> p = Persistent<Integer>::New(l);
+      Persistent<Integer>::New(l);
     }
 
     int newRefCount = (*reinterpret_cast<V8MonkeyObject**>(*l))->RefCount();
@@ -448,7 +448,7 @@ V8MONKEY_TEST(IntPersistent018, "Possible to create from empty local") {
     HandleScope h;
 
     Local<Integer> l;
-    Persistent<Integer> p = Persistent<Integer>::New(l);
+    Persistent<Integer>::New(l);
     HandleData hd = i->GetPersistentHandleData();
 
     V8MONKEY_CHECK(hd.next == nullptr, "Empty persistent created");
@@ -745,7 +745,7 @@ V8MONKEY_TEST(IntPersistent041, "Items contained in persistents traced correctly
     V8MonkeyObject** slot = HandleScope::CreateHandle(t);
     Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
     Local<Value> l(dummySlotAsValue);
-    Persistent<Value> p = Persistent<Value>::New(l);
+    Persistent<Value>::New(l);
     InternalIsolate::ForceGC();
   }
 
@@ -772,7 +772,7 @@ V8MONKEY_TEST(IntPersistent042, "Tracing copes with zeroed slot in handle data")
     V8MonkeyObject** slot = HandleScope::CreateHandle(t);
     Value* dummySlotAsValue = reinterpret_cast<Value*>(slot);
     Local<Value> l2(dummySlotAsValue);
-    Persistent<Value> p = Persistent<Value>::New(l2);
+    Persistent<Value>::New(l2);
     InternalIsolate::ForceGC();
   }
 
@@ -1273,7 +1273,6 @@ V8MONKEY_TEST(IntPersistent076, "Persistent is same size as pointer") {
 V8MONKEY_TEST(IntPersistent077, "Persistent::New returns empty if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;
@@ -1293,7 +1292,6 @@ V8MONKEY_TEST(IntPersistent077, "Persistent::New returns empty if V8 dead") {
 V8MONKEY_TEST(IntPersistent078, "Persistent::New triggers error if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;
@@ -1302,7 +1300,7 @@ V8MONKEY_TEST(IntPersistent078, "Persistent::New triggers error if V8 dead") {
 
     TestUtils::SetHandlerAndKill(errorCallback);
     errorCallbackCalled = false;
-    Persistent<Integer> p = Persistent<Integer>::New(l);
+    Persistent<Integer>::New(l);
 
     V8MONKEY_CHECK(errorCallbackCalled, "Error triggered");
   }
@@ -1312,7 +1310,6 @@ V8MONKEY_TEST(IntPersistent078, "Persistent::New triggers error if V8 dead") {
 V8MONKEY_TEST(IntPersistent079, "Persistent::New works when isolate not initted") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;
@@ -1330,12 +1327,11 @@ V8MONKEY_TEST(IntPersistent079, "Persistent::New works when isolate not initted"
 V8MONKEY_TEST(IntPersistent080, "InternalIsolate Persistent HandleData is per isolate") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
-  InternalIsolate* i = InternalIsolate::FromIsolate(Isolate::GetCurrent());
 
   {
     HandleScope h;
     Local<Integer> l = Integer::New(123);
-    Persistent<Integer> p = Persistent<Integer>::New(l);
+    Persistent<Integer>::New(l);
 
     Isolate* j = Isolate::New();
     InternalIsolate* i = InternalIsolate::FromIsolate(j);

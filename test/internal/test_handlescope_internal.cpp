@@ -23,7 +23,7 @@ using namespace v8::V8Monkey;
 
 namespace {
   int errorCaught = 0;
-  void fatalErrorHandler(const char* location, const char* message) {
+  void fatalErrorHandler(const char*, const char*) {
     errorCaught = 1;
   }
 
@@ -960,7 +960,8 @@ V8MONKEY_TEST(IntLocal001, "Assigning to a local from a handle of unknown proven
 
     V8MonkeyObject* asObj = *(reinterpret_cast<V8MonkeyObject**>(*l));
     int refCount = asObj->RefCount();
-    Local<Integer> l2 = Local<Integer>::New(handle);
+    // We're only interested in the side-effect. No need to assign
+    Local<Integer>::New(handle);
     V8MONKEY_CHECK(asObj->RefCount() == refCount + 1, "RefCount correct");
   }
 }

@@ -22,12 +22,12 @@ namespace {
   bool callback2Called = false;
 
 
-  void callback1(const char* location, const char* message) {
+  void callback1(const char*, const char*) {
     callback1Called = true;
   }
 
 
-  void callback2(const char* location, const char* message) {
+  void callback2(const char*, const char*) {
     callback2Called = true;
   }
 

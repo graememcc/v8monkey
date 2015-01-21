@@ -2,6 +2,10 @@
 #define V8MONKEY_OBJECTBLOCK_H
 
 
+// ptrdiff_t
+#include <cstddef>
+
+
 /*
  * V8 allocates slabs of contiguous memory to handle the handles owned by the handlescopes for a given isolate. For
  * the motivation behind this, see the comment in src/runtime/handlescope.cpp.
@@ -105,9 +109,9 @@ void ObjectBlock<T>::Delete(T** currentLimit, T** currentTop, T** desiredTop, vo
     while (top && (!desiredTop || !(top < desiredTop && desiredTop <= limit))) {
       // The first time, through this loop, we will be deleting a partial block. Later iterations delete full blocks
       // only
-      int deletionIndex = (limit == currentLimit ? currentTop : limit) - top - 1;
+      ptrdiff_t deletionIndex = (limit == currentLimit ? currentTop : limit) - top - 1;
 
-      for (int i = deletionIndex; i >= 2; i--) {
+      for (ptrdiff_t i = deletionIndex; i >= 2; i--) {
         if (deletionFunction) {
           deletionFunction(*(top + i));
         } else {
@@ -132,8 +136,8 @@ void ObjectBlock<T>::Delete(T** currentLimit, T** currentTop, T** desiredTop, vo
   // The desiredTop lies within this block. We need to delete backwards to that location. Note that we might not have
   // executed the loop above if desiredTop lies in the bounds of the first block; in that case we start deleting from
   // the slot before currentTop, otherwise we start deleting from the end
-  int deletionIndex = (top < currentTop && currentTop <= limit ? currentTop : limit) - desiredTop - 1;
-  for (int i = deletionIndex; i >= 0; i--) {
+  ptrdiff_t deletionIndex = (top < currentTop && currentTop <= limit ? currentTop : limit) - desiredTop - 1;
+  for (ptrdiff_t i = deletionIndex; i >= 0; i--) {
     if (deletionFunction) {
       deletionFunction(*(desiredTop + i));
     } else {
@@ -154,9 +158,9 @@ void ObjectBlock<T>::Iterate(T** currentLimit, T** currentTop, void (*iterationF
 
   while (top) {
     // The first time through, we may have to iterate over a partial block. After that, it's full blocks all the way
-    int index = (limit == currentLimit ? currentTop : limit) - top - 1;
+    ptrdiff_t index = (limit == currentLimit ? currentTop : limit) - top - 1;
 
-    for (int i = index; i >= 2; i--) {
+    for (ptrdiff_t i = index; i >= 2; i--) {
       iterationFunction(*(top + i));
     }
 
@@ -177,9 +181,9 @@ void ObjectBlock<T>::Iterate(T** currentLimit, T** currentTop, void (*iterationF
 
   while (top) {
     // The first time through, we may have to iterate over a partial block. After that, it's full blocks all the way
-    int index = (limit == currentLimit ? currentTop : limit) - top - 1;
+    ptrdiff_t index = (limit == currentLimit ? currentTop : limit) - top - 1;
 
-    for (int i = index; i >= 2; i--) {
+    for (ptrdiff_t i = index; i >= 2; i--) {
       iterationFunction(*(top + i), data);
     }
 

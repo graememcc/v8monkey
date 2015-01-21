@@ -94,7 +94,10 @@ namespace {
     V8MonkeyObject** ptr = hd.next++;
     InternalIsolate::GetCurrent()->SetLocalHandleData(hd);
 
-    obj->AddRef();
+    if (shouldAddRef) {
+      obj->AddRef();
+    }
+
     *ptr = obj;
 
     return ptr;
@@ -190,10 +193,6 @@ namespace v8 {
 
     // Re-add the escaped value
     V8Monkey::V8MonkeyObject** ptr = AddHandle(V8Monkey::InternalIsolate::GetCurrent(), escaped, false);
-
-    // Adding will have inreased the refcount. We never lowered it when we escaped the value, so we need to release to
-    // correct
-    escaped->Release();
 
     return ptr;
   }

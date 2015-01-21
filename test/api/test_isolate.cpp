@@ -33,13 +33,13 @@ namespace {
   // however that doesn't distinguish between successful V8 disposals and errors, so we install the following fake
   // error handler. Tests should reset errorCaught before triggering error generating code.
   int errorCaught = 0;
-  void fatalErrorHandler(const char* location, const char* message) {
+  void fatalErrorHandler(const char*, const char*) {
     errorCaught = 1;
   }
 
 
   // At other times, we simply need to suppress the default error handler
-  void dummyFatalErrorHandler(const char* location, const char* message) { return; }
+  void dummyFatalErrorHandler(const char*, const char*) { return; }
 
 
   // Returns a bool (cast to void*) denoting whether the caller remains in an isolate if it is exited fewer

@@ -308,7 +308,7 @@ namespace {
   static bool wasRegisteredForGC = false;
 
 
-  void GCRegistrationHook(JSRuntime* rt, JSTraceDataOp op, void* data) {
+  void GCRegistrationHook(JSRuntime*, JSTraceDataOp, void*) {
     wasRegisteredForGC = true;
   }
 
@@ -316,7 +316,7 @@ namespace {
   static bool wasDeregisteredFromGC = false;
 
 
-  void GCDeregistrationHook(JSRuntime* rt, JSTraceDataOp op, void* data) {
+  void GCDeregistrationHook(JSRuntime*, JSTraceDataOp, void*) {
     wasDeregisteredFromGC = true;
   }
 

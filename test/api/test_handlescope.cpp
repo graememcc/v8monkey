@@ -11,7 +11,7 @@ using namespace v8;
 
 namespace {
   int errorCaught = 0;
-  void fatalErrorHandler(const char* location, const char* message) {
+  void fatalErrorHandler(const char*, const char*) {
     errorCaught = 1;
   }
 }

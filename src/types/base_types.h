@@ -150,7 +150,7 @@ namespace v8 {
         bool StrictEquals(Handle<Value> that) const;
         */
 
-        virtual void Trace(JSRuntime* runtime, JSTracer* tracer) {
+        virtual void Trace(JSRuntime*, JSTracer*) {
           // Need to call ShouldTrace for weak callbacks
           ShouldTrace();
         }
@@ -174,7 +174,7 @@ namespace v8 {
       public:
         DummyV8MonkeyObject() {}
         ~DummyV8MonkeyObject() {}
-        void Trace(JSRuntime* runtime, JSTracer* tracer) {}
+        void Trace(JSRuntime*, JSTracer*) {}
 
         inline bool operator== (const DummyV8MonkeyObject &other) {
           return &other == this;
@@ -199,7 +199,7 @@ namespace v8 {
 
         int index;
 
-        void Trace(JSRuntime* runtime, JSTracer* tracer) {
+        void Trace(JSRuntime*, JSTracer*) {
           // Some tests require that this object participate in tracing for the deletion semantics
           ShouldTrace();
         }
@@ -215,7 +215,7 @@ namespace v8 {
       public:
         TraceFake(bool* boolPtr) : ptr(boolPtr) {}
         ~TraceFake() {}
-        void Trace(JSRuntime* runtime, JSTracer* tracer) { *ptr = true; }
+        void Trace(JSRuntime*, JSTracer*) { *ptr = true; }
       private:
         bool* ptr;
     };

@@ -326,5 +326,5 @@ main(int argc, char** argv)
     reportFailures(testFailures);
   }
 
-  return testFailures.size();
+  return static_cast<int>(testFailures.size());
 }

@@ -31,14 +31,14 @@ namespace {
 
 
   // Support function for thread running test
-  void* thread_run_main(void* arg) {
+  void* thread_run_main(void*) {
     return nullptr;
   }
 
 
   // Support function for thread result test
   #define THREAD_RESULT 100
-  void* thread_join_main(void* arg) {
+  void* thread_join_main(void*) {
     return reinterpret_cast<void*>(THREAD_RESULT);
   }
 
