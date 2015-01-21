@@ -23,7 +23,7 @@ class ObjectBlock {
     };
 
     // Allocate a new block, and return a struct pointing to the first slot, and the address after the last valid slot.
-    // The caller should supply the first invalid address for the current block (or NULL if this is the first block),
+    // The caller should supply the first invalid address for the current block (or nullptr if this is the first block),
     // as the blocks will chain in a linked list for freeing memory. The caller must ensure that the given limit is
     // valid.
     static Limits Extend(T** currentLimit);
