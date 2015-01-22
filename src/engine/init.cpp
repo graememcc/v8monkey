@@ -30,6 +30,11 @@
 
 
 namespace {
+  // Assorted static asserts that don't really have a good home
+  static_assert(sizeof(v8::Local<v8::Value>) == sizeof(v8::Value*), "Handles are pointer-sized");
+  static_assert(sizeof(v8::Local<v8::Value>) == sizeof(v8::Value*), "Locals are pointer-sized");
+  static_assert(sizeof(v8::Persistent<v8::Value>) == sizeof(v8::Value*), "Persistents are pointer-sized");
+
   // Was SpiderMonkey initted succesfully?
   bool engineInitAttempted = false;
   bool engineInitSucceeded = false;

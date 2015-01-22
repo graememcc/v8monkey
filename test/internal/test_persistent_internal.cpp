@@ -1257,20 +1257,7 @@ V8MONKEY_TEST(IntPersistent074, "All objects torn down at isolate teardown") {
 }
 
 
-V8MONKEY_TEST(IntPersistent075, "Alignment of pointers is suitable for tagging pointers") {
-  // TODO This should be some sort of static assert
-  // TODO Also alignof support is patchy. That computation should be in a platform-specific macro
-  V8MONKEY_CHECK(alignof(Persistent<Value>*) > 1, "Alignment suitable");
-}
-
-
-V8MONKEY_TEST(IntPersistent076, "Persistent is same size as pointer") {
-  // TODO This should be some sort of static assert
-  V8MONKEY_CHECK(sizeof(Persistent<Integer>) <= sizeof(void*), "Persistent fits in a pointer");
-}
-
-
-V8MONKEY_TEST(IntPersistent077, "Persistent::New returns empty if V8 dead") {
+V8MONKEY_TEST(IntPersistent075, "Persistent::New returns empty if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
 
@@ -1289,7 +1276,7 @@ V8MONKEY_TEST(IntPersistent077, "Persistent::New returns empty if V8 dead") {
 }
 
 
-V8MONKEY_TEST(IntPersistent078, "Persistent::New triggers error if V8 dead") {
+V8MONKEY_TEST(IntPersistent076, "Persistent::New triggers error if V8 dead") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
 
@@ -1307,7 +1294,7 @@ V8MONKEY_TEST(IntPersistent078, "Persistent::New triggers error if V8 dead") {
 }
 
 
-V8MONKEY_TEST(IntPersistent079, "Persistent::New works when isolate not initted") {
+V8MONKEY_TEST(IntPersistent077, "Persistent::New works when isolate not initted") {
   TestUtils::AutoTestCleanup ac;
   Isolate::GetCurrent()->Enter();
 
@@ -1324,7 +1311,7 @@ V8MONKEY_TEST(IntPersistent079, "Persistent::New works when isolate not initted"
 }
 
 
-V8MONKEY_TEST(IntPersistent080, "InternalIsolate Persistent HandleData is per isolate") {
+V8MONKEY_TEST(IntPersistent078, "InternalIsolate Persistent HandleData is per isolate") {
   TestUtils::AutoTestCleanup ac;
   V8::Initialize();
 
