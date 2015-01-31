@@ -378,7 +378,9 @@ $(v8platformheader): platform/platform.h
 
 
 # Our default goal is to build the v8monkey shared library, and the testsuites
+# XXX Remove ctags
 all: $(v8monkeytarget) $(testsuites)
+	/usr/local/bin/ctags -R src test include
 
 
 # The main task is building the shared library
