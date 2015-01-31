@@ -6,9 +6,9 @@
 #include "utils/test.h"
 
 
-class JSRuntime;
-class JSContext;
-class JSCompartment;
+struct JSRuntime;
+struct JSContext;
+struct JSCompartment;
 
 
 namespace v8{
