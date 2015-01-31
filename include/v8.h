@@ -143,7 +143,7 @@ namespace v8 {
 
       inline bool IsWeak() const;
 
-      inline void SetWrapperClassId(uint16_t class_id) {
+      inline void SetWrapperClassId(uint16_t /* class_id */) {
         // TODO Profiling not yet implemented
       }
 
