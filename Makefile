@@ -676,6 +676,10 @@ $(call inttest, value): $(v8monkeyheader) src/runtime/isolate.h src/utils/test.h
 # the recipe is always invoked.
 
 
+# The JSAPI header is created as a by-product of building Spidermonkey
+$(JSAPIheader): $(smtarget)
+
+
 # We build (and update) the library by running make
 $(smtarget): make_sm
 	@echo && \
