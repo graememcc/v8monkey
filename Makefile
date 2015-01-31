@@ -19,6 +19,10 @@
 .DEFAULT_GOAL = all
 
 
+# XXX TEMPORARY
+CXX=clang++
+
+
 #**********************************************************************************************************************#
 #                                                      Variables                                                       #
 #**********************************************************************************************************************#
@@ -104,7 +108,6 @@ v8monkeyheader = $(v8monkeyheadersdir)/v8.h
 
 # The platform header (for dependency purposes)
 v8platformheader = $(v8monkeyheadersdir)/platform.h
-
 
 # Absolute filename of the V8Monkey library
 v8monkeytarget = $(outdir)/$(call libname, $(v8lib))
