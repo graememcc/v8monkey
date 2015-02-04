@@ -373,6 +373,20 @@ $(v8platformheader): platform/platform.h
 
 
 #**********************************************************************************************************************#
+#                                                       Includes                                                       #
+#**********************************************************************************************************************#
+
+v8monkeyheaders = $(addsuffix .h, $(addprefix $(v8monkeyheadersdir)/, v8 v8stdint))
+
+
+$(v8monkeyheadersdir)/%.h: include/%.h | $(v8monkeyheadersdir)
+	cp $< $(@D)
+
+
+include/v8.h: include/v8stdint.h
+
+
+#**********************************************************************************************************************#
 #                                                       V8Monkey                                                       #
 #**********************************************************************************************************************#
 
@@ -384,7 +398,7 @@ all: $(v8monkeytarget) $(testsuites)
 
 
 # The main task is building the shared library
-$(v8monkeytarget): $(v8objects) $(v8monkeyheaderstarget) $(smtarget) $(v8platformtarget)
+$(v8monkeytarget): $(v8objects) $(v8monkeyheaders) $(smtarget) $(v8platformtarget)
 	@echo && \
 	echo "********************************************************************************" && \
 	echo "*                                                                              *" && \
@@ -395,15 +409,11 @@ $(v8monkeytarget): $(v8objects) $(v8monkeyheaderstarget) $(smtarget) $(v8platfor
 	$(CXX) -shared -o $@ $(v8objects) $(call linkcommand, $(smlibdir), $(smlib)) $(v8platformtarget)
 
 
-# We need to copy the V8 header to dist
-$(v8monkeyheader): include/v8.h | $(v8monkeyheadersdir)
-	cp $< $(@D)
-
-
 #**********************************************************************************************************************#
 #                                              V8Monkey file dependencies                                              #
 #**********************************************************************************************************************#
 
+# XXX I think the objects should depend on the local h file
 
 $(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h $(v8platformheader) src/utils/test.h \
                                    src/utils/V8MonkeyCommon.h $(JSAPIheader)
