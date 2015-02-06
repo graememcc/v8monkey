@@ -487,7 +487,7 @@ testobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(testfiles)))
 
 
 # The "internals" test harness is composed from the following
-internalteststems = death destructlist fatalerror handlescope init isolate locker objectblock persistent \
+internalteststems = death destructlist fatalerror handlescope init isolate locker miscutils objectblock persistent \
                     platform refcount smartpointer spidermonkeyutils threadID value
 internaltestfiles = $(addprefix test/internal/test_, $(addsuffix _internal, $(internalteststems)))
 internaltestsources = $(addsuffix .cpp, $(internaltestfiles))
@@ -647,6 +647,9 @@ $(call inttest, init): $(v8monkeyheader) $(v8platformheader) src/runtime/isolate
 
 $(call inttest, isolate): $(v8monkeyheader) $(JSAPIheader) $(v8platformheader) src/runtime/isolate.h src/utils/test.h \
                           src/types/base_types.h src/utils/SpiderMonkeyUtils.h
+
+
+$(call inttest, miscutils): src/utils/MiscUtils.h
 
 
 $(call inttest, locker): $(v8monkeyheader) src/runtime/isolate.h src/utils/test.h
