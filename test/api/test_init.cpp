@@ -12,6 +12,23 @@
 using namespace v8;
 
 
+V8MONKEY_TEST(NEWInit001, "Returns true if not in an isolate") {
+  V8MONKEY_CHECK(V8::Initialize(), "V8::Initialize returned true");
+}
+
+
+V8MONKEY_TEST(NEWInit002, "Initializing V8 does not enter an isolate") {
+  V8::Initialize();
+
+  V8MONKEY_CHECK(!Isolate::GetCurrent(), "Isolate::GetCurrent still nullptr");
+}
+
+
+// Returns false if in a dead isolate
+// Returns true if in an initted isolate
+// Current isolate always unchanged
+
+// XXX No longer relevant?
 V8MONKEY_TEST(Init001, "After V8 initialization, current isolate unchanged if originally in non-default isolate") {
   Isolate* i = Isolate::New();
   i->Enter();
@@ -40,6 +57,7 @@ V8MONKEY_TEST(Init002, "After V8 initialization, entry count unchanged when non-
 }
 
 
+// XXX No longer relevant?
 V8MONKEY_TEST(Init003, "After V8 initialization, current isolate still default if no isolate originally entered") {
   Isolate* i = Isolate::GetCurrent();
   V8::Initialize();
@@ -51,6 +69,7 @@ V8MONKEY_TEST(Init003, "After V8 initialization, current isolate still default i
 }
 
 
+// XXX No longer relevant?
 V8MONKEY_TEST(Init004, "After V8 initialization, current isolate unchanged when in default") {
   Isolate* i = Isolate::GetCurrent();
   i->Enter();

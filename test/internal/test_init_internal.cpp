@@ -18,6 +18,7 @@
 using namespace v8;
 using namespace v8::V8Monkey;
 
+// XXX Version bump: I believe this whole thing can go
 
 namespace {
   // XXX I think this can be replaced by FromIsolate
