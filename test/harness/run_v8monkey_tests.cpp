@@ -1,147 +1,154 @@
-#include <string>
+// iostream
 #include <iostream>
-#include <stdlib.h>
-#include <cstring>
+
+// set
 #include <set>
 
+// string
+#include <string>
 
+// Unit-testing support
 #include "V8MonkeyTest.h"
-
-
-// Used to create the bitmask denoting the result of command-line parsing
-#define USAGE_REQUESTED 1
-#define LIST_REQUESTED 2
-#define COUNT_REQUESTED 4
-#define FILE_REQUEST 8
-#define TEST_REQUEST 16
-#define FILE_ERROR 32
-#define NAME_ERROR 64
-#define UNEXPECTED_VALUE 128
 
 
 using namespace std;
 
 
+// XXX Get rid of the Gecko style argument names
+
+enum ArgRequest {Usage, TestList, RegisteredTestCount, RunByFile, RunByName, RunAll, None, BadArg, FileError, NameError};
+
+
+struct ArgParseResult {
+  ArgRequest request1;
+  ArgRequest request2;
+  set<string> filenames;
+  set<string> testnames;
+  string badArg;
+
+  ArgParseResult() : request1 {None}, request2 {None} {}
+
+  bool UsageRequested() { return request1 == Usage || request2 == Usage; }
+  bool TestListRequested() { return request1 == TestList || request2 == TestList; }
+  bool RegisteredTestCountRequested() { return request1 == RegisteredTestCount || request2 == RegisteredTestCount; }
+  bool RunByFileRequested() { return request1 == RunByFile || request2 == RunByFile; }
+  bool RunByNameRequested() { return request1 == RunByName || request2 == RunByName; }
+  bool RunAllRequested() { return request1 == RunAll || request2 == RunAll; }
+  bool NothingRequested() { return request1 == None && request2 == None; }
+  bool BadRequestMade() { return request1 == BadArg || request2 == BadArg; }
+  bool FileNameErrorMade() { return request1 == FileError || request2 == FileError; }
+  bool TestNameErrorMade() { return request1 == NameError || request2 == NameError; }
+
+  bool canRequestTestList() { return !UsageRequested(); };
+  bool canRequestTestCount() { return !UsageRequested() && !TestListRequested(); };
+  bool canRequestByFileOrName() { return !UsageRequested() && !TestListRequested() && !RegisteredTestCountRequested(); }
+
+  void setTo(ArgRequest r) { request1 = request2 = r; filenames.clear(); testnames.clear(); }
+  void setTo(ArgRequest r1, ArgRequest r2) { request1 = r1; request2 = r2; }
+  void setError(string s) { badArg = s; request1 = request2 = BadArg; filenames.clear(); testnames.clear(); }
+  void setError(ArgRequest r) { request1 = request2 = r; filenames.clear(); testnames.clear(); }
+  void setNext(ArgRequest r) { if (request1 == None) { request1 = r; } else { request2 = r; } }
+
+  void addFile(char* fileName) { filenames.emplace(fileName); }
+  void addTest(string testName) { testnames.insert(testName); }
+};
+
+
 /*
- * Takes a C-style string. If the first character is a opening square bracket, then it is removed, and the last
- * character is then inspected to check if it is a closing square bracket, in which case it is likewise removed.
+ * Takes a string. If the first character is a opening square bracket, then it is removed, and the last character is
+ * then inspected to check if it is a closing square bracket, in which case it is likewise removed.
  * Otherwise, the string is returned unchanged.
  *
  */
-static char*
-stripLeadingTrailingSquareBrackets(char* aOriginal)
-{
-  if (*aOriginal != '[') {
-    return aOriginal;
+
+string stripLeadingTrailingSquareBrackets(string&& original) {
+  if (original.front() != '[' || original.back() != ']') {
+    return {original};
   }
 
-  aOriginal++;
-  char* c = aOriginal;
-
-  while (*c) c++;
-
-  if (c > aOriginal && *(c - 1) == ']') {
-    *(c - 1) = '\0';
-  }
-
-  return aOriginal;
+  return {original, 1, original.size() - 2};
 }
 
 
 /*
- * Parse the command line arguments, returning a bitmask denoting whether any of the following occurred:
- *   If bit 0 set: the user requested help
- *   If bit 1 set: the user requested a listing of all registered tests
- *   If bit 2 set: the user requested all the tests in one or more files be executed (the given filenames set will
- *                 contain all such files)
- *   If bit 3 set: the user requested a count of the number of registered tests
- *   If bit 4 set: the user requested one or more specific tests be executed (the given testnames set will contain
- *                 the codenames of the specified tests)
- *   If bit 5 set: the user supplied the switch for a specific file, but failed to supply the file
- *   If bit 6 set: the user supplied the switch for a specific test, but failed to supply the name of the test
- *   If bit 7 set: an unexpected value was supplied (eg a filename without the preceding -f switch)
+ * Parse the command line arguments, returning an ArgParseResult sruct denoting the requested actions.
  *
- * Thus a value of 0 represents the default action: all registered tests should be executed
+ * As soon as an error occurs, parsing terminates.
  *
- * If an error occurs, (ie bit 4 or bit 5 is set) then no more argument parsing occurs, and we return immediately.
+ * A help request overrides all other options: when encountered, parsing stops immediately.
+ * A test listing request overrides test count, file and name options: when encountered, all later requests other than help will be ignored.
+ * A test count request overrides file and name options: when encountered, all later requests other than help and test listing will be ignored.
  *
- * A help request overrides all other options: if it is found, no more arguments will be parsed, and we return
- * immediately.
- *
- * If help is not requested, but a test listing is requested, then the value returned will ignore any file, test and
- * count options that were supplied (although the sets may have been modified).
- *
- * If neither of the above are requested, but a test count is supplied, then that will be returned, again ignoring
- * any file or test options.
- *
- * Specific file and specific test requests are NOT considered mutually exclusive. Thus a user can request all the
- * tests from some files, and additional tests from other files.
+ * Specific file and specific test requests are NOT considered mutually exclusive. Thus a user can request all the tests
+ * from some files, and additional tests from other files.
  *
  */
 
-short
-parseArgs(int argc, char** argv, set<string> &aFilenames, set<string> &aTestNames)
-{
-  short bitmask = 0;
+ArgParseResult parseArgs(int argc, char** argv) {
+  ArgParseResult result;
 
-  int i;
-  for (i = 1; i < argc; i++) {
-    char* arg = argv[i];
+  for (auto i = 1; i < argc; i++) {
+    const string arg {argv[i]};
 
-    if (arg[0] != '-') {
-      return UNEXPECTED_VALUE;
+    if (arg.front() != '-') {
+      result.setError(arg);
+      return result;
     }
 
     // If we find a help request, all other command line arguments are ignored
-    if (strcmp(arg, "-h") == 0 || strcmp(arg, "--help") == 0) {
-      return USAGE_REQUESTED;
-    }
-
-    // If we find a listing request, all other command line arguments (except help requests, which take
-    // precedence) are ignored
-    if (strcmp(arg, "-l") == 0 || strcmp(arg, "--list") == 0) {
-      bitmask |= LIST_REQUESTED;
+    if (arg == "-h" || arg == "--help") {
+      result.setTo(Usage);
       continue;
     }
 
-    // If we find a count request, all other command line arguments (except help and list requests, which take
-    // precedence) are ignored
-    if (strcmp(arg, "-c") == 0 || strcmp(arg, "--count") == 0) {
-      bitmask |= COUNT_REQUESTED;
+    if ((arg == "-l" || arg == "--list") && result.canRequestTestList()) {
+      result.setTo(TestList);
       continue;
     }
 
-    if (strcmp(arg, "-f") == 0 || strcmp(arg, "--file") == 0) {
+    if ((arg == "-c" || arg == "--count") && result.canRequestTestCount()) {
+      result.setTo(RegisteredTestCount);
+      continue;
+    }
+
+    if ((arg == "-f" || arg == "--file") && result.canRequestByFileOrName()) {
       // For the file switch, read the name of the file, erroring out if it's not present
       i++;
 
       if (i == argc || argv[i][0] == '-') {
-        return FILE_ERROR;
+        result.setError(FileError);
+        return result;
       }
 
-      bitmask |= FILE_REQUEST;
-      aFilenames.insert(argv[i]);
+      result.addFile(argv[i]);
+      result.setNext(RunByFile);
       continue;
     }
 
-    if (strcmp(arg, "-n") == 0 || strcmp(arg, "--name") == 0) {
+    if ((arg == "-n" || arg == "--name") && result.canRequestByFileOrName()) {
       // For the name switch, read the name of the test, erroring out if it's not present
       i++;
 
       if (i == argc || argv[i][0] == '-') {
-        return NAME_ERROR;
+        result.setError(NameError);
+        return result;
       }
 
-      bitmask |= TEST_REQUEST;
       // Strip square brackets if the user copied them from a test listing, and record the requested test
-      aTestNames.insert(stripLeadingTrailingSquareBrackets(argv[i]));
+      result.addTest(stripLeadingTrailingSquareBrackets(string(argv[i])));
+      result.setNext(RunByName);
       continue;
     }
 
-    return UNEXPECTED_VALUE;
+    result.setError(argv[i]);
+    return result;
   }
 
-  return bitmask;
+  if (result.NothingRequested()) {
+    result.setNext(RunAll);
+  }
+
+  return result;
 }
 
 
@@ -151,10 +158,8 @@ parseArgs(int argc, char** argv, set<string> &aFilenames, set<string> &aTestName
  *
  */
 
-int
-usage(const char* progName, const char* errorMessage = nullptr)
-{
-  bool errorSupplied = errorMessage && *errorMessage != '\0';
+int usage(string progName, string errorMessage = "") {
+  bool errorSupplied = !errorMessage.empty();
 
   if (errorSupplied) {
     cerr << errorMessage << endl;
@@ -180,33 +185,24 @@ usage(const char* progName, const char* errorMessage = nullptr)
  * add the codename of each test ran to aTestsRan, tracking any failures in aFailures.
  *
  */
+// XXX Can we indent test output?
 
-void
-runTestsByFile(const set<string>& aFileNames, set<string>& aTestsRan, set<string>& aFailures)
-{
-  // This is just a simple matter of iterating over the list of filenames
-  set<string>::const_iterator filename = aFileNames.cbegin();
-  set<string>::const_iterator end = aFileNames.cend();
-
-  while (filename != end) {
-    cout << "Running tests for file: " << *filename << endl;
-    V8MonkeyTest::RunTestsForFile(*filename, aTestsRan, aFailures);
-    filename++;
-    if (filename != end) {
-      cout << endl;
-    }
+void runTestsByFile(const set<string>& aFileNames, set<string>& aTestsRan, set<string>& aFailures) {
+  for (const auto& filename : aFileNames) {
+    cout << "Running tests from file " << filename << ": " << endl;
+    V8MonkeyTest::RunTestsForFile(filename, aTestsRan, aFailures);
+    cout << endl;
   }
 }
 
 
+// XXX Can we refactor this?
 /*
  * Run all the tests named in the given set, unless the test name is present in the given set of tests already ran.
  *
  */
 
-void
-runTestsByName(const set<string>& aTestNames, const set<string>& aTestsRan, set<string>& aFailures)
-{
+void runTestsByName(const set<string>& aTestNames, const set<string>& aTestsRan, set<string>& aFailures) {
   set<string>::const_iterator test = aTestNames.cbegin();
   set<string>::const_iterator lastTest = aTestNames.cend();
   set<string>::const_iterator notRan = aTestsRan.end();
@@ -236,9 +232,8 @@ runTestsByName(const set<string>& aTestNames, const set<string>& aTestsRan, set<
  * Describe the tests that failed on standard output
  *
  */
-void
-reportFailures(const set<string>& aFailures)
-{
+
+void reportFailures(const set<string>& aFailures) {
   size_t failureCount = aFailures.size();
 
   cout << failureCount << " test failure";
@@ -247,12 +242,8 @@ reportFailures(const set<string>& aFailures)
   }
   cout << ":" << endl;
 
-  set<string>::const_iterator message = aFailures.cbegin();
-  set<string>::const_iterator lastMessage = aFailures.cend();
-
-  while (message != lastMessage) {
-    cout << *message << endl;
-    message++;
+  for (auto& message : aFailures) {
+    cout << message << endl;
   }
 }
 
@@ -263,65 +254,56 @@ reportFailures(const set<string>& aFailures)
  *
  */
 
-char*
-getBaseName(char* aFilePath)
-{
-  char* c = aFilePath;
-  char* lastSlash = aFilePath - 1;
-  while (*c) {
-    if (*c == '/') lastSlash = c;
-    c++;
-  }
-
-  return lastSlash + 1;
+string getBaseName(char* argv0) {
+  string fullName {argv0};
+  auto slash = fullName.rfind('/');
+  auto diff = slash == string::npos ? 0 : slash + 1;
+  string result {fullName, diff};
+  return result;
 }
 
 
-int
-main(int argc, char** argv)
-{
-  char* progName = getBaseName(argv[0]);
+int main(int argc, char** argv) {
+  string progName {getBaseName(argv[0])};
 
-  set<string> filenames;
-  set<string> testnames;
+  ArgParseResult result = parseArgs(argc, argv);
 
-  short result = parseArgs(argc, argv, filenames, testnames);
-
-  if (result & USAGE_REQUESTED) {
+  if (result.UsageRequested()) {
     exit(usage(progName));
-  } else if (result & LIST_REQUESTED) {
+  } else if (result.TestListRequested()) {
     V8MonkeyTest::ListAllTests();
     exit(0);
-  } else if (result & COUNT_REQUESTED) {
+  } else if (result.RegisteredTestCountRequested()) {
+    // XXX FIX
     V8MonkeyTest::CountTests();
     exit(0);
-  } else if (result & FILE_ERROR) {
+  } else if (result.FileNameErrorMade()) {
     exit(usage(progName, "Missing argument for -f/--file option"));
-  } else if (result & NAME_ERROR) {
+  } else if (result.TestNameErrorMade()) {
     exit(usage(progName, "Missing argument for -n/--name option"));
-  } else if (result & UNEXPECTED_VALUE) {
-    exit(usage(progName, "Unrecognised option in command line"));
+  } else if (result.BadRequestMade()) {
+    exit(usage(progName, string("Unrecognised option: ") + result.badArg));
   }
-  
+
   // Compile the sets of tests ran to avoid duplication
   set<string> testsRan;
 
   // Also track test failures
   set<string> testFailures;
 
-  if (result & FILE_REQUEST) {
-    runTestsByFile(filenames, testsRan, testFailures);
+  if (result.RunByFileRequested()) {
+    runTestsByFile(result.filenames, testsRan, testFailures);
   }
 
-  if (result & TEST_REQUEST) {
-    runTestsByName(testnames, testsRan, testFailures);
+  if (result.RunByNameRequested()) {
+    runTestsByName(result.testnames, testsRan, testFailures);
   }
 
-  if (!result) {
+  if (result.RunAllRequested()) {
     V8MonkeyTest::RunAllTests(testFailures);
   }
 
-  if (testFailures.size() > 0) {
+  if (!testFailures.empty()) {
     cout << endl;
     reportFailures(testFailures);
   }
