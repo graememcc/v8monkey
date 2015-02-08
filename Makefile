@@ -164,7 +164,7 @@ warnings = -Wall -Wextra -Wmissing-include-dirs
 # XXX Remove -DDEBUG
 # XXX Remove suggest
 # XXX Remove conversion
-CXXFLAGS += -MMD -Wpedantic -Wsuggest-attribute=const -Wconversion -g -DDEBUG=1 $(warnings) $(includeopt) -fPIC \
+CXXFLAGS += -MMD -pedantic -Wsuggest-attribute=const -Wconversion -g -DDEBUG=1 $(warnings) $(includeopt) -fPIC \
             -fvisibility=hidden -std=c++0x
 
 
