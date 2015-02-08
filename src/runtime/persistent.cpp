@@ -14,7 +14,7 @@
 #include "utils/V8MonkeyCommon.h"
 
 
-namespace v8 {
+//namespace v8 {
 
   /*
    * As the V8 source notes, Persistents represent storage cells that are independent of a particular HandleScope.
@@ -65,79 +65,79 @@ namespace v8 {
    * Allocate a storage slot for a persistent, and add a strong reference.
    *
    */
-
-  V8Monkey::V8MonkeyObject** V8::MakePersistent(V8Monkey::V8MonkeyObject** value) {
-    using namespace V8Monkey;
-
-    // Create a new handle in persistent storage, as the source could be a pointer into local handle storage
-    V8MonkeyObject* obj = *value;
-
-    InternalIsolate* i = InternalIsolate::GetCurrent();
-
-    if (V8MonkeyCommon::CheckDeath("Persistent::New")) {
-      return nullptr;
-    }
-
-    InternalIsolate::AutoGCMutex lock(i);
-
-    HandleData hd = i->GetPersistentHandleData();
-
-    // Allocate more slots if necessary
-    if (hd.limit == hd.next) {
-      ObjectBlock<V8MonkeyObject>::Limits limits = ObjectBlock<V8MonkeyObject>::Extend(hd.limit);
-      hd.limit = limits.limit;
-      hd.next = limits.top;
-    }
-
-    V8MonkeyObject** ptr = hd.next++;
-    InternalIsolate::GetCurrent()->SetPersistentHandleData(hd);
-
-    if (obj) {
-      obj->AddRef();
-    }
-
-    *ptr = obj;
-
-    return ptr;
-  }
-
-
-  /*
-   * Deletes a persistent object, and clears its slot in the isolate's persistent storage (to prevent double-frees).
-   * Uses PersistentRelease to ensure correct refcount is decremented. It also first checks that the slot is not
-   * already zeroed; AFAICT, the V8 API doesn't place any restrictions on when one can call Dispose after a Persistent
-   * has been weakened and the weak callback called (though logic would dictate that the only safe place is when
-   * handling the weak callback, as otherwise the caller cannot reason about the liveness of the object when they didn't
-   * clear the weakness).
-   *
-   */
-
-  void V8::DeletePersistent(V8Monkey::V8MonkeyObject** objSlot, V8Monkey::V8MonkeyObject* obj) {
-    V8Monkey::InternalIsolate::AutoGCMutex lock(V8Monkey::InternalIsolate::GetCurrent());
-    obj->PersistentRelease(objSlot);
-    *objSlot = nullptr;
-  }
-
-
-  void V8::MakePersistentWeak(V8Monkey::V8MonkeyObject** objSlot, V8Monkey::V8MonkeyObject* obj, void* parameters,
-                                   WeakReferenceCallback callback) {
-    V8Monkey::InternalIsolate::AutoGCMutex lock(V8Monkey::InternalIsolate::GetCurrent());
-    obj->MakeWeak(objSlot, parameters, callback);
-  }
-
-
-  void V8::ClearPersistentWeakness(V8Monkey::V8MonkeyObject** objSlot, V8Monkey::V8MonkeyObject* obj) {
-    V8Monkey::InternalIsolate::AutoGCMutex lock(V8Monkey::InternalIsolate::GetCurrent());
-    obj->ClearWeakness(objSlot);
-  }
-
-
-  bool V8::IsPersistentWeak(V8Monkey::V8MonkeyObject** objSlot, V8Monkey::V8MonkeyObject* obj) {
-    return obj->IsWeak(objSlot);
-  }
-
-
-  bool V8::IsPersistentNearDeath(V8Monkey::V8MonkeyObject* obj) {
-    return obj->IsNearDeath();
-  }
-}
+//
+//  V8Monkey::V8MonkeyObject** V8::MakePersistent(V8Monkey::V8MonkeyObject** value) {
+//    using namespace V8Monkey;
+//
+//    // Create a new handle in persistent storage, as the source could be a pointer into local handle storage
+//    V8MonkeyObject* obj = *value;
+//
+//    InternalIsolate* i = InternalIsolate::GetCurrent();
+//
+//    if (V8MonkeyCommon::CheckDeath("Persistent::New")) {
+//      return nullptr;
+//    }
+//
+//    InternalIsolate::AutoGCMutex lock(i);
+//
+//    HandleData hd = i->GetPersistentHandleData();
+//
+//    // Allocate more slots if necessary
+//    if (hd.limit == hd.next) {
+//      ObjectBlock<V8MonkeyObject>::Limits limits = ObjectBlock<V8MonkeyObject>::Extend(hd.limit);
+//      hd.limit = limits.limit;
+//      hd.next = limits.top;
+//    }
+//
+//    V8MonkeyObject** ptr = hd.next++;
+//    InternalIsolate::GetCurrent()->SetPersistentHandleData(hd);
+//
+//    if (obj) {
+//      obj->AddRef();
+//    }
+//
+//    *ptr = obj;
+//
+//    return ptr;
+//  }
+//
+//
+//  /*
+//   * Deletes a persistent object, and clears its slot in the isolate's persistent storage (to prevent double-frees).
+//   * Uses PersistentRelease to ensure correct refcount is decremented. It also first checks that the slot is not
+//   * already zeroed; AFAICT, the V8 API doesn't place any restrictions on when one can call Dispose after a Persistent
+//   * has been weakened and the weak callback called (though logic would dictate that the only safe place is when
+//   * handling the weak callback, as otherwise the caller cannot reason about the liveness of the object when they didn't
+//   * clear the weakness).
+//   *
+//   */
+//
+//  void V8::DeletePersistent(V8Monkey::V8MonkeyObject** objSlot, V8Monkey::V8MonkeyObject* obj) {
+//    V8Monkey::InternalIsolate::AutoGCMutex lock(V8Monkey::InternalIsolate::GetCurrent());
+//    obj->PersistentRelease(objSlot);
+//    *objSlot = nullptr;
+//  }
+//
+//
+//  void V8::MakePersistentWeak(V8Monkey::V8MonkeyObject** objSlot, V8Monkey::V8MonkeyObject* obj, void* parameters,
+//                                   WeakReferenceCallback callback) {
+//    V8Monkey::InternalIsolate::AutoGCMutex lock(V8Monkey::InternalIsolate::GetCurrent());
+//    obj->MakeWeak(objSlot, parameters, callback);
+//  }
+//
+//
+//  void V8::ClearPersistentWeakness(V8Monkey::V8MonkeyObject** objSlot, V8Monkey::V8MonkeyObject* obj) {
+//    V8Monkey::InternalIsolate::AutoGCMutex lock(V8Monkey::InternalIsolate::GetCurrent());
+//    obj->ClearWeakness(objSlot);
+//  }
+//
+//
+//  bool V8::IsPersistentWeak(V8Monkey::V8MonkeyObject** objSlot, V8Monkey::V8MonkeyObject* obj) {
+//    return obj->IsWeak(objSlot);
+//  }
+//
+//
+//  bool V8::IsPersistentNearDeath(V8Monkey::V8MonkeyObject* obj) {
+//    return obj->IsNearDeath();
+//  }
+//}

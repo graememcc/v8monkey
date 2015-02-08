@@ -3,8 +3,9 @@
 
 // EXPORT_FOR_TESTING_ONLY
 #include "utils/test.h"
-
-
+//
+//
+/*
 #ifdef DEBUG
   #define ASSERT(condition, location, message) do {\
       if (!(condition)) {\
@@ -14,38 +15,38 @@
 #else
   #define ASSERT(condition, location, message) ((void) 0)
 #endif
-
-
-namespace v8 {
-  namespace V8Monkey {
-    class EXPORT_FOR_TESTING_ONLY V8MonkeyCommon {
-      public:
-        // Intended to be called only by the static initializer to ensure that all required TLS keys exist
-        static void InitTLSKeys();
-
-        // Intended to be called only by the static initializer to ensure that the primitive singletons (i.e. true,
-        // false etc) exist.
-        static void InitPrimitiveSingletons();
-
-        // Intended to be called only by the static initializer's destructor to clean up singleton primitives
-        static void TearDownPrimitiveSingletons();
-
-        // Used by static destructor in init to enforce an ordering constraint: the main thread's JSRuntime and JSContext
-        // must be disposed of before SpiderMonkey itself is disposed
-        static void ForceMainThreadRTCXDisposal();
-
-        // Uh-oh. Something's gone awry.
-        static void TriggerFatalError(const char* location, const char* message);
-
-        // Returns true if V8 is dead, but also triggers a fatal error handler call, reporting it
-        static bool CheckDeath(const char* method);
-
-      private:
-        // This is simply a collection of helper methods
-        V8MonkeyCommon();
-    };
-  }
-}
+*/
+//
+//namespace v8 {
+//  namespace V8Monkey {
+//    class EXPORT_FOR_TESTING_ONLY V8MonkeyCommon {
+//      public:
+//        // Intended to be called only by the static initializer to ensure that all required TLS keys exist
+//        static void InitTLSKeys();
+//
+//        // Intended to be called only by the static initializer to ensure that the primitive singletons (i.e. true,
+//        // false etc) exist.
+//        static void InitPrimitiveSingletons();
+//
+//        // Intended to be called only by the static initializer's destructor to clean up singleton primitives
+//        static void TearDownPrimitiveSingletons();
+//
+//        // Used by static destructor in init to enforce an ordering constraint: the main thread's JSRuntime and JSContext
+//        // must be disposed of before SpiderMonkey itself is disposed
+//        static void ForceMainThreadRTCXDisposal();
+//
+//        // Uh-oh. Something's gone awry.
+//        static void TriggerFatalError(const char* location, const char* message);
+//
+//        // Returns true if V8 is dead, but also triggers a fatal error handler call, reporting it
+//        static bool CheckDeath(const char* method);
+//
+//      private:
+//        // This is simply a collection of helper methods
+//        V8MonkeyCommon();
+//    };
+//  }
+//}
 
 
 #endif

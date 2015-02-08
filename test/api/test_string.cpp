@@ -1,28 +1,21 @@
-// std::is_nan
-#include <cmath>
-
-// std::numeric_limits
-#include <limits>
-
-// Boolean Integer Int32 Handle HandleScope Isolate Local Null Number Primitive Uint32 Undefined V8 Value
 #include "v8.h"
 
-// Unit-testing support
+#include "utils/test.h"
 #include "V8MonkeyTest.h"
 // 
 // 
 // using namespace v8;
 // 
 // 
-// V8MONKEY_TEST(Number001, "IsUndefined works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String001, "IsUndefined works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsUndefined(), "IsUndefined reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsUndefined(), "IsUndefined reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -30,15 +23,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number002, "IsNull works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String002, "IsNull works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsNull(), "IsNull reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsNull(), "IsNull reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -46,15 +39,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number003, "IsTrue works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String003, "IsTrue works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsTrue(), "IsTrue reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsTrue(), "IsTrue reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -62,15 +55,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number004, "IsFalse works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String004, "IsFalse works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsFalse(), "IsFalse reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsFalse(), "IsFalse reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -78,15 +71,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number005, "IsString works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String005, "IsFunction works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsString(), "IsString reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsFunction(), "IsFunction reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -94,15 +87,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number006, "IsFunction works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String006, "IsArray works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsFunction(), "IsFunction reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsArray(), "IsArray reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -110,15 +103,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number007, "IsArray works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String007, "IsObject works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsArray(), "IsArray reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsObject(), "IsObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -126,15 +119,30 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number008, "IsObject works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String008, "IsBoolean works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsObject(), "IsObject reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsBoolean(), "IsBoolean reports correct result");
+//   }
+// 
+//   Isolate::GetCurrent()->Exit();
+// }
+// 
+// 
+// V8MONKEY_TEST(String009, "IsExternal works correctly") {
+//   char data[] = "";
+//   V8::Initialize();
+// 
+//   {
+//     HandleScope h;
+//     Local<String> s = String::New(data);
+// 
+//   //  V8MONKEY_CHECK(!s->IsExternal(), "IsExternal reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -142,30 +150,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number009, "IsBoolean works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String010, "IsDate works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsBoolean(), "IsBoolean reports correct result");
-//   }
-// 
-//   Isolate::GetCurrent()->Exit();
-// }
-// 
-// 
-// V8MONKEY_TEST(Number010, "IsExternal works correctly") {
-//   double d = 123.45;
-//   V8::Initialize();
-// 
-//   {
-//     HandleScope h;
-//     Local<Number> n = Number::New(d);
-// 
-//     V8MONKEY_CHECK(!n->IsExternal(), "IsExternal reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsDate(), "IsDate reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -173,15 +166,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number011, "IsDate works correctly") {
-//   double d = 123.45;
-//   V8::Initialize();
+// V8MONKEY_TEST(String011, "IsBooleanObject works correctly") {
+//   char data[] = "";
 // 
+//   V8::Initialize();
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsDate(), "IsDate reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsBooleanObject(), "IsBooleanObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -189,15 +182,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number012, "IsBooleanObject works correctly") {
-//   double d = 123.45;
-// 
+// V8MONKEY_TEST(String012, "IsNumberObject works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
+// 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsBooleanObject(), "IsBooleanObject reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsNumberObject(), "IsNumberObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -205,15 +198,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number013, "IsNumberObject works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String013, "IsStringObject works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsNumberObject(), "IsNumberObject reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsStringObject(), "IsStringObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -221,15 +214,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number014, "IsStringObject works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String014, "IsNativeError works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsStringObject(), "IsStringObject reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsNativeError(), "IsNativeError reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -237,15 +230,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number015, "IsNativeError works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String015, "IsRegExp works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsNativeError(), "IsNativeError reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsRegExp(), "IsRegExp reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -253,15 +246,15 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number016, "IsRegExp works correctly") {
-//   double d = 123.45;
+// V8MONKEY_TEST(String016, "IsNumber works correctly") {
+//   char data[] = "";
 //   V8::Initialize();
 // 
 //   {
 //     HandleScope h;
-//     Local<Number> n = Number::New(d);
+//     Local<String> s = String::New(data);
 // 
-//     V8MONKEY_CHECK(!n->IsRegExp(), "IsRegExp reports correct result");
+//   //  V8MONKEY_CHECK(!s->IsNumber(), "IsNumber reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -269,7 +262,135 @@
 // }
 // 
 // 
-// #define NUMBERISTEST(testNumber, variant, val, method, expected) \
+// V8MONKEY_TEST(String017, "IsInt32 works correctly") {
+//   char data[] = "";
+//   V8::Initialize();
+// 
+//   {
+//     HandleScope h;
+//     Local<String> s = String::New(data);
+// 
+//   //  V8MONKEY_CHECK(!s->IsInt32(), "IsInt32 reports correct result");
+//   }
+// 
+//   Isolate::GetCurrent()->Exit();
+//   V8::Dispose();
+// }
+// 
+// 
+// V8MONKEY_TEST(String018, "IsUint32 works correctly") {
+//   char data[] = "";
+//   V8::Initialize();
+// 
+//   {
+//     HandleScope h;
+//     Local<String> s = String::New(data);
+// 
+//   //  V8MONKEY_CHECK(!s->IsUint32(), "IsUint32 reports correct result");
+//   }
+// 
+//   Isolate::GetCurrent()->Exit();
+//   V8::Dispose();
+// }
+// 
+// 
+// V8MONKEY_TEST(String019, "IsString works correctly (1)") {
+//   char data[] = "";
+//   V8::Initialize();
+// 
+//   {
+//     HandleScope h;
+//     Local<String> s = String::New(data);
+// 
+//   //  V8MONKEY_CHECK(s->IsString(), "IsString reports correct result");
+//   }
+// 
+//   Isolate::GetCurrent()->Exit();
+//   V8::Dispose();
+// }
+// 
+// 
+// V8MONKEY_TEST(String020, "IsString works correctly (2)") {
+//   char data[] = "abc";
+//   V8::Initialize();
+// 
+//   {
+//     HandleScope h;
+//     Local<String> s = String::New(data);
+// 
+//   //  V8MONKEY_CHECK(s->IsString(), "IsString reports correct result");
+//   }
+// 
+//   Isolate::GetCurrent()->Exit();
+//   V8::Dispose();
+// }
+// 
+// 
+// V8MONKEY_TEST(String021, "IsString works correctly (3)") {
+//   char data[] = {0xc3, 0xa8, 0x00};
+//   V8::Initialize();
+// 
+//   {
+//     HandleScope h;
+//     Local<String> s = String::New(data);
+// 
+//   //  V8MONKEY_CHECK(s->IsString(), "IsString reports correct result");
+//   }
+// 
+//   Isolate::GetCurrent()->Exit();
+//   V8::Dispose();
+// }
+// 
+// 
+// V8MONKEY_TEST(String022, "IsString works correctly (4)") {
+//   char data[] = {0xc4, 0xbf, 0x00};
+//   V8::Initialize();
+// 
+//   {
+//     HandleScope h;
+//     Local<String> s = String::New(data);
+// 
+//   //  V8MONKEY_CHECK(s->IsString(), "IsString reports correct result");
+//   }
+// 
+//   Isolate::GetCurrent()->Exit();
+//   V8::Dispose();
+// }
+// 
+// 
+// V8MONKEY_TEST(String023, "IsString works correctly (5)") {
+//   char data[] = {0xe4, 0x90, 0xaf, 0x00};
+//   V8::Initialize();
+// 
+//   {
+//     HandleScope h;
+//     Local<String> s = String::New(data);
+// 
+//   //  V8MONKEY_CHECK(s->IsString(), "IsString reports correct result");
+//   }
+// 
+//   Isolate::GetCurrent()->Exit();
+//   V8::Dispose();
+// }
+// 
+// 
+// V8MONKEY_TEST(String024, "IsString works correctly (6)") {
+//   char data[] = {0xf1, 0x89, 0x90, 0xaf, 0x00};
+//   V8::Initialize();
+// 
+//   {
+//     HandleScope h;
+//     Local<String> s = String::New(data);
+// 
+//   //  V8MONKEY_CHECK(s->IsString(), "IsString reports correct result");
+//   }
+// 
+//   Isolate::GetCurrent()->Exit();
+//   V8::Dispose();
+// }
+// /*
+// 
+// 
 // V8MONKEY_TEST(Number##testNumber, #method " works correctly (" #variant ")") { \
 //   V8::Initialize(); \
 // \
@@ -278,7 +399,7 @@
 //     double value = val; \
 //     Local<Value> n = Number::New(value); \
 // \
-//     V8MONKEY_CHECK(n->method() == expected, "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->method() == expected, "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -324,6 +445,20 @@
 // NUMBERISTEST(048, 10, std::numeric_limits<double>::infinity(), IsUint32, false)
 // NUMBERISTEST(049, 11, std::numeric_limits<double>::quiet_NaN(), IsUint32, false)
 // #undef NUMBERISTEST
+// */
+// /*
+// #include <cmath>
+// #include <limits>
+// 
+// #include "v8.h"
+// 
+// #include "utils/test.h"
+// #include "V8MonkeyTest.h"
+// 
+// 
+// using namespace v8;
+// 
+// 
 // 
 // 
 // #define NUMBERVALUETEST(testNumber, variant, val) \
@@ -335,7 +470,7 @@
 //     double value = val; \
 //     Local<Number> n = Number::New(value); \
 // \
-//     V8MONKEY_CHECK(n->Value() == value, "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->Value() == value, "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -356,7 +491,7 @@
 // #undef NUMBERVALUETEST
 // 
 // 
-// V8MONKEY_TEST(Number060, "Value works correctly (10)") {
+// V8MONKEY_TEST(String060, "Value works correctly (10)") {
 //   V8::Initialize();
 // 
 //   {
@@ -364,7 +499,7 @@
 //     double value = std::numeric_limits<double>::quiet_NaN();
 //     Local<Number> n = Number::New(value);
 // 
-//     V8MONKEY_CHECK(isnan(n->Value()), "Correct value returned");
+//   //  V8MONKEY_CHECK(isnan(n->Value()), "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -381,7 +516,7 @@
 //     double value = val; \
 //     Local<Number> n = Number::New(value); \
 // \
-//     V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -402,7 +537,7 @@
 // #undef NUMBERNUMBERVALUETEST
 // 
 // 
-// V8MONKEY_TEST(Number071, "NumberValue works correctly (10)") {
+// V8MONKEY_TEST(String071, "NumberValue works correctly (10)") {
 //   V8::Initialize();
 // 
 //   {
@@ -410,7 +545,7 @@
 //     double value = std::numeric_limits<double>::quiet_NaN();
 //     Local<Number> n = Number::New(value);
 // 
-//     V8MONKEY_CHECK(isnan(n->NumberValue()), "Correct value returned");
+//   //  V8MONKEY_CHECK(isnan(n->NumberValue()), "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -428,8 +563,8 @@
 //     Local<Value> n = Number::New(value); \
 //     Local<Number> n2 = n->ToNumber(); \
 // \
-//     V8MONKEY_CHECK(n2->NumberValue() == n->NumberValue(), "Correct value returned"); \
-//     V8MONKEY_CHECK(n2 == n, "Same object returned"); \
+//   //  V8MONKEY_CHECK(n2->NumberValue() == n->NumberValue(), "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n2 == n, "Same object returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -450,7 +585,7 @@
 // #undef NUMBERTONUMBERTEST
 // 
 // 
-// V8MONKEY_TEST(Number082, "ToNumber works correctly (10)") {
+// V8MONKEY_TEST(String082, "ToNumber works correctly (10)") {
 //   V8::Initialize();
 // 
 //   {
@@ -459,7 +594,7 @@
 //     Local<Value> n = Number::New(value);
 //     Local<Number> n2 = n->ToNumber();
 // 
-//     V8MONKEY_CHECK(isnan(n2->Value()), "Correct value returned");
+//   //  V8MONKEY_CHECK(isnan(n2->Value()), "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -476,7 +611,7 @@
 //     double value = val; \
 //     Local<Number> n = Number::New(value); \
 // \
-//     V8MONKEY_CHECK(n->method() == expected, "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->method() == expected, "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -547,8 +682,8 @@
 //     Local<Value> n = Number::New(value); \
 //     Local<type> n2 = n->To##type(); \
 // \
-//     V8MONKEY_CHECK(n2->Value() == n->type##Value(), "Correct value returned"); \
-//     V8MONKEY_CHECK((n2 == n) == isSame, "New object returned"); \
+//   //  V8MONKEY_CHECK(n2->Value() == n->type##Value(), "Correct value returned"); \
+//   //  V8MONKEY_CHECK((n2 == n) == isSame, "New object returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -619,7 +754,7 @@
 //     Local<Value> n = Number::New(value); \
 //     Local<Uint32> indexHandle = n->ToArrayIndex(); \
 // \
-//     V8MONKEY_CHECK(indexHandle.IsEmpty() == shouldBeEmpty, "Correct value returned"); \
+//   //  V8MONKEY_CHECK(indexHandle.IsEmpty() == shouldBeEmpty, "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -651,7 +786,7 @@
 //     Local<Value> n = Number::New(value); \
 //     Local<Uint32> indexHandle = n->ToArrayIndex(); \
 // \
-//     V8MONKEY_CHECK(indexHandle->Value() == expected, "Correct value returned"); \
+//   //  V8MONKEY_CHECK(indexHandle->Value() == expected, "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -676,7 +811,7 @@
 //     Local<Value> n = Number::New(value); \
 //     Local<Uint32> indexHandle = n->ToArrayIndex(); \
 // \
-//     V8MONKEY_CHECK((*indexHandle == *n) == expected, "Correct value returned"); \
+//   //  V8MONKEY_CHECK((*indexHandle == *n) == expected, "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -702,10 +837,10 @@
 //     Local<Value> n2 = Number::New(value); \
 //     Local<Value> n3 = Number::New(value - 1.0); \
 // \
-//     V8MONKEY_CHECK(n->Equals(n), "Self-equality works correctly"); \
-//     V8MONKEY_CHECK(n->Equals(n2), "Equality works correctly"); \
-//     V8MONKEY_CHECK(n2->Equals(n), "Equality is symmetric"); \
-//     V8MONKEY_CHECK(!n->Equals(n3), "Inequality is correct"); \
+//   //  V8MONKEY_CHECK(n->Equals(n), "Self-equality works correctly"); \
+//   //  V8MONKEY_CHECK(n->Equals(n2), "Equality works correctly"); \
+//   //  V8MONKEY_CHECK(n2->Equals(n), "Equality is symmetric"); \
+//   //  V8MONKEY_CHECK(!n->Equals(n3), "Inequality is correct"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -725,7 +860,7 @@
 // #undef NUMBEREQUALTEST
 // 
 // 
-// V8MONKEY_TEST(Number199, "Equals works correctly (10)") {
+// V8MONKEY_TEST(String199, "Equals works correctly (10)") {
 //   V8::Initialize();
 // 
 //   {
@@ -735,9 +870,9 @@
 //     Local<Value> n2 = Number::New(value);
 //     Local<Value> n3 = Number::New(123);
 // 
-//     V8MONKEY_CHECK(n->Equals(n), "Self-equality works correctly");
-//     V8MONKEY_CHECK(n->Equals(n2), "Equality works correctly");
-//     V8MONKEY_CHECK(!n->Equals(n3), "Inequality works correctly");
+//   //  V8MONKEY_CHECK(n->Equals(n), "Self-equality works correctly");
+//   //  V8MONKEY_CHECK(n->Equals(n2), "Equality works correctly");
+//   //  V8MONKEY_CHECK(!n->Equals(n3), "Inequality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -745,7 +880,7 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number200, "Equals works correctly (11)") {
+// V8MONKEY_TEST(String200, "Equals works correctly (11)") {
 //   V8::Initialize();
 // 
 //   {
@@ -754,8 +889,8 @@
 //     Local<Value> n = Number::New(value);
 //     Local<Value> n2 = Number::New(value);
 // 
-//     V8MONKEY_CHECK(!n->Equals(n), "Self-NaN equality works correctly");
-//     V8MONKEY_CHECK(!n->Equals(n2), "NaN Equality works correctly");
+//   //  V8MONKEY_CHECK(!n->Equals(n), "Self-NaN equality works correctly");
+//   //  V8MONKEY_CHECK(!n->Equals(n2), "NaN Equality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -763,7 +898,7 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number201, "Equals works correctly (12)") {
+// V8MONKEY_TEST(String201, "Equals works correctly (12)") {
 //   V8::Initialize();
 // 
 //   {
@@ -772,7 +907,7 @@
 //     Local<Value> n = Number::New(value);
 //     Handle<Value> n2 = Boolean::New(true);
 // 
-//     V8MONKEY_CHECK(n->Equals(n2), "Equality works correctly");
+//   //  V8MONKEY_CHECK(n->Equals(n2), "Equality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -780,7 +915,7 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number202, "Equals works correctly (13)") {
+// V8MONKEY_TEST(String202, "Equals works correctly (13)") {
 //   V8::Initialize();
 // 
 //   {
@@ -789,7 +924,7 @@
 //     Local<Value> n = Number::New(value);
 //     Handle<Value> n2 = Boolean::New(true);
 // 
-//     V8MONKEY_CHECK(!n->Equals(n2), "Equality works correctly");
+//   //  V8MONKEY_CHECK(!n->Equals(n2), "Equality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -797,7 +932,7 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number203, "Equals works correctly (14)") {
+// V8MONKEY_TEST(String203, "Equals works correctly (14)") {
 //   V8::Initialize();
 // 
 //   {
@@ -806,7 +941,7 @@
 //     Local<Value> n = Number::New(value);
 //     Handle<Value> n2 = Boolean::New(false);
 // 
-//     V8MONKEY_CHECK(n->Equals(n2), "Equality works correctly");
+//   //  V8MONKEY_CHECK(n->Equals(n2), "Equality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -814,7 +949,7 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number204, "Equals works correctly (15)") {
+// V8MONKEY_TEST(String204, "Equals works correctly (15)") {
 //   V8::Initialize();
 // 
 //   {
@@ -823,7 +958,7 @@
 //     Local<Value> n = Number::New(value);
 //     Handle<Value> n2 = Boolean::New(false);
 // 
-//     V8MONKEY_CHECK(!n->Equals(n2), "Equality works correctly");
+//   //  V8MONKEY_CHECK(!n->Equals(n2), "Equality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -831,7 +966,7 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number205, "Equals works correctly (16)") {
+// V8MONKEY_TEST(String205, "Equals works correctly (16)") {
 //   V8::Initialize();
 // 
 //   {
@@ -840,7 +975,7 @@
 //     Local<Value> n = Number::New(value);
 //     Handle<Value> u = Undefined();
 // 
-//     V8MONKEY_CHECK(!n->Equals(u), "Equality works correctly");
+//   //  V8MONKEY_CHECK(!n->Equals(u), "Equality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -848,7 +983,7 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number206, "Equals works correctly (17)") {
+// V8MONKEY_TEST(String206, "Equals works correctly (17)") {
 //   V8::Initialize();
 // 
 //   {
@@ -857,7 +992,7 @@
 //     Local<Value> n = Number::New(value);
 //     Handle<Value> other = Null();
 // 
-//     V8MONKEY_CHECK(!n->Equals(other), "Equality works correctly");
+//   //  V8MONKEY_CHECK(!n->Equals(other), "Equality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -876,10 +1011,10 @@
 //     Local<Value> n2 = Number::New(value); \
 //     Local<Value> n3 = Number::New(value - 1.0); \
 // \
-//     V8MONKEY_CHECK(n->StrictEquals(n), "Self-strict equality works correctly"); \
-//     V8MONKEY_CHECK(n->StrictEquals(n2), "Strict equality works correctly"); \
-//     V8MONKEY_CHECK(n2->StrictEquals(n), "Strict quality is symmetric"); \
-//     V8MONKEY_CHECK(!n->StrictEquals(n3), "Inequality is correct"); \
+//   //  V8MONKEY_CHECK(n->StrictEquals(n), "Self-strict equality works correctly"); \
+//   //  V8MONKEY_CHECK(n->StrictEquals(n2), "Strict equality works correctly"); \
+//   //  V8MONKEY_CHECK(n2->StrictEquals(n), "Strict quality is symmetric"); \
+//   //  V8MONKEY_CHECK(!n->StrictEquals(n3), "Inequality is correct"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -899,7 +1034,7 @@
 // #undef NUMBERSTRICTEQUALTEST
 // 
 // 
-// V8MONKEY_TEST(Number216, "StrictEquals works correctly (10)") {
+// V8MONKEY_TEST(String216, "StrictEquals works correctly (10)") {
 //   V8::Initialize();
 // 
 //   {
@@ -909,9 +1044,9 @@
 //     Local<Value> n2 = Number::New(value);
 //     Local<Value> n3 = Number::New(123);
 // 
-//     V8MONKEY_CHECK(n->StrictEquals(n), "Self-equality works correctly");
-//     V8MONKEY_CHECK(n->StrictEquals(n2), "Strict equality works correctly");
-//     V8MONKEY_CHECK(!n->StrictEquals(n3), "Strict inequality works correctly");
+//   //  V8MONKEY_CHECK(n->StrictEquals(n), "Self-equality works correctly");
+//   //  V8MONKEY_CHECK(n->StrictEquals(n2), "Strict equality works correctly");
+//   //  V8MONKEY_CHECK(!n->StrictEquals(n3), "Strict inequality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -919,7 +1054,7 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number217, "StrictEquals works correctly (11)") {
+// V8MONKEY_TEST(String217, "StrictEquals works correctly (11)") {
 //   V8::Initialize();
 // 
 //   {
@@ -928,8 +1063,8 @@
 //     Local<Value> n = Number::New(value);
 //     Local<Value> n2 = Number::New(value);
 // 
-//     V8MONKEY_CHECK(!n->StrictEquals(n), "Self-NaN equality works correctly");
-//     V8MONKEY_CHECK(!n->StrictEquals(n2), "NaN Equality works correctly");
+//   //  V8MONKEY_CHECK(!n->StrictEquals(n), "Self-NaN equality works correctly");
+//   //  V8MONKEY_CHECK(!n->StrictEquals(n2), "NaN Equality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -937,7 +1072,7 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number218, "StrictEquals works correctly (12)") {
+// V8MONKEY_TEST(String218, "StrictEquals works correctly (12)") {
 //   V8::Initialize();
 // 
 //   {
@@ -946,7 +1081,7 @@
 //     Local<Value> n = Number::New(value);
 //     Handle<Value> n2 = Boolean::New(true);
 // 
-//     V8MONKEY_CHECK(!n->StrictEquals(n2), "Strict equality works correctly");
+//   //  V8MONKEY_CHECK(!n->StrictEquals(n2), "Strict equality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -954,7 +1089,7 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number219, "StrictEquals works correctly (13)") {
+// V8MONKEY_TEST(String219, "StrictEquals works correctly (13)") {
 //   V8::Initialize();
 // 
 //   {
@@ -963,7 +1098,7 @@
 //     Local<Value> n = Number::New(value);
 //     Handle<Value> n2 = Boolean::New(false);
 // 
-//     V8MONKEY_CHECK(!n->StrictEquals(n2), "Strict Equality works correctly");
+//   //  V8MONKEY_CHECK(!n->StrictEquals(n2), "Strict Equality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -971,7 +1106,7 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number220, "StrictEquals works correctly (14)") {
+// V8MONKEY_TEST(String220, "StrictEquals works correctly (14)") {
 //   V8::Initialize();
 // 
 //   {
@@ -980,7 +1115,7 @@
 //     Local<Value> n = Number::New(value);
 //     Handle<Value> u = Undefined();
 // 
-//     V8MONKEY_CHECK(!n->StrictEquals(u), "Equality works correctly");
+//   //  V8MONKEY_CHECK(!n->StrictEquals(u), "Equality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -988,7 +1123,7 @@
 // }
 // 
 // 
-// V8MONKEY_TEST(Number221, "StrictEquals works correctly (15)") {
+// V8MONKEY_TEST(String221, "StrictEquals works correctly (15)") {
 //   V8::Initialize();
 // 
 //   {
@@ -997,7 +1132,7 @@
 //     Local<Value> n = Number::New(value);
 //     Handle<Value> other = Null();
 // 
-//     V8MONKEY_CHECK(!n->StrictEquals(other), "Equality works correctly");
+//   //  V8MONKEY_CHECK(!n->StrictEquals(other), "Equality works correctly");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1013,7 +1148,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsUndefined(), "IsUndefined reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsUndefined(), "IsUndefined reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1029,7 +1164,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsNull(), "IsNull reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsNull(), "IsNull reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1045,7 +1180,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsTrue(), "IsTrue reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsTrue(), "IsTrue reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1061,7 +1196,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsFalse(), "IsFalse reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsFalse(), "IsFalse reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1077,7 +1212,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsString(), "IsString reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsString(), "IsString reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1093,7 +1228,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsFunction(), "IsFunction reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsFunction(), "IsFunction reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1109,7 +1244,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsArray(), "IsArray reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsArray(), "IsArray reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1125,7 +1260,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsObject(), "IsObject reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsObject(), "IsObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1141,7 +1276,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsBoolean(), "IsBoolean reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsBoolean(), "IsBoolean reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1157,7 +1292,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsExternal(), "IsExternal reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsExternal(), "IsExternal reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1173,7 +1308,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsDate(), "IsDate reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsDate(), "IsDate reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1189,7 +1324,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsBooleanObject(), "IsBooleanObject reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsBooleanObject(), "IsBooleanObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1205,7 +1340,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsNumberObject(), "IsNumberObject reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsNumberObject(), "IsNumberObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1221,7 +1356,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsStringObject(), "IsStringObject reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsStringObject(), "IsStringObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1237,7 +1372,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsNativeError(), "IsNativeError reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsNativeError(), "IsNativeError reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1253,7 +1388,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d);
 // 
-//     V8MONKEY_CHECK(!n->IsRegExp(), "IsRegExp reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsRegExp(), "IsRegExp reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1270,7 +1405,7 @@
 //     int32_t value = val; \
 //     Local<Value> n = Integer::constructor(value); \
 // \
-//     V8MONKEY_CHECK(n->Is##method() == expected, "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->Is##method() == expected, "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -1312,7 +1447,7 @@
 //     type value = val; \
 //     Local<Integer> n = Integer::constructor(value); \
 // \
-//     V8MONKEY_CHECK(n->Value() == value, "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->Value() == value, "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -1338,7 +1473,7 @@
 //     int32_t value = val; \
 //     Local<Integer> n = Integer::constructor(value); \
 // \
-//     V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -1364,7 +1499,7 @@
 //     Local<Value> temp = Number::New(value);
 //     Local<Integer> n = temp->ToInteger();
 // 
-//     V8MONKEY_CHECK(n->NumberValue() == value, "Correct value returned");
+//   //  V8MONKEY_CHECK(n->NumberValue() == value, "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1381,7 +1516,7 @@
 //     Local<Value> temp = Number::New(value);
 //     Local<Integer> n = temp->ToInteger();
 // 
-//     V8MONKEY_CHECK(std::isnan(n->NumberValue()), "Correct value returned");
+//   //  V8MONKEY_CHECK(std::isnan(n->NumberValue()), "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1398,7 +1533,7 @@
 //     int32_t value = val; \
 //     Local<Integer> n = Integer::constructor(value); \
 // \
-//     V8MONKEY_CHECK(n->IntegerValue() == n->Value(), "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->IntegerValue() == n->Value(), "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -1423,7 +1558,7 @@
 //     HandleScope h;
 //     Local<Integer> n = Integer::New(d, Isolate::GetCurrent());
 // 
-//     V8MONKEY_CHECK(n->Value() == d, "Value correct");
+//   //  V8MONKEY_CHECK(n->Value() == d, "Value correct");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1438,7 +1573,7 @@
 //   {
 //     HandleScope h;
 //     Local<Integer> n = Integer::NewFromUnsigned(d, Isolate::GetCurrent());
-//     V8MONKEY_CHECK(n->Value() == d, "IsUint32 reports correct result");
+//   //  V8MONKEY_CHECK(n->Value() == d, "IsUint32 reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1455,7 +1590,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsUndefined(), "IsUndefined reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsUndefined(), "IsUndefined reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1472,7 +1607,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsNull(), "IsNull reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsNull(), "IsNull reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1489,7 +1624,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsTrue(), "IsTrue reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsTrue(), "IsTrue reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1506,7 +1641,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsFalse(), "IsFalse reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsFalse(), "IsFalse reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1523,7 +1658,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsString(), "IsString reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsString(), "IsString reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1540,7 +1675,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsFunction(), "IsFunction reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsFunction(), "IsFunction reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1557,7 +1692,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsArray(), "IsArray reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsArray(), "IsArray reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1574,7 +1709,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsObject(), "IsObject reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsObject(), "IsObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1591,7 +1726,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsBoolean(), "IsBoolean reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsBoolean(), "IsBoolean reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1608,7 +1743,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsExternal(), "IsExternal reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsExternal(), "IsExternal reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1625,7 +1760,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsDate(), "IsDate reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsDate(), "IsDate reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1642,7 +1777,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsBooleanObject(), "IsBooleanObject reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsBooleanObject(), "IsBooleanObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1659,7 +1794,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsNumberObject(), "IsNumberObject reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsNumberObject(), "IsNumberObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1676,7 +1811,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsStringObject(), "IsStringObject reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsStringObject(), "IsStringObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1693,7 +1828,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsNativeError(), "IsNativeError reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsNativeError(), "IsNativeError reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1710,7 +1845,7 @@
 //     Local<Integer> temp = Integer::New(d);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(!n->IsRegExp(), "IsRegExp reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsRegExp(), "IsRegExp reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1728,7 +1863,7 @@
 //     Local<Integer> temp = Integer::New(value); \
 //     Local<Value> n = temp->ToInt32(); \
 // \
-//     V8MONKEY_CHECK(n->IsInt32(), "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->IsInt32(), "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -1752,7 +1887,7 @@
 //     Local<Integer> temp = Integer::New(value); \
 //     Local<Value> n = temp->ToInt32(); \
 // \
-//     V8MONKEY_CHECK(n->IsUint32() == expected, "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->IsUint32() == expected, "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -1776,7 +1911,7 @@
 //     Local<Integer> temp = Integer::New(value); \
 //     Local<Int32> n = temp->ToInt32(); \
 // \
-//     V8MONKEY_CHECK(n->Value() == value, "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->Value() == value, "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -1800,7 +1935,7 @@
 //     Local<Integer> temp = Integer::New(value); \
 //     Local<Int32> n = temp->ToInt32(); \
 // \
-//     V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -1823,7 +1958,7 @@
 //     Local<Value> temp = Number::New(value);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
+//   //  V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1840,7 +1975,7 @@
 //     Local<Value> temp = Number::New(value);
 //     Local<Int32> n = temp->ToInt32();
 // 
-//     V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
+//   //  V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1858,7 +1993,7 @@
 //     Local<Integer> temp = Integer::New(value); \
 //     Local<Int32> n = temp->ToInt32(); \
 // \
-//     V8MONKEY_CHECK(n->Int32Value() == n->Value(), "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->Int32Value() == n->Value(), "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -1883,7 +2018,7 @@
 //     Local<Int32> n = temp->ToInt32();
 //     Local<Number> n2 = n->ToNumber();
 // 
-//     V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned");
+//   //  V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1901,8 +2036,8 @@
 //     Local<Int32> n = temp->ToInt32();
 //     Local<Number> n2 = n->ToNumber();
 // 
-//     V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned");
-//     V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
+//   //  V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned");
+//   //  V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1919,7 +2054,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsUndefined(), "IsUndefined reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsUndefined(), "IsUndefined reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1936,7 +2071,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsNull(), "IsNull reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsNull(), "IsNull reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1953,7 +2088,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsTrue(), "IsTrue reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsTrue(), "IsTrue reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1970,7 +2105,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsFalse(), "IsFalse reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsFalse(), "IsFalse reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -1987,7 +2122,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsString(), "IsString reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsString(), "IsString reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2004,7 +2139,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsFunction(), "IsFunction reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsFunction(), "IsFunction reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2021,7 +2156,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsArray(), "IsArray reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsArray(), "IsArray reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2038,7 +2173,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsObject(), "IsObject reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsObject(), "IsObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2055,7 +2190,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsBoolean(), "IsBoolean reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsBoolean(), "IsBoolean reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2072,7 +2207,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsExternal(), "IsExternal reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsExternal(), "IsExternal reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2089,7 +2224,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsDate(), "IsDate reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsDate(), "IsDate reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2106,7 +2241,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsBooleanObject(), "IsBooleanObject reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsBooleanObject(), "IsBooleanObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2123,7 +2258,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsNumberObject(), "IsNumberObject reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsNumberObject(), "IsNumberObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2140,7 +2275,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsStringObject(), "IsStringObject reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsStringObject(), "IsStringObject reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2157,7 +2292,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsNativeError(), "IsNativeError reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsNativeError(), "IsNativeError reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2174,7 +2309,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(d);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(!n->IsRegExp(), "IsRegExp reports correct result");
+//   //  V8MONKEY_CHECK(!n->IsRegExp(), "IsRegExp reports correct result");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2192,7 +2327,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(value); \
 //     Local<Value> n = temp->ToUint32(); \
 // \
-//     V8MONKEY_CHECK(n->IsInt32() == expected, "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->IsInt32() == expected, "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -2216,7 +2351,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(value); \
 //     Local<Value> n = temp->ToUint32(); \
 // \
-//     V8MONKEY_CHECK(n->IsUint32(), "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->IsUint32(), "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -2240,7 +2375,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(value); \
 //     Local<Uint32> n = temp->ToUint32(); \
 // \
-//     V8MONKEY_CHECK(n->Value() == value, "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->Value() == value, "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -2264,7 +2399,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(value); \
 //     Local<Uint32> n = temp->ToUint32(); \
 // \
-//     V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -2287,7 +2422,7 @@
 //     Local<Value> temp = Number::New(value);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
+//   //  V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2304,7 +2439,7 @@
 //     Local<Value> temp = Number::New(value);
 //     Local<Uint32> n = temp->ToUint32();
 // 
-//     V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
+//   //  V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2322,7 +2457,7 @@
 //     Local<Integer> temp = Integer::NewFromUnsigned(value); \
 //     Local<Uint32> n = temp->ToUint32(); \
 // \
-//     V8MONKEY_CHECK(n->Uint32Value() == n->Value(), "Correct value returned"); \
+//   //  V8MONKEY_CHECK(n->Uint32Value() == n->Value(), "Correct value returned"); \
 //   } \
 //  \
 //   Isolate::GetCurrent()->Exit(); \
@@ -2347,7 +2482,7 @@
 //     Local<Uint32> n = temp->ToUint32();
 //     Local<Number> n2 = n->ToNumber();
 // 
-//     V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned");
+//   //  V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
@@ -2365,10 +2500,11 @@
 //     Local<Uint32> n = temp->ToUint32();
 //     Local<Number> n2 = n->ToNumber();
 // 
-//     V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned");
-//     V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
+//   //  V8MONKEY_CHECK(n2->Value() == n->Value(), "Correct value returned");
+//   //  V8MONKEY_CHECK(n->NumberValue() == n->Value(), "Correct value returned");
 //   }
 // 
 //   Isolate::GetCurrent()->Exit();
 //   V8::Dispose();
 // }
+// */

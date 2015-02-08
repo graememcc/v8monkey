@@ -9,11 +9,11 @@
 
 // Unit-testing support
 #include "V8MonkeyTest.h"
-
-
-using namespace v8;
-
-
-ISOLATE_INIT_TESTS(IntThreadID, 001, 002, 003, {
-  V8::GetCurrentThreadId();
-})
+// 
+// 
+// using namespace v8;
+// 
+// 
+// ISOLATE_INIT_TESTS(IntThreadID, 001, 002, 003, {
+//   V8::GetCurrentThreadId();
+// })
