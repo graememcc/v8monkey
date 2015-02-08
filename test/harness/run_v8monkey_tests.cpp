@@ -63,10 +63,10 @@ struct ArgParseResult {
 
 string stripLeadingTrailingSquareBrackets(string&& original) {
   if (original.front() != '[' || original.back() != ']') {
-    return {original};
+    return string {original};
   }
 
-  return {original, 1, original.size() - 2};
+  return string {original, 1, original.size() - 2};
 }
 
 
@@ -258,8 +258,7 @@ string getBaseName(char* argv0) {
   string fullName {argv0};
   auto slash = fullName.rfind('/');
   auto diff = slash == string::npos ? 0 : slash + 1;
-  string result {fullName, diff};
-  return result;
+  return string {fullName, diff};
 }
 
 
