@@ -20,7 +20,7 @@
 
 
 # XXX TEMPORARY
-CXX=clang++
+#CXX=clang++
 
 
 #**********************************************************************************************************************#
@@ -152,7 +152,11 @@ includeopt += -isystem $(smheadersdir)
 # What warnings do we want to enable?
 # TODO: Is there an idiomatic name for this in makefiles?
 # TODO: Do we want to allow the user to specify additional warnings? i.e. should this be additive?
-warnings = -Wall -Wextra -Wmissing-include-dirs
+warningswitches = all extra init-self switch-default switch-enum unused  strict-overflow=4 shadow undef \
+                  unsafe-loop-optimizations cast-qual cast-align conversion sign-conversion logical-op \
+                  missing-declarations packed padded redundant-decls unreachable-code inline abi ctor-dtor-privacy \
+                  non-virtual-dtor old-style-cast overloaded-virtual sign-promo missing-include-dirs
+warnings = $(addprefix -W, $(warningswitches))
 
 
 # Flags to pass to the C++ compiler:
@@ -164,8 +168,8 @@ warnings = -Wall -Wextra -Wmissing-include-dirs
 # XXX Remove -DDEBUG
 # XXX Remove suggest
 # XXX Remove conversion
-CXXFLAGS += -MMD -pedantic -Wsuggest-attribute=const -Wconversion -g -DDEBUG=1 $(warnings) $(includeopt) -fPIC \
-            -fvisibility=hidden -fstrict-aliasing -std=c++0x
+CXXFLAGS += -MMD -pedantic -Wsuggest-attribute=const -g -DDEBUG=1 $(warnings) $(includeopt) -fPIC \
+            -fvisibility=hidden -fstrict-aliasing -fdiagnostics-color=always -std=c++0x
 
 
 # Define a command that will produce a link command for the given library name
