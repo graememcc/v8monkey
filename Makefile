@@ -206,7 +206,7 @@ $(call variants, src/engine/version) $(outdir)/test/api/test_version.o: CXXFLAGS
 enginestems = $(addprefix src/engine/, init version)
 engineobjects = $(addsuffix .o, $(enginestems))
 
-runtimestems = $(addprefix src/runtime/, isolate handlescope persistent)
+runtimestems = $(addprefix src/runtime/, IsolateAPI isolate handlescope persistent)
 runtimeobjects = $(addsuffix .o, $(runtimestems))
 
 threadstems = $(addprefix src/threads/, locker)
@@ -430,7 +430,10 @@ $(call variants, src/runtime/handlescope): $(v8monkeyheader) src/data_structures
                                            src/runtime/isolate.h src/types/base_types.h src/utils/V8MonkeyCommon.h
 
 
-$(call variants, src/runtime/isolate): $(v8monkeyheader) $(JSAPIheader) src/data_structures/destruct_list.h \
+$(call variants, src/runtime/IsolateAPI): $(v8monkeyheader) src/runtime/isolate.h
+
+
+$(call variants, src/runtime/isolate): $(JSAPIheader) src/data_structures/destruct_list.h \
                                        src/data_structures/objectblock.h src/runtime/isolate.h \
                                        src/utils/SpiderMonkeyUtils.h platform/platform.h src/utils/test.h \
                                        src/utils/V8MonkeyCommon.h

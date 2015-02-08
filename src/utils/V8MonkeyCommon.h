@@ -21,9 +21,6 @@
 //  namespace V8Monkey {
 //    class EXPORT_FOR_TESTING_ONLY V8MonkeyCommon {
 //      public:
-//        // Intended to be called only by the static initializer to ensure that all required TLS keys exist
-//        static void InitTLSKeys();
-//
 //        // Intended to be called only by the static initializer to ensure that the primitive singletons (i.e. true,
 //        // false etc) exist.
 //        static void InitPrimitiveSingletons();

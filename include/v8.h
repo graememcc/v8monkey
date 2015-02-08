@@ -4085,17 +4085,17 @@ class UniqueId {
 //
 //class RetainedObjectInfo;
 //
-///**
-// * Isolate represents an isolated instance of the V8 engine.  V8
-// * isolates have completely separate states.  Objects from one isolate
-// * must not be used in other isolates.  When V8 is initialized a
-// * default isolate is implicitly created and entered.  The embedder
-// * can create additional isolates and use them in parallel in multiple
-// * threads.  An isolate can be entered by at most one thread at any
-// * given time.  The Locker/Unlocker API must be used to synchronize.
-// */
-//class V8_EXPORT Isolate {
-// public:
+/**
+ * Isolate represents an isolated instance of the V8 engine.  V8
+ * isolates have completely separate states.  Objects from one isolate
+ * must not be used in other isolates.  When V8 is initialized a
+ * default isolate is implicitly created and entered.  The embedder
+ * can create additional isolates and use them in parallel in multiple
+ * threads.  An isolate can be entered by at most one thread at any
+ * given time.  The Locker/Unlocker API must be used to synchronize.
+ */
+class V8_EXPORT Isolate {
+ public:
 //  /**
 //   * Stack-allocated class which sets the isolate for all operations
 //   * executed within a local scope.
@@ -4206,11 +4206,11 @@ class UniqueId {
 //   */
 //  static Isolate* New();
 //
-//  /**
-//   * Returns the entered isolate for the current thread or NULL in
-//   * case there is no current isolate.
-//   */
-//  static Isolate* GetCurrent();
+  /**
+   * Returns the entered isolate for the current thread or NULL in
+   * case there is no current isolate.
+   */
+  static Isolate* GetCurrent();
 //
 //  /**
 //   * Methods below this point require holding a lock (using Locker) in
@@ -4514,21 +4514,21 @@ class UniqueId {
 //   */
 //  int ContextDisposedNotification();
 //
-// private:
+ private:
 //  template<class K, class V, class Traits> friend class PersistentValueMap;
 //
-//  Isolate();
-//  Isolate(const Isolate&);
-//  ~Isolate();
-//  Isolate& operator=(const Isolate&);
-//  void* operator new(size_t size);
-//  void operator delete(void*, size_t);
+  Isolate();
+  Isolate(const Isolate&);
+  ~Isolate();
+  Isolate& operator=(const Isolate&);
+  void* operator new(size_t size);
+  void operator delete(void*, size_t);
 //
 //  void SetObjectGroupId(internal::Object** object, UniqueId id);
 //  void SetReferenceFromGroup(UniqueId id, internal::Object** object);
 //  void SetReference(internal::Object** parent, internal::Object** child);
 //  void CollectAllGarbage(const char* gc_reason);
-//};
+};
 //
 //class V8_EXPORT StartupData {
 // public:
@@ -7290,8 +7290,6 @@ class V8_EXPORT V8 {
 //      };
 //
 //      static Isolate* New();
-//
-//      static Isolate* GetCurrent();
 //
 //      void Enter();
 //

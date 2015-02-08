@@ -10,6 +10,16 @@
 
 // Unit-testing support
 #include "V8MonkeyTest.h"
+
+
+using namespace v8;
+
+
+V8MONKEY_TEST(Isolate001, "Main thread reports Isolate::GetCurrent initially null") {
+  // XXX To support threads, we will want to turn this in to a function callable from both main and secondary threads
+  //     This requires design work on how we are going to refactor V8MONKEY_TEST
+  V8MONKEY_CHECK(!Isolate::GetCurrent(), "Isolate::GetCurrent returned nullptr");
+}
 // 
 // 
 // using namespace v8;

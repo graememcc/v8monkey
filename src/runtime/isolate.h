@@ -15,10 +15,10 @@
 
 // FatalErrorCallback
 #include "v8.h"
-//
-//
-//namespace v8 {
-//  namespace V8Monkey {
+
+
+namespace v8 {
+  namespace internal {
 //
 //
 //    /*
@@ -48,8 +48,8 @@
 //     *
 //     */
 //
-//    class EXPORT_FOR_TESTING_ONLY InternalIsolate {
-//      public:
+    class EXPORT_FOR_TESTING_ONLY Isolate {
+      public:
 //        InternalIsolate() : isDisposed(false), isRegisteredForGC(false), fatalErrorHandler(nullptr), threadData(nullptr),
 //                            embedderData(nullptr), lockingThread(0), isInitted(false) {
 //          handleScopeData.Initialize();
@@ -73,8 +73,8 @@
 //        // Return the default isolate
 //        static InternalIsolate* GetDefaultIsolate() { return defaultIsolate; }
 //
-//        // Find the current InternalIsolate for the calling thread
-//        static InternalIsolate* GetCurrent();
+        // Find the current InternalIsolate for the calling thread
+        static Isolate* GetCurrent();
 //
 //        // Reports whether any threads are active in this isolate
 //        bool ContainsThreads() const { return threadData != nullptr; }
@@ -238,9 +238,9 @@
 //        static void (*GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);
 //        static void (*GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);
 //        #endif
-//    };
-//  }
-//}
-//
-//
+    };
+  }
+}
+
+
 #endif
