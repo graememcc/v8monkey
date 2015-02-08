@@ -387,7 +387,7 @@ $(v8monkeyheadersdir)/%.h: include/%.h | $(v8monkeyheadersdir)
 	cp $< $(@D)
 
 
-include/v8.h: include/v8stdint.h
+$(v8monkeyheader): $(v8monkeyheadersdir)/v8stdint.h
 
 
 #**********************************************************************************************************************#
