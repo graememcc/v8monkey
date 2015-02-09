@@ -53,8 +53,8 @@
  */
 
 
- namespace {
-   using namespace v8::V8Platform;
+namespace {
+  using namespace v8::V8Platform;
 //   using namespace v8::V8Monkey;
 //
 //
@@ -62,35 +62,34 @@
 //   // The thread's unique ID
 //   TLSKey* threadIDKey = nullptr;
 //   // The internal isolate that the thread has entered
-   TLSKey* currentIsolateKey = nullptr;
+  TLSKey* currentIsolateKey = nullptr;
 //   // List of isolates that the thread has entered and not yet exited
 //   TLSKey* smDataKey = nullptr;
 //
 //
-   /*
-    * Returns the currently entered isolate for this thread
-    *
-    */
-
-   v8::internal::Isolate* GetCurrentIsolateFromTLS() {
-     void* raw_id = Platform::GetTLSData(currentIsolateKey);
-     return reinterpret_cast<v8::internal::Isolate*>(raw_id);
-   }
 
 
-   void ensureTLSKeys() {
-     static bool initialized = false;
+  void ensureTLSKeys() {
+    static bool initialized = []() noexcept {
+      //threadIDKey = Platform::CreateTLSKey();
+      currentIsolateKey = Platform::CreateTLSKey();
+      //smDataKey = Platform::CreateTLSKey(tearDownCXAndRT);
 
-     if (initialized) {
-        return;
-      }
+      return true;
+    }();
+  }
 
-     //threadIDKey = Platform::CreateTLSKey();
-     currentIsolateKey = Platform::CreateTLSKey();
-     //smDataKey = Platform::CreateTLSKey(tearDownCXAndRT);
 
-     initialized = true;
-   }
+  /*
+   * Returns the currently entered isolate for this thread
+   *
+   */
+
+  v8::internal::Isolate* GetCurrentIsolateFromTLS() {
+    ensureTLSKeys();
+    void* raw_id = Platform::GetTLSData(currentIsolateKey);
+    return reinterpret_cast<v8::internal::Isolate*>(raw_id);
+  }
 //
 //
 //   /*
