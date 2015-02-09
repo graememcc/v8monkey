@@ -559,7 +559,7 @@ $(call apitest, handlescope): $(v8monkeyheader)
 $(call apitest, init): $(v8monkeyheader) $(v8platformheader) src/utils/V8MonkeyCommon.h
 
 
-$(call apitest, isolate): $(v8monkeyheader) $(v8platformheader) src/utils/test.h
+$(call apitest, isolate): $(v8monkeyheader) $(v8platformheader)
 
 
 $(call apitest, locker): $(v8monkeyheader)  $(v8platformheader)
