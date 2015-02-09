@@ -4879,12 +4879,13 @@ class V8_EXPORT V8 {
 //   */
 //  static void RemoveMemoryAllocationCallback(MemoryAllocationCallback callback);
 //
-//  /**
-//   * Initializes from snapshot if possible. Otherwise, attempts to
-//   * initialize from scratch.  This function is called implicitly if
-//   * you use the API without calling it first.
-//   */
-//  static bool Initialize();
+  // XXX Incomplete
+  /**
+   * Initializes from snapshot if possible. Otherwise, attempts to
+   * initialize from scratch.  This function is called implicitly if
+   * you use the API without calling it first.
+   */
+  static bool Initialize();
 //
 //  /**
 //   * Allows the host application to provide a callback which can be used
@@ -7366,7 +7367,6 @@ class V8_EXPORT V8 {
 //
 ////  class APIEXPORT V8 {
 ////    public:
-////      static bool Initialize();
 ////      static bool Dispose();
 ////      static bool IsDead();
 ////      static int GetCurrentThreadId();

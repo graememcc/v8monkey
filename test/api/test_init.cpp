@@ -7,21 +7,21 @@
 
 // Unit-testing support
 #include "V8MonkeyTest.h"
-//
-//
-//using namespace v8;
-//
-//
-//V8MONKEY_TEST(NEWInit001, "Returns true if not in an isolate") {
-//  V8MONKEY_CHECK(V8::Initialize(), "V8::Initialize returned true");
-//}
-//
-//
-//V8MONKEY_TEST(NEWInit002, "Initializing V8 does not enter an isolate") {
-//  V8::Initialize();
-//
-//  V8MONKEY_CHECK(!Isolate::GetCurrent(), "Isolate::GetCurrent still nullptr");
-//}
+
+
+using namespace v8;
+
+
+V8MONKEY_TEST(Init001, "Returns true if not in an isolate") {
+  V8MONKEY_CHECK(V8::Initialize(), "V8::Initialize returned true");
+}
+
+
+V8MONKEY_TEST(Init002, "Initializing V8 does not enter an isolate") {
+  V8::Initialize();
+
+  V8MONKEY_CHECK(!Isolate::GetCurrent(), "Isolate::GetCurrent still nullptr");
+}
 //
 //
 //// Returns false if in a dead isolate
