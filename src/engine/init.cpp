@@ -48,10 +48,6 @@
 //  bool V8IsDisposed = false;
 //
 //
-//  // Does the engine have a fatal error?
-//  bool hasFatalError = false;
-//
-//
 //  /*
 //   * The single static initializer for our global state, to avoid running into static initialization ordering problems across
 //   * translation unit boundaries.
@@ -147,12 +143,6 @@ namespace v8 {
 //    V8IsDisposed = true;
 //    return true;
 //  }
-//
-//
-//  // XXX We likely need to extend this to handle OOM and other such error situations
-//  bool V8::IsDead() {
-//    return V8IsDisposed || hasFatalError;
-//  }
 
 
   namespace V8Monkey {
@@ -162,6 +152,7 @@ namespace v8 {
 
       if (fn) {
         fn(location, message);
+        i->SignalFatalError();
         return;
       }
 
@@ -171,6 +162,7 @@ namespace v8 {
       V8Platform::Platform::PrintError(": ");
       V8Platform::Platform::PrintError(message);
       V8Platform::Platform::PrintError("\n");
+      // XXX Verify exiting is still correct here
       exit(1);
     }
 

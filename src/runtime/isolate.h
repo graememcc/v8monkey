@@ -50,6 +50,8 @@ namespace v8 {
 //
     class EXPORT_FOR_TESTING_ONLY Isolate {
       public:
+        Isolate() : hasFatalError(false) {}
+
 //        InternalIsolate() : isDisposed(false), isRegisteredForGC(false), fatalErrorHandler(nullptr), threadData(nullptr),
 //                            embedderData(nullptr), lockingThread(0), isInitted(false) {
 //          handleScopeData.Initialize();
@@ -86,6 +88,11 @@ namespace v8 {
 //
 //        // Has the current thread entered the given isolate?
 //        static bool IsEntered(InternalIsolate* i);
+
+        // Returns true if this isolate is dead
+        bool IsDead() { return hasFatalError; }
+
+        void SignalFatalError() { hasFatalError = true; }
 
         // Set the fatal error handler for this isolate
         void SetFatalErrorHandler(FatalErrorCallback fn) { fatalErrorHandler = fn; }
@@ -186,7 +193,9 @@ namespace v8 {
 //        // Initialize the default isolate and claim thread id 1
 //        static void EnsureDefaultIsolateForStaticInitializerThread();
 //
-//      private:
+      private:
+        // Denotes whether this isolate is effectively dead
+        bool hasFatalError;
 //        struct ThreadData;
 //
 //        // Tell SpiderMonkey about this isolate

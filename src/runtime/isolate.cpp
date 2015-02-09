@@ -361,6 +361,19 @@ namespace {
 
 
   /*
+   * We implement this here as death is on a per-internal isolate basis
+   * NOTE: In 3.30.0, the method moves from V8 to Isolate
+   *
+   */
+
+  bool V8::IsDead() {
+    // V8 assumes that the caller is in an isolate (although it asserts in debug builds)
+    internal::Isolate* i {internal::Isolate::GetCurrent()};
+    return i->IsDead();
+  }
+
+
+  /*
    * We implement this here as error handlers are associated with internal isolates.
    * NOTE: In 3.30.0, the method moves from V8 to Isolate
    *
@@ -368,7 +381,7 @@ namespace {
 
   void V8::SetFatalErrorHandler(FatalErrorCallback fn) {
     // V8 assumes that the caller is in an isolate (although it asserts in debug builds)
-    internal::Isolate* i = internal::Isolate::GetCurrent();
+    internal::Isolate* i {internal::Isolate::GetCurrent()};
     i->SetFatalErrorHandler(fn);
   }
 //

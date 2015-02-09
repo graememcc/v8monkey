@@ -4735,13 +4735,13 @@ class V8_EXPORT V8 {
 //   * This allocator is used in all isolates.
 //   */
 //  static void SetArrayBufferAllocator(ArrayBuffer::Allocator* allocator);
-//
-//  /**
-//   * Check if V8 is dead and therefore unusable.  This is the case after
-//   * fatal errors such as out-of-memory situations.
-//   */
-//  static bool IsDead();
-//
+
+  /**
+   * Check if V8 is dead and therefore unusable.  This is the case after
+   * fatal errors such as out-of-memory situations.
+   */
+  static bool IsDead();
+
 //  /**
 //   * The following 4 functions are to be used when V8 is built with
 //   * the 'compress_startup_data' flag enabled. In this case, the
@@ -7368,7 +7368,6 @@ class V8_EXPORT V8 {
 ////  class APIEXPORT V8 {
 ////    public:
 ////      static bool Dispose();
-////      static bool IsDead();
 ////      static int GetCurrentThreadId();
 ////      /* TO IMPLEMENT:
 ////    static void SetAllowCodeGenerationFromStringsCallback(
