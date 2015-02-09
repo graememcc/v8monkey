@@ -52,33 +52,6 @@
 //  bool hasFatalError = false;
 //
 //
-//  // The default fatal error handler
-//  void DefaultFatalErrorHandler(const char* location, const char* message) {
-//    using namespace v8::V8Platform;
-//
-//    // XXX FIX ME
-//    Platform::PrintError("Error at ");
-//    Platform::PrintError(location);
-//    Platform::PrintError(": ");
-//    Platform::PrintError(message);
-//    Platform::PrintError("\n");
-//    exit(1);
-//  }
-//
-//
-//  v8::FatalErrorCallback GetFatalErrorHandlerOrDefault() {
-//    using namespace v8::V8Monkey;
-//
-//    InternalIsolate* i = InternalIsolate::GetCurrent();
-//    if (i == nullptr) {
-//      i = InternalIsolate::GetDefaultIsolate();
-//    }
-//
-//    v8::FatalErrorCallback fn = i->GetFatalErrorHandler();
-//    return fn ? fn : DefaultFatalErrorHandler;
-//  }
-//
-//
 //  /*
 //   * The single static initializer for our global state, to avoid running into static initialization ordering problems across
 //   * translation unit boundaries.
@@ -180,15 +153,28 @@ namespace v8 {
 //  bool V8::IsDead() {
 //    return V8IsDisposed || hasFatalError;
 //  }
-//
-//
-//  namespace V8Monkey {
-//    void V8MonkeyCommon::TriggerFatalError(const char* location, const char* message) {
-//      hasFatalError = true;
-//      GetFatalErrorHandlerOrDefault()(location, message);
-//    }
-//
-//
+
+
+  namespace V8Monkey {
+    void TriggerFatalError(const char* location, const char* message) {
+      v8::internal::Isolate* i = v8::internal::Isolate::GetCurrent();
+      v8::FatalErrorCallback fn = i->GetFatalErrorHandler();
+
+      if (fn) {
+        fn(location, message);
+        return;
+      }
+
+      // XXX FIX ME
+      V8Platform::Platform::PrintError("Error at ");
+      V8Platform::Platform::PrintError(location);
+      V8Platform::Platform::PrintError(": ");
+      V8Platform::Platform::PrintError(message);
+      V8Platform::Platform::PrintError("\n");
+      exit(1);
+    }
+
+
 //    bool V8MonkeyCommon::CheckDeath(const char* method) {
 //      if (V8::IsDead()) {
 //        TriggerFatalError(method, "V8 is dead");
@@ -223,5 +209,5 @@ namespace v8 {
 //        hasFatalError = true;
 //      }
 //    #endif
-//  }
+  }
 }

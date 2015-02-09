@@ -17,8 +17,8 @@
 #endif
 */
 //
-//namespace v8 {
-//  namespace V8Monkey {
+namespace v8 {
+  namespace V8Monkey {
 //    class EXPORT_FOR_TESTING_ONLY V8MonkeyCommon {
 //      public:
 //        // Intended to be called only by the static initializer to ensure that the primitive singletons (i.e. true,
@@ -32,8 +32,8 @@
 //        // must be disposed of before SpiderMonkey itself is disposed
 //        static void ForceMainThreadRTCXDisposal();
 //
-//        // Uh-oh. Something's gone awry.
-//        static void TriggerFatalError(const char* location, const char* message);
+        // Uh-oh. Something's gone awry.
+        void EXPORT_FOR_TESTING_ONLY TriggerFatalError(const char* location, const char* message);
 //
 //        // Returns true if V8 is dead, but also triggers a fatal error handler call, reporting it
 //        static bool CheckDeath(const char* method);
@@ -42,8 +42,8 @@
 //        // This is simply a collection of helper methods
 //        V8MonkeyCommon();
 //    };
-//  }
-//}
+  }
+}
 
 
 #endif

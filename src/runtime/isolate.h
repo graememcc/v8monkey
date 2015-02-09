@@ -86,13 +86,13 @@ namespace v8 {
 //
 //        // Has the current thread entered the given isolate?
 //        static bool IsEntered(InternalIsolate* i);
-//
-//        // Set the fatal error handler for this isolate
-//        void SetFatalErrorHandler(FatalErrorCallback fn) { fatalErrorHandler = fn; }
-//
-//        // Get the fatal error handler for this isolate
-//        FatalErrorCallback GetFatalErrorHandler() const { return fatalErrorHandler; }
-//
+
+        // Set the fatal error handler for this isolate
+        void SetFatalErrorHandler(FatalErrorCallback fn) { fatalErrorHandler = fn; }
+
+        // Get the fatal error handler for this isolate
+        FatalErrorCallback GetFatalErrorHandler() const { return fatalErrorHandler; }
+
 //        // Set the embedder data for this isolate
 //        void SetEmbedderData(void* data) { embedderData = data; }
 //
@@ -198,8 +198,8 @@ namespace v8 {
 //        // Have we told SpiderMonkey we're a rooter?
 //        bool isRegisteredForGC;
 //
-//        // Fatal error handler for this isolate
-//        FatalErrorCallback fatalErrorHandler;
+        // Fatal error handler for this isolate
+        FatalErrorCallback fatalErrorHandler;
 //
 //        // Our linked list of data about active threads in this isolate
 //        ThreadData* threadData;
