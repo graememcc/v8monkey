@@ -16,6 +16,9 @@
 // FatalErrorCallback
 #include "v8.h"
 
+// vector
+#include <vector>
+
 
 namespace v8 {
   namespace internal {
@@ -60,15 +63,23 @@ namespace v8 {
 //
 //        ~InternalIsolate();
 //
-//        // Enter the given isolate
-//        void Enter();
-//
-//        // Exit the given isolate
-//        void Exit();
-//
-//        // Dispose of the given isolate
-//        void Dispose();
-//
+        // XXX temp for version bump
+        // XXX Make constructor private and friend public Isolate
+        ~Isolate() = default;
+        Isolate(Isolate& other) = default;
+        Isolate(Isolate&& other) = default;
+        Isolate& operator=(Isolate& other) = default;
+        Isolate& operator=(Isolate&& other) = default;
+
+        // Enter the given isolate
+        void Enter();
+
+        // Exit the given isolate
+        void Exit();
+
+        // Dispose of the given isolate
+        void Dispose();
+
 //        // Is the given isolate the special default isolate?
 //        static bool IsDefaultIsolate(InternalIsolate* i) { return i == defaultIsolate; }
 //
@@ -77,10 +88,11 @@ namespace v8 {
 //
         // Find the current InternalIsolate for the calling thread
         static Isolate* GetCurrent();
-//
-//        // Reports whether any threads are active in this isolate
-//        bool ContainsThreads() const { return threadData != nullptr; }
-//
+
+        // Reports whether any threads are active in this isolate
+        bool ContainsThreads() const { return !previousIsolates.empty(); }
+        //bool ContainsThreads() const { return threadData != nullptr; }
+
 //        // Many API functions will implicitly enter the default isolate if required. To that end, this function returns
 //        // the current internal isolate if non-null, otherwise enters the default isolate and returns that
 //        // XXX Look for opportunities to use this
@@ -196,6 +208,10 @@ namespace v8 {
       private:
         // Denotes whether this isolate is effectively dead
         bool hasFatalError;
+
+        // XXX Temporary
+        // Record the isolate that the most-recently entered thread should return to when it exits this isolate
+        std::vector<Isolate*> previousIsolates;
 //        struct ThreadData;
 //
 //        // Tell SpiderMonkey about this isolate
@@ -235,6 +251,11 @@ namespace v8 {
 //        // HandleScope data for Persistents
 //        HandleData persistentData;
 //
+        // XXX Temporary
+        // Maintain the previousIsolates vector, and the invariant that the last entry is the previous isolate for the
+        // most recently entered thread
+        void RecordThreadEntry(Isolate* i);
+        Isolate* RecordThreadExit();
 //        // ThreadData linked list manipulations
 //        ThreadData* FindOrCreateThreadData(int threadID, InternalIsolate* previousIsolate);
 //        ThreadData* FindThreadData(int threadID);

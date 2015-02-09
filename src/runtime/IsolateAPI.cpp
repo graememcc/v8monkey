@@ -14,14 +14,12 @@
  *
  */
 
-
-/*
- #define FORWARD_TO_INTERNAL(method) \
+#define FORWARD_TO_INTERNAL(method) \
    do { \
-    V8Monkey::InternalIsolate* internal = reinterpret_cast<V8Monkey::InternalIsolate*>(this); \
-    internal->method(); \
-  } while (0);
-*/
+     internal::Isolate* internal = reinterpret_cast<internal::Isolate*>(this); \
+     internal->method(); \
+   } while (0);
+
 
 
 namespace v8 {
@@ -36,52 +34,32 @@ namespace v8 {
 //
 //     return fetchOrAssignThreadID();
 //   }
-//
-//
-//   void V8::SetFatalErrorHandler(FatalErrorCallback fn) {
-//     // Fatal error handlers are isolate-specific
-//     V8Monkey::InternalIsolate* i = V8Monkey::InternalIsolate::EnsureInIsolate();
-//     i->SetFatalErrorHandler(fn);
-//   }
-//
-//
-//   Isolate* Isolate::New() {
-//     V8Monkey::InternalIsolate* internal = new V8Monkey::InternalIsolate();
-//     return reinterpret_cast<Isolate*>(internal);
-//   }
-//
-//
+
+
+  Isolate* Isolate::New() {
+    internal::Isolate* internal {new internal::Isolate()};
+    return reinterpret_cast<Isolate*>(internal);
+  }
+
+
   Isolate* Isolate::GetCurrent() {
     return reinterpret_cast<Isolate*>(internal::Isolate::GetCurrent());
   }
-//
-//
-//   void Isolate::Dispose() {
-//     V8Monkey::InternalIsolate* internal = reinterpret_cast<InternalIsolate*>(this);
-//
-//     // Note that we check this here: the default isolate can be disposed of while entered. In fact, it is
-//     // a V8 API requirement that it is entered when V8 is disposed (which in turn disposes the default
-//     // isolate)
-//     // XXX Clarify this comment. In fact clarify you can really dispose of default if in it
-//     // XXX Update: I'm pretty sure this is wrong
-//     if (internal->ContainsThreads()) {
-//       V8Monkey::V8MonkeyCommon::TriggerFatalError("v8::Isolate::Dispose",
-//                                                   "Attempt to dispose isolate in which threads are active");
-//       return;
-//     }
-//
-//     internal->Dispose();
-//   }
-//
-//
-//   void Isolate::Enter() {
-//     FORWARD_TO_INTERNAL(Enter);
-//   }
-//
-//
-//   void Isolate::Exit() {
-//     FORWARD_TO_INTERNAL(Exit);
-//   }
+
+
+  void Isolate::Dispose() {
+    FORWARD_TO_INTERNAL(Dispose);
+  }
+
+
+  void Isolate::Enter() {
+    FORWARD_TO_INTERNAL(Enter);
+  }
+
+
+  void Isolate::Exit() {
+    FORWARD_TO_INTERNAL(Exit);
+  }
 //
 //
 //   void* Isolate::GetData() {
@@ -93,4 +71,4 @@ namespace v8 {
 //     reinterpret_cast<V8Monkey::InternalIsolate*>(this)->SetEmbedderData(data);
 //   }
 }
-//#undef FORWARD_TO_INTERNAL
+#undef FORWARD_TO_INTERNAL

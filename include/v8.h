@@ -4195,50 +4195,51 @@ class V8_EXPORT Isolate {
 //
 //  typedef void (*UseCounterCallback)(Isolate* isolate,
 //                                     UseCounterFeature feature);
-//
-//
-//  /**
-//   * Creates a new isolate.  Does not change the currently entered
-//   * isolate.
-//   *
-//   * When an isolate is no longer used its resources should be freed
-//   * by calling Dispose().  Using the delete operator is not allowed.
-//   */
-//  static Isolate* New();
-//
+
+
+  /**
+   * Creates a new isolate.  Does not change the currently entered
+   * isolate.
+   *
+   * When an isolate is no longer used its resources should be freed
+   * by calling Dispose().  Using the delete operator is not allowed.
+   */
+  static Isolate* New();
+
   /**
    * Returns the entered isolate for the current thread or NULL in
    * case there is no current isolate.
    */
   static Isolate* GetCurrent();
-//
-//  /**
-//   * Methods below this point require holding a lock (using Locker) in
-//   * a multi-threaded environment.
-//   */
-//
-//  /**
-//   * Sets this isolate as the entered one for the current thread.
-//   * Saves the previously entered one (if any), so that it can be
-//   * restored when exiting.  Re-entering an isolate is allowed.
-//   */
-//  void Enter();
-//
-//  /**
-//   * Exits this isolate by restoring the previously entered one in the
-//   * current thread.  The isolate may still stay the same, if it was
-//   * entered more than once.
-//   *
-//   * Requires: this == Isolate::GetCurrent().
-//   */
-//  void Exit();
-//
-//  /**
-//   * Disposes the isolate.  The isolate must not be entered by any
-//   * thread to be disposable.
-//   */
-//  void Dispose();
-//
+
+  /**
+   * Methods below this point require holding a lock (using Locker) in
+   * a multi-threaded environment.
+   */
+
+  /**
+   * Sets this isolate as the entered one for the current thread.
+   * Saves the previously entered one (if any), so that it can be
+   * restored when exiting.  Re-entering an isolate is allowed.
+   */
+  void Enter();
+
+  /**
+   * Exits this isolate by restoring the previously entered one in the
+   * current thread.  The isolate may still stay the same, if it was
+   * entered more than once.
+   *
+   * Requires: this == Isolate::GetCurrent().
+   */
+  void Exit();
+
+
+  /**
+   * Disposes the isolate.  The isolate must not be entered by any
+   * thread to be disposable.
+   */
+  void Dispose();
+
 //  /**
 //   * Associate embedder-specific data with the isolate. |slot| has to be
 //   * between 0 and GetNumberOfDataSlots() - 1.
@@ -4516,7 +4517,7 @@ class V8_EXPORT Isolate {
 //
  private:
 //  template<class K, class V, class Traits> friend class PersistentValueMap;
-//
+
   Isolate();
   Isolate(const Isolate&);
   ~Isolate();
@@ -7289,12 +7290,6 @@ class V8_EXPORT V8 {
 //
 //          Scope& operator=(const Scope&);
 //      };
-//
-//      static Isolate* New();
-//
-//      void Enter();
-//
-//      void Exit();
 //
 //      void Dispose();
 //

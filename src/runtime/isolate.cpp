@@ -1,9 +1,14 @@
+// atomic_int, atomic_fetch_add
+#include <atomic>
 // DestructList
 // XXX That needs a better name
 #include "data_structures/destruct_list.h"
 
 // Objectblock
 #include "data_structures/objectblock.h"
+
+// std::end
+#include <iterator>
 
 // JSContext JS_GC JS_NewContext JS_NewRuntime JSRuntime JS::RuntimeOptionsRef JSTracer JSTraceDataOp
 #include "jsapi.h"
@@ -58,11 +63,15 @@ namespace {
 //   using namespace v8::V8Monkey;
 //
 //
-//   // Thread-local storage keys for isolate related thread data
-//   // The thread's unique ID
-//   TLSKey* threadIDKey = nullptr;
+  /*
+   * Thread-local storage keys for isolate related thread data
+   *
+   */
+
+  // The thread's unique ID
+  TLSKey* threadIDKey {nullptr};
 //   // The internal isolate that the thread has entered
-  TLSKey* currentIsolateKey = nullptr;
+  TLSKey* currentIsolateKey {nullptr};
 //   // List of isolates that the thread has entered and not yet exited
 //   TLSKey* smDataKey = nullptr;
 //
@@ -71,7 +80,7 @@ namespace {
 
   void ensureTLSKeys() {
     static bool initialized = []() noexcept {
-      //threadIDKey = Platform::CreateTLSKey();
+      threadIDKey = Platform::CreateTLSKey();
       currentIsolateKey = Platform::CreateTLSKey();
       //smDataKey = Platform::CreateTLSKey(tearDownCXAndRT);
 
@@ -81,25 +90,27 @@ namespace {
 
 
   /*
-   * Returns the currently entered isolate for this thread
+   * Returns the currently entered isolate for this thread. May be null.
    *
    */
 
   v8::internal::Isolate* GetCurrentIsolateFromTLS() {
     ensureTLSKeys();
-    void* raw_id = Platform::GetTLSData(currentIsolateKey);
+    void* raw_id {Platform::GetTLSData(currentIsolateKey)};
     return reinterpret_cast<v8::internal::Isolate*>(raw_id);
   }
-//
-//
-//   /*
-//    * Store the currently entered isolate for this thread
-//    *
-//    */
-//
-//   void SetCurrentIsolateInTLS(InternalIsolate* i) {
-//     Platform::StoreTLSData(currentIsolateKey, i);
-//   }
+
+
+  /*
+   * Store the currently entered isolate for this thread. It is an invariant that each thread has its most recently
+   * entered isolate stored in TLS.
+   *
+   */
+
+  void SetCurrentIsolateInTLS(v8::internal::Isolate* i) {
+    ensureTLSKeys();
+    Platform::StoreTLSData(currentIsolateKey, i);
+  }
 //
 //
 //   /*
@@ -252,38 +263,40 @@ namespace {
 //     int result = nextID++;
 //     return result;
 //   }
-//
-//
-//   /*
-//    * Returns a new thread ID for the thread, after having first stored it in TLS
-//    *
-//    */
-//
-//   int createAndAssignThreadID() {
-//     int thread_id = CreateThreadID();
-//     Platform::StoreTLSData(threadIDKey, reinterpret_cast<void*>(thread_id));
-//
-//     return thread_id;
-//   }
-//
-//
-//   /*
-//    * Returns the thread ID stored in TLS, creating one if there is no such ID in TLS
-//    *
-//    */
-//
-//   int fetchOrAssignThreadID() {
-//     void* raw_id = Platform::GetTLSData(threadIDKey);
-//     int existing_id =  *reinterpret_cast<int*>(&raw_id);
-//
-//     if (existing_id > 0) {
-//       return existing_id;
-//     }
-//
-//     return createAndAssignThreadID();
-//   }
-//
-//
+
+
+  /*
+   * Returns a new thread ID for the thread, after having first stored it in TLS
+   *
+   */
+
+  int createAndAssignThreadID() {
+    static std::atomic_int idCount {1};
+
+    int threadID {std::atomic_fetch_add(&idCount, 1)};
+    Platform::StoreTLSData(threadIDKey, reinterpret_cast<void*>(threadID));
+
+    return threadID;
+  }
+
+
+  /*
+   * Returns the thread ID stored in TLS, creating one if there is no such ID in TLS
+   *
+   */
+
+  int fetchOrAssignThreadID() {
+    void* raw_id {Platform::GetTLSData(threadIDKey)};
+    int existing_id {*reinterpret_cast<int*>(&raw_id)};
+
+    if (existing_id > 0) {
+      return existing_id;
+    }
+
+    return createAndAssignThreadID();
+  }
+
+
 //   /*
 //    * Interface to isolate tracing for the SpiderMonkey garbage collector. When a thread enters an isolate, the isolate
 //    * will register itself as a GC rooter with that thread's JSRuntime. This is the function that SpiderMonkey will call
@@ -386,24 +399,6 @@ namespace {
   }
 //
 //
-//   void Isolate::Dispose() {
-//     V8Monkey::InternalIsolate* internal = reinterpret_cast<InternalIsolate*>(this);
-//
-//     // Note that we check this here: the default isolate can be disposed of while entered. In fact, it is
-//     // a V8 API requirement that it is entered when V8 is disposed (which in turn disposes the default
-//     // isolate)
-//     // XXX Clarify this comment. In fact clarify you can really dispose of default if in it
-//     // XXX Update: I'm pretty sure this is wrong
-//     if (internal->ContainsThreads()) {
-//       V8Monkey::V8MonkeyCommon::TriggerFatalError("v8::Isolate::Dispose",
-//                                                   "Attempt to dispose isolate in which threads are active");
-//       return;
-//     }
-//
-//     internal->Dispose();
-//   }
-//
-//
 //   void Isolate::Enter() {
 //     FORWARD_TO_INTERNAL(Enter);
 //   }
@@ -462,30 +457,52 @@ namespace {
 //       ThreadData(int id, InternalIsolate* previous, ThreadData* previousElement, ThreadData* nextElement) :
 //         entryCount(0), threadID(id), previousIsolate(previous), prev(previousElement), next(nextElement) {}
 //     };
-//
-//     /*
-//      * When an InternalIsolate is entered, we will assign that thread a JSRuntime and a JSContext if the thread has
-//      * not yet had one assigned. Likewise, and in common with V8, at this point we will assign the thread a unique
-//      * numeric ID.
-//      *
-//      * When any thread enters an isolate, we must notify SpiderMonkey that the isolate will be participating in GC
-//      * rooting. Once in an isolate, a thread is free to start creating objects, and some of those objects may wrap
-//      * SpiderMonkey objects.
-//      *
-//      * Isolates stack: if a thread enters isolate A, and then creates and enters isolate B from A, then on exiting B,
-//      * the thread should be considered in A once more. Some book-keeping here handles this.
-//      *
-//      */
-//
-//     void InternalIsolate::Enter() {
-//       // XXX What should we do if we re-enter a disposed isolate? In V8, the Enter function succeeds, although you're
-//       //     going to be in a world of pain pretty soon: if the isolate wasn't the default then the dispose call would
-//       //     delete it. Should we error out or something, just for appearances sakes?
-//       //     In any case, I think we still need the isDisposed marker to note whether there is any outstanding book-keeping
-//       isDisposed = false;
-//
-//       // We need to ensure this thread has an ID. GetCurrentThreadId creates one if necessary
-//       int threadID = fetchOrAssignThreadID();
+
+    // XXX Temporary
+    /*
+     * Record the previous isolate for a thread that has succesfully entered us, maintaing the invariant that the
+     * last entry in the container is the isolate for the most recently entered thread.
+     *
+     */
+    void Isolate::RecordThreadEntry(Isolate* i) {
+      previousIsolates.emplace_back(i);
+    }
+
+
+    // XXX Temporary
+    /*
+     * Record a thread exit, and pop it's previous isolate from our container.
+     *
+     */
+    Isolate* Isolate::RecordThreadExit() {
+      // XXX If we keep this, assert not empty
+      auto end = std::end(previousIsolates) - 1;
+      Isolate* i {*end};
+      previousIsolates.erase(end);
+      return i;
+    }
+
+    /*
+     * When an InternalIsolate is entered, we will assign that thread a JSRuntime and a JSContext if the thread has
+     * not yet had one assigned. Likewise, and in common with V8, at this point we will assign the thread a unique
+     * numeric ID.
+     *
+     * When any thread enters an isolate, we must notify SpiderMonkey that the isolate will be participating in GC
+     * rooting. Once in an isolate, a thread is free to start creating objects, and some of those objects may wrap
+     * SpiderMonkey objects.
+     *
+     * Isolates stack: if a thread enters isolate A, and then creates and enters isolate B from A, then on exiting B,
+     * the thread should be considered in A once more. Some book-keeping here handles this.
+     *
+     */
+
+    void Isolate::Enter() {
+      // As isolate entries stack, and threads can unlock allowing other threads to enter an isolate, we must note
+      // which isolate the entering thread to exit to, and which thread will be considered the most-recently entered
+      // once this thread exits.
+
+      // To aid tracking, we assign each thread a unique ID
+      int threadID {fetchOrAssignThreadID()};
 //
 //       // Likewise, it should have a JSRuntime and JSContext
 //       SpiderMonkeyUtils::AssignJSRuntimeAndJSContext();
@@ -493,27 +510,32 @@ namespace {
 //       // Register this isolate with SpiderMonkey for GC
 //       AddGCRooter();
 //
-//       // What isolate was the thread in previously?
-//       InternalIsolate* previousIsolate = GetCurrentIsolateFromTLS();
+      // What isolate was the thread in previously?
+      Isolate* previousIsolate {GetCurrentIsolateFromTLS()};
+
+      // XXX Temporary
+      // Note the thread entry
+      RecordThreadEntry(previousIsolate);
 //
 //       // Note a new entry for this thread
 //       ThreadData* data = FindOrCreateThreadData(threadID, previousIsolate);
 //       data->entryCount++;
 //
-//       SetCurrentIsolateInTLS(this);
-//     }
-//
-//
-//     /*
-//      * Exiting the isolate is another simple book-keeping exercise, however note what doesn't happen: we don't
-//      * deregister from SpiderMonkey GC rooting. Objects created-particularly persistent objects-may have the same
-//      * lifetime as the isolate, so could exist until the client calls Isolate::Dispose. It would therefore be
-//      * incorrect to stop tracing at this point.
-//      * XXX What about HandleScopes/Locals. Clarify this comment.
-//      *
-//      */
-//
-//     void InternalIsolate::Exit() {
+      // Invariant: a thread's most recently entered isolate should be stored in TLS
+      SetCurrentIsolateInTLS(this);
+    }
+
+
+    /*
+     * Exiting the isolate is another simple book-keeping exercise, however note what doesn't happen: we don't
+     * deregister from SpiderMonkey GC rooting. Objects created-particularly persistent objects-may have the same
+     * lifetime as the isolate, so could exist until the client calls Isolate::Dispose. It would therefore be
+     * incorrect to stop tracing at this point.
+     * XXX What about HandleScopes/Locals. Clarify this comment.
+     *
+     */
+
+    void Isolate::Exit() {
 //       int threadID = fetchOrAssignThreadID();
 //
 //       ThreadData* data = FindThreadData(threadID);
@@ -529,31 +551,34 @@ namespace {
 //         return;
 //       }
 //
-//       // Time for this thread to say goodbye. We need to remove the ThreadData
-//       // from the linked list, and pop that thread's isolate stack
-//       SetCurrentIsolateInTLS(data->previousIsolate);
+
+      // Time for this thread to say goodbye. We need to pop this thread's previous isolate from the container.
+      // XXX Temporary
+      Isolate* i {RecordThreadExit()};
+      SetCurrentIsolateInTLS(i);
+
+        //SetCurrentIsolateInTLS(data->previousIsolate);
 //
 //       // Note: after this call, data will be a dangling pointer
 //       DeleteAndFreeThreadData(data);
-//     }
-//
-//
-//     // XXX Verify the thing below about HandleScopes. Remind yourself, what checking does V8 do?
-//     /*
-//      * As hinted at in the comments above, when the isolate is disposed, we are finally able to deregister from
-//      * SpiderMonkey GC rooting. At this point, we also delete the contents of our ObjectBlock structure for Persistent
-//      * handles (the similar structure for HandleScope/Locals should have already been emptied when HandleScopes were
-//      * exited; if there is still an extant HandleScope, this represents an API misuse error on the part of the client,
-//      * so he/she can jolly well live with the consequences).
-//      *
-//      */
-//
-//     void InternalIsolate::Dispose() {
-//       // Don't dispose of the default isolate (or indeed any isolate) multiple times
-//       if (isDisposed) {
-//         return;
-//       }
-//
+    }
+
+
+    // XXX Verify the thing below about HandleScopes. Remind yourself, what checking does V8 do?
+    /*
+     * As hinted at in the comments above, when the isolate is disposed, we are finally able to deregister from
+     * SpiderMonkey GC rooting. At this point, we also delete the contents of our ObjectBlock structure for Persistent
+     * handles (the similar structure for HandleScope/Locals should have already been emptied when HandleScopes were
+     * exited; if there is still an extant HandleScope, this represents an API misuse error on the part of the client,
+     * so he/she can jolly well live with the consequences).
+     *
+     */
+
+    void Isolate::Dispose() {
+      if (ContainsThreads()) {
+        V8Monkey::TriggerFatalError("v8::Isolate::Dispose", "Attempt to dispose isolate in which threads are active");
+        return;
+      }
 //       // Unhook this isolate from SpiderMonkey GC rooting
 //       if (isRegisteredForGC) {
 //         DeleteIsolateFromGCTLSList(this);
@@ -581,7 +606,7 @@ namespace {
 //
 //       // The default isolate gets deleted by OneTrueStaticInitializer. This is consistent with V8 behaviour.
 //       if (this != defaultIsolate) {
-//         delete this;
+     delete this;
 //       } else {
 //         // Clear out TLS so the destructor doesn't run again (unless on main thread)
 //         int threadID = fetchOrAssignThreadID();
@@ -589,9 +614,9 @@ namespace {
 //           SetCurrentIsolateInTLS(nullptr);
 //         }
 //       }
-//     }
-//
-//
+  }
+
+
 //     /*
 //      * The destructor must check to see if the isolate is the default isolate, and if so dispose it to force
 //      * GC unrooting in case the client never called Dispose. For all other isolates, this should be a no-op.
