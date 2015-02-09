@@ -3948,12 +3948,12 @@ class UniqueId {
 //                                      ResourceConstraints* constraints);
 //
 //
-//// --- Exceptions ---
-//
-//
-//typedef void (*FatalErrorCallback)(const char* location, const char* message);
-//
-//
+// --- Exceptions ---
+
+
+typedef void (*FatalErrorCallback)(const char* location, const char* message);
+
+
 //typedef void (*MessageCallback)(Handle<Message> message, Handle<Value> error);
 //
 //// --- Tracing ---
@@ -4718,9 +4718,9 @@ class V8_EXPORT Isolate {
  */
 class V8_EXPORT V8 {
  public:
-//  /** Set the callback to invoke in case of fatal errors. */
-//  static void SetFatalErrorHandler(FatalErrorCallback that);
-//
+  /** Set the callback to invoke in case of fatal errors. */
+  static void SetFatalErrorHandler(FatalErrorCallback that);
+
 //  /**
 //   * Set the callback to invoke to check if code generation from
 //   * strings should be allowed.
@@ -7370,7 +7370,6 @@ class V8_EXPORT V8 {
 ////      static bool Dispose();
 ////      static bool IsDead();
 ////      static int GetCurrentThreadId();
-////      static void SetFatalErrorHandler(FatalErrorCallback that);
 ////      /* TO IMPLEMENT:
 ////    static void SetAllowCodeGenerationFromStringsCallback(
 ////    static void IgnoreOutOfMemoryException();

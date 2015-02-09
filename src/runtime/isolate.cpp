@@ -358,21 +358,19 @@ namespace {
 //
 //     return fetchOrAssignThreadID();
 //   }
-//
-//
-//   void V8::SetFatalErrorHandler(FatalErrorCallback fn) {
-//     // Fatal error handlers are isolate-specific
-//     V8Monkey::InternalIsolate* i = V8Monkey::InternalIsolate::EnsureInIsolate();
-//     i->SetFatalErrorHandler(fn);
-//   }
-//
-//
-//   Isolate* Isolate::New() {
-//     V8Monkey::InternalIsolate* internal = new V8Monkey::InternalIsolate();
-//     return reinterpret_cast<Isolate*>(internal);
-//   }
-//
-//
+
+
+  /*
+   * We implement this here as error handlers are associated with internal isolates.
+   * NOTE: In 3.30.0, the method moves from V8 to Isolate
+   *
+   */
+
+  void V8::SetFatalErrorHandler(FatalErrorCallback fn) {
+    // V8 assumes that the caller is in an isolate (although it asserts in debug builds)
+    internal::Isolate* i = internal::Isolate::GetCurrent();
+    i->SetFatalErrorHandler(fn);
+  }
 //
 //
 //   void Isolate::Dispose() {
