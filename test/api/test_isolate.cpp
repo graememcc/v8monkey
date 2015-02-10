@@ -22,7 +22,7 @@ namespace {
   // Some tests trigger fatal errors: from the API point of view we can only check that V8::IsDead reports true,
   // however that doesn't distinguish between successful V8 disposals and errors, so we install the following fake
   // error handler. Tests should reset errorCaught before triggering error generating code.
-  bool errorCaught {false};
+  auto errorCaught = bool {false};
   void fatalErrorHandler(const char*, const char*) {
     errorCaught = true;
   }
@@ -124,14 +124,14 @@ namespace {
     second->Enter();
     Isolate* third {Isolate::New()};
     third->Enter();
-    bool allDistinct {original != first && original != second && original != third && first != second &&
-                       first != third && second != third};
+    auto allDistinct = bool {original != first && original != second && original != third && first != second &&
+                             first != third && second != third};
     third->Exit();
-    bool returnedToSecond {Isolate::GetCurrent() == second};
+    auto returnedToSecond = bool {Isolate::GetCurrent() == second};
     Isolate::GetCurrent()->Exit();
-    bool returnedToFirst {Isolate::GetCurrent() == first};
+    auto returnedToFirst = bool {Isolate::GetCurrent() == first};
     Isolate::GetCurrent()->Exit();
-    bool returnedToOriginal {Isolate::GetCurrent() == original};
+    auto returnedToOriginal = bool {Isolate::GetCurrent() == original};
 
     first->Dispose();
     second->Dispose();
