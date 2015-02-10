@@ -7,9 +7,6 @@
 // string
 #include <string>
 
-// string stream
-#include <sstream>
-
 // waitpid
 #include <sys/wait.h>
 
@@ -102,9 +99,11 @@ bool V8MonkeyTest::Run() {
  */
 
 V8MonkeyTest::TestDescription V8MonkeyTest::GetFullDescription() {
-  stringstream s;
-  s << "[" << testName << "] " << description;
-  return s.str();
+  string s {"["};
+  s += testName;
+  s += "] ";
+  s += description;
+  return s;
 }
 
 
