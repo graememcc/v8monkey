@@ -1,5 +1,6 @@
 // atomic_int, atomic_fetch_add
 #include <atomic>
+
 // DestructList
 // XXX That needs a better name
 #include "data_structures/destruct_list.h"
@@ -79,13 +80,13 @@ namespace {
 
 
   void ensureTLSKeys() {
-    static bool initialized = []() noexcept {
+    static bool initialized {[]() noexcept {
       threadIDKey = Platform::CreateTLSKey();
       currentIsolateKey = Platform::CreateTLSKey();
       //smDataKey = Platform::CreateTLSKey(tearDownCXAndRT);
 
       return true;
-    }();
+    }()};
   }
 
 
