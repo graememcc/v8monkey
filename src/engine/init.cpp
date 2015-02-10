@@ -1,8 +1,8 @@
 // exit
-#include <stdlib.h>
+#include <cstdlib>
 
-// V8 interface
-#include "v8.h"
+// JS_Init, JS_Shutdown
+#include "jsapi.h"
 
 // InternalIsolate::{EnsureInIsolate, GetCurrent, GetDefaultIsolate, GetFatalErrorHandler}
 #include "runtime/isolate.h"
@@ -10,14 +10,17 @@
 // Print
 #include "platform.h"
 
+// string
+#include <string>
+
 // TestUtils interface
 #include "utils/test.h"
 
 // V8MonkeyCommon interface
 #include "utils/V8MonkeyCommon.h"
 
-// JS_Init, JS_Shutdown
-#include "jsapi.h"
+// V8 interface
+#include "v8.h"
 
 
 /*
@@ -148,7 +151,7 @@ namespace v8 {
   namespace V8Monkey {
     void TriggerFatalError(const char* location, const char* message) {
       v8::internal::Isolate* i = v8::internal::Isolate::GetCurrent();
-      v8::FatalErrorCallback fn = i->GetFatalErrorHandler();
+      auto fn = v8::FatalErrorCallback {i->GetFatalErrorHandler()};
 
       if (fn) {
         fn(location, message);
@@ -156,13 +159,12 @@ namespace v8 {
         return;
       }
 
-      // XXX FIX ME
-      V8Platform::Platform::PrintError("Error at ");
-      V8Platform::Platform::PrintError(location);
-      V8Platform::Platform::PrintError(": ");
-      V8Platform::Platform::PrintError(message);
-      V8Platform::Platform::PrintError("\n");
-      // XXX Verify exiting is still correct here
+      auto s = std::string {"Error at "};
+      s += location;
+      s += ": ";
+      s += message;
+      s += "\n";
+      V8Platform::Platform::PrintError(s.c_str());
       exit(1);
     }
 
