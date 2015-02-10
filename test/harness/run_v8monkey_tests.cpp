@@ -25,13 +25,13 @@ enum ArgRequest {Usage, TestList, RegisteredTestCount, RunByFile, RunByName, Run
 
 
 struct ArgParseResult {
-  ArgRequest request1;
-  ArgRequest request2;
-  set<string> filenames;
-  TestNames testnames;
-  string badArg;
+  ArgRequest request1 {None};
+  ArgRequest request2 {None};
+  TestfileNames filenames {};
+  TestNames testnames {};
+  string badArg {};
 
-  ArgParseResult() : request1 {None}, request2 {None} {}
+  ArgParseResult() {}
 
   bool UsageRequested() { return request1 == Usage || request2 == Usage; }
   bool TestListRequested() { return request1 == TestList || request2 == TestList; }
@@ -93,7 +93,7 @@ ArgParseResult parseArgs(int argc, char** argv) {
   ArgParseResult result;
 
   for (auto i = 1; i < argc; i++) {
-    const auto arg = string {argv[i]};
+    const string arg {argv[i]};
 
     if (arg.front() != '-') {
       result.setError(arg);
@@ -164,7 +164,7 @@ ArgParseResult parseArgs(int argc, char** argv) {
  */
 
 int usage(string& progName, const char* errorMessage = nullptr) {
-  auto errorSupplied = bool {errorMessage && errorMessage[0] != '\0'};
+  const bool errorSupplied {errorMessage && errorMessage[0] != '\0'};
 
   if (errorSupplied) {
     cerr << errorMessage << endl;
@@ -215,8 +215,8 @@ void runTestsByName(const TestNames& testNames, ExecutedTests& executedTests, Te
   auto notExecuted = executedTests.end();
 
   // For aesthetic purposes
-  auto hasPreviousOutput = bool {executedTests.size() > 0};
-  auto hasTriggeredOutput = bool {false};
+  bool hasPreviousOutput {executedTests.size() > 0};
+  bool hasTriggeredOutput {false};
 
   for (auto& test : testNames) {
     // Ensure that if a named test has already been executed when we ran all the tests from a particular file, then
@@ -260,15 +260,16 @@ void reportFailures(const TestFailures& testFailures) {
  */
 
 string getBaseName(char* argv0) {
-  auto fullName = string {argv0};
+  string fullName {argv0};
   auto slash = fullName.rfind('/');
   auto diff = slash == string::npos ? 0 : slash + 1;
-  return string {fullName, diff};
+  string result {fullName, diff};
+  return result;
 }
 
 
 int main(int argc, char** argv) {
-  auto progName = string {getBaseName(argv[0])};
+  string progName {getBaseName(argv[0])};
   auto result = parseArgs(argc, argv);
 
   if (result.UsageRequested()) {
@@ -288,10 +289,10 @@ int main(int argc, char** argv) {
   }
 
   // Track test execution, to avoid running a test more than once
-  auto executedTests = ExecutedTests {};
+  ExecutedTests executedTests {};
 
   // Also track test failures
-  auto testFailures = TestFailures {};
+  TestFailures testFailures {};
 
   if (result.RunByFileRequested()) {
     runTestsByFile(result.filenames, executedTests, testFailures);
