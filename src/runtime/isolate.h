@@ -53,7 +53,7 @@ namespace v8 {
 //
     class EXPORT_FOR_TESTING_ONLY Isolate {
       public:
-        Isolate() : hasFatalError(false) {}
+        Isolate() {}
 
 //        InternalIsolate() : isDisposed(false), isRegisteredForGC(false), fatalErrorHandler(nullptr), threadData(nullptr),
 //                            embedderData(nullptr), lockingThread(0), isInitted(false) {
@@ -207,11 +207,11 @@ namespace v8 {
 //
       private:
         // Denotes whether this isolate is effectively dead
-        bool hasFatalError;
+        bool hasFatalError {false};
 
         // XXX Temporary
         // Record the isolate that the most-recently entered thread should return to when it exits this isolate
-        std::vector<Isolate*> previousIsolates;
+        std::vector<Isolate*> previousIsolates {};
 //        struct ThreadData;
 //
 //        // Tell SpiderMonkey about this isolate
@@ -224,7 +224,7 @@ namespace v8 {
 //        bool isRegisteredForGC;
 //
         // Fatal error handler for this isolate
-        FatalErrorCallback fatalErrorHandler;
+        FatalErrorCallback fatalErrorHandler {nullptr};
 //
 //        // Our linked list of data about active threads in this isolate
 //        ThreadData* threadData;
