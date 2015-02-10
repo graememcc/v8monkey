@@ -150,8 +150,8 @@ namespace v8 {
 
   namespace V8Monkey {
     void TriggerFatalError(const char* location, const char* message) {
-      v8::internal::Isolate* i = v8::internal::Isolate::GetCurrent();
-      auto fn = v8::FatalErrorCallback {i->GetFatalErrorHandler()};
+      v8::internal::Isolate* i {v8::internal::Isolate::GetCurrent()};
+      v8::FatalErrorCallback fn {i->GetFatalErrorHandler()};
 
       if (fn) {
         fn(location, message);
@@ -159,7 +159,7 @@ namespace v8 {
         return;
       }
 
-      auto s = std::string {"Error at "};
+      std::string s {"Error at "};
       s += location;
       s += ": ";
       s += message;
