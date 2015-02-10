@@ -59,7 +59,7 @@ V8MonkeyTest::V8MonkeyTest(const char* file, const char* name, const char* desc,
 
 // XXX Need to use Platform primitives for forking
 bool V8MonkeyTest::Run() {
-  pid_t processID = fork();
+  pid_t processID {fork()};
 
   if (processID == 0) {
     // We are in the child process. Run the test
@@ -129,7 +129,7 @@ void V8MonkeyTest::ListAllTests() {
       // If there is an entry for a filename, we are guaranteed that the set of test names is not degenerate. Further,
       // we are guaranteed that every member of that set is a member of testsByName. Calling find on testsByName
       // cannot yield the end iterator.
-      V8MonkeyTest* test = testsByName.find(testName)->second;
+      V8MonkeyTest* test {testsByName.find(testName)->second};
       cout << test->GetFullDescription() << endl;
     }
 
@@ -163,7 +163,7 @@ void V8MonkeyTest::RunTestByName(const TestName& testName, ExecutedTests& testsE
     return;
   }
 
-  auto result = bool {lookupResult->second->Run()};
+  bool result {lookupResult->second->Run()};
   testsExecuted.insert(testName);
 
   if (!result) {
@@ -206,7 +206,7 @@ void V8MonkeyTest::RunAllTests(TestFailures& failures) {
     return;
   }
 
-  auto testsExecuted = ExecutedTests {};
+  ExecutedTests testsExecuted {};
 
   for (auto& file : testsByFileName) {
     for (auto& test : file.second) {
