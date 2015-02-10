@@ -18,14 +18,14 @@
 //  * internals, and additional utility functions.
 //  *
 //  */
-// 
-// #ifdef V8MONKEY_INTERNAL_TEST
-// 
-// namespace v8 {
+//
+#ifdef V8MONKEY_INTERNAL_TEST
+//
+  namespace v8 {
 //   namespace V8Monkey {
-//     class EXPORT_FOR_TESTING_ONLY TestUtils {
+    namespace TestUtils {
 //       public:
-// 
+//
 //         // XXX Is this still needed?
 //         /*
 //          *
@@ -33,7 +33,7 @@
 //          *
 //          */
 //         static bool IsV8Initialized();
-// 
+//
 //         /*
 //          * Many API functions implicitly init V8 but first confirm it's not dead. They test this by setting up a fatal
 //          * error handler and invoking the implicitly initting function. There are a couple of key problems: calling
@@ -46,7 +46,7 @@
 //          *
 //          */
 //         static void SetHandlerAndKill(FatalErrorCallback fn);
-// 
+//
 //         /*
 //          * The following RAII classes clean up our trail of destruction:
 //          *
@@ -56,49 +56,55 @@
 //          * AutoTestCleanup must only be used on the main thread.
 //          *
 //          */
-// 
+//
 //         class AutoIsolateCleanup {
 //           public:
 //             AutoIsolateCleanup() {}
-// 
+//
 //             ~AutoIsolateCleanup();
 //         };
-// 
-//         class AutoTestCleanup {
-//           public:
-//             AutoTestCleanup();
-// 
-//             ~AutoTestCleanup();
-//         };
-// 
+//
+      class EXPORT_FOR_TESTING_ONLY AutoTestCleanup {
+        public:
+          AutoTestCleanup() = default;
+
+          ~AutoTestCleanup();
+
+        private:
+          AutoTestCleanup(AutoTestCleanup& other) = delete;
+          AutoTestCleanup(AutoTestCleanup&& other) = delete;
+          AutoTestCleanup& operator=(AutoTestCleanup& other) = delete;
+          AutoTestCleanup& operator=(AutoTestCleanup&& other) = delete;
+      };
+//
 //       private:
 //         // This is just a utility class, so should not be constructible
 //         TestUtils();
 //     };
 //   }
 // }
-// 
-// 
+//
+//
 // /*
 //  * Macro to exit all extant isolates for this thread and dispose V8. This depends on isolate.h, but I leave it up to
 //  * each file to include it (to avoid circular dependencies)
 //  *
 //  */
-/* 
+/*
 #define EXIT_ALL_ISOLATES_AND_DISPOSE \
   do {\
     while (v8::V8Monkey::InternalIsolate::IsEntered(v8::V8Monkey::InternalIsolate::GetCurrent())) {\
       v8::Isolate::GetCurrent()->Exit(); \
     } \
   } while (0);
-*/ 
-// 
+*/
+//
 /*
  * Define tests that check for implicit V8 initialization, and default isolate entry (i.e. check that an API call
  * exhibits the behaviour defined by the V8 internal function EnsureInitializedForIsolate)
  *
  */
-/* 
+/*
 #define ISOLATE_INIT_TESTS(stem, val1, val2, val3, body) \
   V8MONKEY_TEST(stem##val1, "Inits V8") {\
     v8::V8Monkey::TestUtils::AutoTestCleanup ac; \
@@ -125,7 +131,9 @@
     V8MONKEY_CHECK(v8::V8Monkey::InternalIsolate::IsEntered(v8::V8Monkey::InternalIsolate::FromIsolate(i)), "Correctly stayed in isolate");\
   }
 */
-// #endif
+  }
+}
+#endif
 
 
 #endif

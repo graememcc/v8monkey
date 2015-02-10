@@ -37,7 +37,7 @@ using namespace v8;
 
 
 V8MONKEY_TEST(FatalHandler001, "Specified fatal error handler called") {
-// XXX  V8Monkey::TestUtils::AutoTestCleanup ac;
+  v8::TestUtils::AutoTestCleanup ac {};
 
   Isolate* i {Isolate::New()};
   i->Enter();
@@ -49,7 +49,7 @@ V8MONKEY_TEST(FatalHandler001, "Specified fatal error handler called") {
 
 
 V8MONKEY_TEST(FatalHandler002, "Specified fatal error handler is isolate specific (1)") {
-// XXX V8Monkey::TestUtils::AutoTestCleanup ac;
+  v8::TestUtils::AutoTestCleanup ac {};
 
   Isolate* i {Isolate::New()};
   i->Enter();
@@ -68,7 +68,7 @@ V8MONKEY_TEST(FatalHandler002, "Specified fatal error handler is isolate specifi
 
 
 V8MONKEY_TEST(FatalHandler003, "Specified fatal error handler is isolate specific (2)") {
-//  V8Monkey::TestUtils::AutoTestCleanup ac;
+  v8::TestUtils::AutoTestCleanup ac {};
 
   Isolate* i {Isolate::New()};
   i->Enter();
@@ -78,12 +78,11 @@ V8MONKEY_TEST(FatalHandler003, "Specified fatal error handler is isolate specifi
   j->Enter();
   V8::SetFatalErrorHandler(callback2);
   j->Exit();
+  j->Dispose();
 
   callback1Called = false;
   callback2Called = false;
   V8Monkey::TriggerFatalError(nullptr, nullptr);
   V8MONKEY_CHECK(!callback2Called, "Old handler not called");
   V8MONKEY_CHECK(callback1Called, "Handler called");
-
-// XXX  j->Dispose();
 }

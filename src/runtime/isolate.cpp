@@ -359,7 +359,7 @@ namespace {
 }
 
 
- namespace v8 {
+namespace v8 {
 //   int V8::GetCurrentThreadId() {
 //     if (V8::IsDead()) {
 //       V8MonkeyCommon::TriggerFatalError("V8::GetCurrentThreadId", "V8 is dead");
@@ -419,7 +419,7 @@ namespace {
 //   }
 //
 //
-   namespace internal {
+  namespace internal {
 //
 //     /*
 //      * Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
@@ -795,9 +795,9 @@ namespace {
      *
      */
 
-     Isolate* Isolate::GetCurrent() {
-       return GetCurrentIsolateFromTLS();
-     }
+    Isolate* Isolate::GetCurrent() {
+      return GetCurrentIsolateFromTLS();
+    }
 //
 //
 //     /*
@@ -953,12 +953,12 @@ namespace {
 //       // Trace Persistent handles
 //       ObjectBlock<V8MonkeyObject>::Iterate(persistentData.limit, persistentData.next, tracingIterationFunction, &td);
 //     }
+  }
 //
 //
-//     InternalIsolate* InternalIsolate::defaultIsolate = nullptr;
 //
 //
-//     #ifdef V8MONKEY_INTERNAL_TEST
+  #ifdef V8MONKEY_INTERNAL_TEST
 //
 //     void (*InternalIsolate::GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
 //     void (*InternalIsolate::GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
@@ -969,6 +969,7 @@ namespace {
 //     }
 //
 //
+    namespace TestUtils {
 //     // XXX Can we fix these up to watch out for isolate construction?
 //     TestUtils::AutoIsolateCleanup::~AutoIsolateCleanup() {
 //       while (Isolate::GetCurrent() && InternalIsolate::IsEntered(InternalIsolate::GetCurrent())) {
@@ -985,28 +986,21 @@ namespace {
 //     }
 //
 //
-//     TestUtils::AutoTestCleanup::AutoTestCleanup() {
-//       // Use fetchOrThreadID to avoid implicitly initting V8
-//       if (fetchOrAssignThreadID() != 1) {
-//         V8Platform::Platform::ExitWithError("Why are you using AutoTestCleanup on a thread, idiot?");
-//       }
-//     }
-//
-//
-//     TestUtils::AutoTestCleanup::~AutoTestCleanup() {
-//       while (Isolate::GetCurrent() && InternalIsolate::IsEntered(InternalIsolate::GetCurrent())) {
-//         Isolate* i = Isolate::GetCurrent();
-//         InternalIsolate* ii = InternalIsolate::FromIsolate(i);
-//
-//         // Isolates can be entered multiple times
-//         while (InternalIsolate::IsEntered(ii)) {
-//           i->Exit();
-//         }
-//
-//         i->Dispose();
-//       }
-//       V8::Dispose();
-//     }
-//     #endif
-  }
+      AutoTestCleanup::~AutoTestCleanup() {
+        while (Isolate::GetCurrent()) {
+          // Isolates can be entered multiple times
+          Isolate* i {Isolate::GetCurrent()};
+
+          while (Isolate::GetCurrent() == i) {
+            i->Exit();
+          }
+
+          i->Dispose();
+        }
+
+        // XXX V8::Dispose();
+      }
+    }
+
+  #endif
 }
