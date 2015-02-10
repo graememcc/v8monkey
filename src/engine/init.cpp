@@ -99,8 +99,12 @@
 namespace v8 {
 //  // XXX V8 Version bump: now that we have a) C++11/VS 2013 and no default isolate, I suspect we can init SpiderMonkey using a
 //  // function local static, initialized by a function call. We will want to make the called function noexcept so that we terminate
-//  // hard if SpiderMonkey init fails. 
+//  // hard if SpiderMonkey init fails.
   bool V8::Initialize() {
+    // XXX Shouldn't need two calls here
+    if (Isolate::GetCurrent() && V8::IsDead()) {
+      return false;
+    }
 //    v8initted = true;
 //
 //    if (!engineInitSucceeded) {
