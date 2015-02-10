@@ -20,15 +20,13 @@
 #include "V8MonkeyTest.h"
 
 
-// XXX Needs Herb style
-
 namespace {
   // Key for below:
   // CB1 = First continuation code-unit, CB2 = Second continuation code-unit, CB3 = Third continuation code-unit
   // V = Valid, M = Missing I = Invalid, 2=Is 2-byte starting byte, 3=Is 3 byte-starting byte, 4=Is 4 byte starting byte
 
   // Note: this array contains erroneous input where the subsequent bytes themseles cannot form an acceptable sequence
-  const std::initializer_list<char> invalidUTF8[] =
+  const std::initializer_list<char> invalidUTF8[]
     {{'\xbf', '\xbf', '\x00'},                  // Continuation code-units only
      {'\xc2', '\x00'},                          // 2 code-units: CB1: M
      {'\xc3', '\x20', '\x00'},                  // 2 code-units: CB1: I
@@ -205,7 +203,7 @@ namespace {
 
 
   // Bogus UTF-8 sequences whose subsequences may encode to valid UTF-8
-  const std::initializer_list<char> encodableInvalidUTF8[] =
+  const std::initializer_list<char> encodableInvalidUTF8[]
     {{'\xf3', '\xbf', '\xc2', '\xbf', '\x00'},  // 4 code-units: CB1: V, CB2: 2
      {'\xf2', '\x2c', '\xc2', '\xbf', '\x00'},  // 4 code-units: CB1: I, CB2: 2, CB3: V
      {'\xf4', '\xc2', '\xbf', '\x00'},          // 4 code-units: CB1: 2, CB2: V, CB3: M
@@ -220,7 +218,7 @@ namespace {
 
 
   // This array must be kept in sync with encodableInvalidUTF8 above!
-  const std::initializer_list<char16_t> encodableInvalidAsUTF16[] =
+  const std::initializer_list<char16_t> encodableInvalidAsUTF16[]
     {{0xfffd, 0xfffd, 0x00bf, 0x0000},  // 4 code-units: CB1: V, CB2: 2
      {0xfffd, 0x002c, 0x00bf, 0x0000},  // 4 code-units: CB1: I, CB2: 2, CB3: V
      {0xfffd, 0x00bf, 0x0000},          // 4 code-units: CB1: 2, CB2: V, CB3: M
@@ -243,8 +241,8 @@ using namespace V8Monkey;
 
 
 V8MONKEY_TEST(IntUtf8_001, "Empty uint16_t array yields empty zero-terminated container") {
-  const uint16_t input[] = {0x0000};
-  const auto encoded = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const uint16_t input[] {0x0000};
+  const UTF8::UTF16Encoded encoded {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(encoded.size() == 1, "Container of correct size returned");
   V8MONKEY_CHECK(encoded[0] == 0x0000, "Container zero-terminated");
@@ -252,8 +250,8 @@ V8MONKEY_TEST(IntUtf8_001, "Empty uint16_t array yields empty zero-terminated co
 
 
 V8MONKEY_TEST(IntUtf8_002, "Degenerate uint16_t iterators yield empty zero-terminated container") {
-  const uint16_t input[] = {0x0000};
-  const auto encoded = UTF8::EncodeToUTF16(std::begin(input), std::begin(input));
+  const uint16_t input[] {0x0000};
+  const UTF8::UTF16Encoded encoded {UTF8::EncodeToUTF16(std::begin(input), std::begin(input))};
 
   V8MONKEY_CHECK(encoded.size() == 1, "Container of correct size returned");
   V8MONKEY_CHECK(encoded[0] == 0x0000, "Container zero-terminated");
@@ -261,18 +259,18 @@ V8MONKEY_TEST(IntUtf8_002, "Degenerate uint16_t iterators yield empty zero-termi
 
 
 V8MONKEY_TEST(IntUtf8_003, "16-bit data copied correctly") {
-  const uint16_t input[] = {0x0061u, 0x00c8u, 0x01b0u, 0x08a0u, 0xd801u, 0xdc37u, 0x0000};
+  const uint16_t input[] {0x0061u, 0x00c8u, 0x01b0u, 0x08a0u, 0xd801u, 0xdc37u, 0x0000};
   const auto inputBegin = std::begin(input);
-  const auto encoded = UTF8::EncodeToUTF16(inputBegin, std::end(input));
+  const UTF8::UTF16Encoded encoded {UTF8::EncodeToUTF16(inputBegin, std::end(input))};
 
   V8MONKEY_CHECK(std::equal(std::begin(encoded), std::end(encoded), inputBegin), "16-bit data copied");
 }
 
 
 V8MONKEY_TEST(IntUtf8_004, "Copied 16-bit data is not aliased") {
-  uint16_t input[] = {0x0061u, 0x0000};
+  uint16_t input[] {0x0061u, 0x0000};
   const auto inputBegin = std::begin(input);
-  const auto encoded = UTF8::EncodeToUTF16(inputBegin, std::end(input));
+  const UTF8::UTF16Encoded encoded {UTF8::EncodeToUTF16(inputBegin, std::end(input))};
   input[0] = 0x0062u;
 
   V8MONKEY_CHECK(!std::equal(std::begin(encoded), std::end(encoded), inputBegin), "16-bit data was copied");
@@ -280,12 +278,13 @@ V8MONKEY_TEST(IntUtf8_004, "Copied 16-bit data is not aliased") {
 
 
 V8MONKEY_TEST(IntUtf8_005, "Copied 16-bit data is zero-terminated if necessary") {
-  const uint16_t input[] = {0x0061u};
+  const uint16_t input[] {0x0061u};
   const auto inputBegin = std::begin(input);
   const auto inputEnd = std::end(input);
-  const auto inputSize = static_cast<UTF8::UTF16Encoded::size_type>(std::distance(inputBegin, inputEnd));
+  const UTF8::UTF16Encoded::size_type inputSize =
+    static_cast<UTF8::UTF16Encoded::size_type>(std::distance(inputBegin, inputEnd));
 
-  const auto encoded = UTF8::EncodeToUTF16(inputBegin, inputEnd);
+  const UTF8::UTF16Encoded encoded {UTF8::EncodeToUTF16(inputBegin, inputEnd)};
   const auto length = encoded.size();
 
   V8MONKEY_CHECK(length == inputSize + 1, "Size correct");
@@ -295,11 +294,11 @@ V8MONKEY_TEST(IntUtf8_005, "Copied 16-bit data is zero-terminated if necessary")
 
 
 V8MONKEY_TEST(IntUtf8_006, "Data correctly copied when non-terminating zero code-unit present") {
-  constexpr int inputSize = 4;
-  const uint16_t input[inputSize] = {0x0061u, 0x0000, 0x0062u, 0x0000};
+  constexpr int inputSize {4};
+  const uint16_t input[inputSize] {0x0061u, 0x0000, 0x0062u, 0x0000};
   const auto inputBegin = std::begin(input);
 
-  const auto encoded = UTF8::EncodeToUTF16(inputBegin, std::end(input));
+  const UTF8::UTF16Encoded encoded {UTF8::EncodeToUTF16(inputBegin, std::end(input))};
   const auto length = encoded.size();
 
   V8MONKEY_CHECK(length == inputSize, "Size correct");
@@ -308,26 +307,26 @@ V8MONKEY_TEST(IntUtf8_006, "Data correctly copied when non-terminating zero code
 
 
 V8MONKEY_TEST(IntUtf8_007, "BOM copied correctly") {
-  const uint16_t input[] = {0xfeffu, 0x0000};
+  const uint16_t input[] {0xfeffu, 0x0000};
   const auto inputBegin = std::begin(input);
-  const auto encoded = UTF8::EncodeToUTF16(inputBegin, std::end(input));
+  const UTF8::UTF16Encoded encoded {UTF8::EncodeToUTF16(inputBegin, std::end(input))};
 
   V8MONKEY_CHECK(std::equal(std::begin(encoded), std::end(encoded), inputBegin), "BOM was correctly copied");
 }
 
 
 V8MONKEY_TEST(IntUtf8_008, "Endian-ness reversed BOM (invalid character) copied correctly") {
-  const uint16_t input[] = {0xfffeu, 0x0000};
+  const uint16_t input[] {0xfffeu, 0x0000};
   const auto inputBegin = std::begin(input);
-  const auto encoded = UTF8::EncodeToUTF16(inputBegin, std::end(input));
+  const UTF8::UTF16Encoded encoded {UTF8::EncodeToUTF16(inputBegin, std::end(input))};
 
   V8MONKEY_CHECK(std::equal(std::begin(encoded), std::end(encoded), inputBegin), "BOM was correctly copied");
 }
 
 
 V8MONKEY_TEST(IntUtf8_009, "Empty char array yields empty zero-terminated container") {
-  const char input[] = {'\0'};
-  const auto encoded = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const char input[] {'\0'};
+  const UTF8::UTF16Encoded encoded {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(encoded.size() == 1, "Container of correct size returned");
   V8MONKEY_CHECK(encoded[0] == 0x0000, "Container zero-terminated");
@@ -335,8 +334,8 @@ V8MONKEY_TEST(IntUtf8_009, "Empty char array yields empty zero-terminated contai
 
 
 V8MONKEY_TEST(IntUtf8_010, "Degenerate char iterators yield empty zero-terminated container") {
-  const char input[] = {'\0'};
-  const auto encoded = UTF8::EncodeToUTF16(std::begin(input), std::begin(input));
+  const char input[] {'\0'};
+  const UTF8::UTF16Encoded encoded {UTF8::EncodeToUTF16(std::begin(input), std::begin(input))};
 
   V8MONKEY_CHECK(encoded.size() == 1, "Container of correct size returned");
   V8MONKEY_CHECK(encoded[0] == 0x0000, "Container zero-terminated");
@@ -344,108 +343,108 @@ V8MONKEY_TEST(IntUtf8_010, "Degenerate char iterators yield empty zero-terminate
 
 
 V8MONKEY_TEST(IntUtf8_011, "ASCII encoded correctly") {
-  const char input[] = {'\x61', '\x00'};
-  const UTF8::UTF16Encoded expected = {0x0061u, 0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const char input[] {'\x61', '\x00'};
+  const UTF8::UTF16Encoded expected {0x0061u, 0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_012, "ASCII without terminating zero encoded correctly") {
-  const char input[] = {'\x61'};
-  const UTF8::UTF16Encoded expected = {0x0061u, 0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const char input[] {'\x61'};
+  const UTF8::UTF16Encoded expected {0x0061u, 0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_013, "2-code-unit UTF-8 encoded correctly") {
-  const char input[] = {'\xc3', '\xa9', '\x00'};
-  const UTF8::UTF16Encoded expected = {0x00e9u, 0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const char input[] {'\xc3', '\xa9', '\x00'};
+  const UTF8::UTF16Encoded expected {0x00e9u, 0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_014, "2-code-unit UTF-8 without terminating zero encoded correctly") {
-  const char input[] = {'\xc3', '\xa9'};
-  const UTF8::UTF16Encoded expected = {0x00e9u, 0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const char input[] {'\xc3', '\xa9'};
+  const UTF8::UTF16Encoded expected {0x00e9u, 0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_015, "3-code-unit UTF-8 encoded correctly") {
-  const char input[] = {'\xe4', '\xac', '\x93', '\x00'};
-  const UTF8::UTF16Encoded expected = {0x4b13u, 0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const char input[] {'\xe4', '\xac', '\x93', '\x00'};
+  const UTF8::UTF16Encoded expected {0x4b13u, 0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_016, "3-code-unit UTF-8 without terminating zero encoded correctly") {
-  const char input[] = {'\xe4', '\xac', '\x93'};
-  const UTF8::UTF16Encoded expected = {0x4b13u, 0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const char input[] {'\xe4', '\xac', '\x93'};
+  const UTF8::UTF16Encoded expected {0x4b13u, 0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_017, "4-code-unit UTF-8 encoded correctly") {
-  const char input[] = {'\xf3', '\x9e', '\xa5', '\xb0', '\x00'};
-  const UTF8::UTF16Encoded expected = {0xdb3au, 0xdd70u, 0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const char input[] {'\xf3', '\x9e', '\xa5', '\xb0', '\x00'};
+  const UTF8::UTF16Encoded expected {0xdb3au, 0xdd70u, 0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_018, "4-code-unit UTF-8 without terminating zero encoded correctly") {
-  const char input[] = {'\xf3', '\x9e', '\xa5', '\xb0'};
-  const UTF8::UTF16Encoded expected = {0xdb3au, 0xdd70u, 0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const char input[] {'\xf3', '\x9e', '\xa5', '\xb0'};
+  const UTF8::UTF16Encoded expected {0xdb3au, 0xdd70u, 0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_019, "UTF-8 encoded BOM encoded correctly") {
-  const char input[] = {'\xef', '\xbb', '\xbf', '\x00'};
-  const UTF8::UTF16Encoded expected = {0xfeffu, 0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const char input[] {'\xef', '\xbb', '\xbf', '\x00'};
+  const UTF8::UTF16Encoded expected {0xfeffu, 0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_020, "UTF-8 encoded data with BOM as whitespace code-point encoded correctly") {
-  const char input[] = {'\x61', '\xef', '\xbb', '\xbf', '\x00'};
-  const UTF8::UTF16Encoded expected = {0x0061u, 0xfeffu, 0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const char input[] {'\x61', '\xef', '\xbb', '\xbf', '\x00'};
+  const UTF8::UTF16Encoded expected {0x0061u, 0xfeffu, 0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_021, "Zero in UTF-8 data handled correctly") {
-  const char input[] = {'\x62', '\xc3', '\xaa', '\x00', '\xe4', '\xac', '\x92', '\x00'};
-  const UTF8::UTF16Encoded expected = {0x0062u, 0x00eau, 0x0000, 0x4b12u, 0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  const char input[] {'\x62', '\xc3', '\xaa', '\x00', '\xe4', '\xac', '\x92', '\x00'};
+  const UTF8::UTF16Encoded expected {0x0062u, 0x00eau, 0x0000, 0x4b12u, 0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_022, "UTF-8 data with an explicit replacement character is encoded correctly") {
-  char input[] = {'\xef', '\xbf', '\xbd', '\x00'};
-  const UTF8::UTF16Encoded expected = {0xfffdu, 0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+  char input[] {'\xef', '\xbf', '\xbd', '\x00'};
+  const UTF8::UTF16Encoded expected {0xfffdu, 0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
@@ -453,9 +452,9 @@ V8MONKEY_TEST(IntUtf8_022, "UTF-8 data with an explicit replacement character is
 
 V8MONKEY_TEST(IntUtf8_023, "Continuation code-units outside of a multi-byte sequence encode to the replacement character") {
   for (char cont = '\x80'; cont < '\xc0'; cont++) {
-    char input[] = {cont, 0x00};
-    const UTF8::UTF16Encoded expected = {0xfffdu, 0x0000};
-    const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+    char input[] {cont, 0x00};
+    const UTF8::UTF16Encoded expected {0xfffdu, 0x0000};
+    const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
     V8MONKEY_CHECK(actual == expected, "Continuation code-unit correctly encoded as replacement character");
   }
@@ -465,9 +464,9 @@ V8MONKEY_TEST(IntUtf8_023, "Continuation code-units outside of a multi-byte sequ
 V8MONKEY_TEST(IntUtf8_024, "UTF-8 encoded low surrogates encode to the replacement character") {
   for (char cont1 = '\xb0'; cont1 < '\xc0'; cont1++) {
     for (char cont2 = '\x80'; cont2 < '\xc0'; cont2++) {
-      char input[] = {'\xed', cont1, cont2, '\x00'};
-      const UTF8::UTF16Encoded expected = {0xfffdu, 0xfffdu, 0xfffdu, 0x0000};
-      const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+      char input[] {'\xed', cont1, cont2, '\x00'};
+      const UTF8::UTF16Encoded expected {0xfffdu, 0xfffdu, 0xfffdu, 0x0000};
+      const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
       V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
     }
@@ -478,9 +477,9 @@ V8MONKEY_TEST(IntUtf8_024, "UTF-8 encoded low surrogates encode to the replaceme
 V8MONKEY_TEST(IntUtf8_025, "UTF-8 encoded high surrogates encode to the replacement character") {
   for (char cont1 = '\xa0'; cont1 < '\xb0'; cont1++) {
     for (char cont2 = '\x80'; cont2 < '\xc0'; cont2++) {
-      char input[] = {'\xed', cont1, cont2, '\x00'};
-      const UTF8::UTF16Encoded expected = {0xfffdu, 0xfffdu, 0xfffdu, 0x0000};
-      const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+      char input[] {'\xed', cont1, cont2, '\x00'};
+      const UTF8::UTF16Encoded expected {0xfffdu, 0xfffdu, 0xfffdu, 0x0000};
+      const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
       V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
     }
@@ -491,9 +490,9 @@ V8MONKEY_TEST(IntUtf8_025, "UTF-8 encoded high surrogates encode to the replacem
 V8MONKEY_TEST(IntUtf8_026, "Out-of-range 2-code-unit UTF-8 encodes to replacement characters") {
   for (char leading = '\xc0'; leading < '\xc2'; leading++) {
     for (char cont = '\x80'; cont < '\xc0'; cont++) {
-      char input[] = {leading, cont, '\x00'};
-      const UTF8::UTF16Encoded expected = {0xfffdu, 0xfffdu, 0x0000};
-      const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+      char input[] {leading, cont, '\x00'};
+      const UTF8::UTF16Encoded expected {0xfffdu, 0xfffdu, 0x0000};
+      const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
       V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
     }
@@ -504,9 +503,9 @@ V8MONKEY_TEST(IntUtf8_026, "Out-of-range 2-code-unit UTF-8 encodes to replacemen
 V8MONKEY_TEST(IntUtf8_027, "Out-of-range 3-code-unit UTF-8 encodes to replacement characters") {
   for (char leading = '\x80'; leading < '\xa0'; leading++) {
     for (char cont = '\x80'; cont < '\xc0'; cont++) {
-      char input[] = {'\xe0', leading, cont, '\x00'};
-      const UTF8::UTF16Encoded expected = {0xfffdu, 0xfffdu, 0xfffdu, 0x0000};
-      const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+      char input[] {'\xe0', leading, cont, '\x00'};
+      const UTF8::UTF16Encoded expected {0xfffdu, 0xfffdu, 0xfffdu, 0x0000};
+      const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
       V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
     }
@@ -518,9 +517,9 @@ V8MONKEY_TEST(IntUtf8_028, "Out-of-range 4-code-unit UTF-8 encodes to replacemen
   for (char leading = '\x80'; leading < '\x90'; leading++) {
     for (char cont1 = '\x80'; cont1 < '\xc0'; cont1++) {
       for (char cont2 = '\x80'; cont2 < '\xc0'; cont2++) {
-        char input[] = {'\xf0', leading, cont1, cont2, '\x00'};
-        const UTF8::UTF16Encoded expected = {0xfffdu, 0xfffdu, 0xfffdu, 0xfffdu, 0x0000};
-        const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+        char input[] {'\xf0', leading, cont1, cont2, '\x00'};
+        const UTF8::UTF16Encoded expected {0xfffdu, 0xfffdu, 0xfffdu, 0xfffdu, 0x0000};
+        const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
         V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
       }
@@ -534,9 +533,9 @@ V8MONKEY_TEST(IntUtf8_029, "Out-of-range 4-code-unit UTF-8 encodes to replacemen
     for (char cont1 = (leading == '\xf4' ? '\x90' : '\x80'); cont1 < '\xc0'; cont1++) {
       for (char cont2 = '\x80'; cont2 < '\xc0'; cont2++) {
         for (char cont3 = '\x80'; cont3 < '\xc0'; cont3++) {
-          char input[] = {leading, cont1, cont2, cont3, '\x00'};
-          const UTF8::UTF16Encoded expected = {0xfffdu, 0xfffdu, 0xfffdu, 0xfffdu, 0x0000};
-          const auto actual = UTF8::EncodeToUTF16(std::begin(input), std::end(input));
+          char input[] {leading, cont1, cont2, cont3, '\x00'};
+          const UTF8::UTF16Encoded expected {0xfffdu, 0xfffdu, 0xfffdu, 0xfffdu, 0x0000};
+          const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), std::end(input))};
 
           V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
         }
@@ -550,12 +549,11 @@ V8MONKEY_TEST(IntUtf8_030, "Ill-formed UTF-8 sequences have their contents encod
   for (const auto& utf : invalidUTF8) {
     const std::vector<char> testCase(utf);
 
-    auto testCaseSize = testCase.size();
-    const char* inputBegin = testCase.data();
-    const char* inputEnd = inputBegin + testCaseSize;
-    UTF8::UTF16Encoded expected(testCaseSize);
+    UTF8::UTF16Encoded expected(testCase.size());
+    const auto inputBegin = std::begin(testCase);
+    const auto inputEnd = std::end(testCase);
+    auto expectedBegin = std::begin(expected);
 
-    const auto expectedBegin = std::begin(expected);
     std::transform(inputBegin, inputEnd, expectedBegin, [](const char c) {
       if (c & 0x80) {
         return static_cast<char16_t>(0xfffdu);
@@ -564,7 +562,7 @@ V8MONKEY_TEST(IntUtf8_030, "Ill-formed UTF-8 sequences have their contents encod
       }
     });
 
-    const auto actual = UTF8::EncodeToUTF16(inputBegin, inputEnd);
+    const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(inputBegin, inputEnd)};
     V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
   }
 }
@@ -572,9 +570,9 @@ V8MONKEY_TEST(IntUtf8_030, "Ill-formed UTF-8 sequences have their contents encod
 
 V8MONKEY_TEST(IntUtf8_031, "Ill-formed UTF-8 sequences have their contents encoded to replacement characters (2)") {
   auto utfIter = std::begin(encodableInvalidUTF8);
-  const auto& utfEnd = std::end(encodableInvalidUTF8);
+  const auto utfEnd = std::end(encodableInvalidUTF8);
   auto encodedIter = std::begin(encodableInvalidAsUTF16);
-  const auto& encodedEnd = std::end(encodableInvalidAsUTF16);
+  const auto encodedEnd = std::end(encodableInvalidAsUTF16);
 
   // std::distance and std::begin/end aren't constexpr in our case, so we cannot static assert this
   V8MONKEY_CHECK(std::distance(utfIter, utfEnd) == std::distance(encodedIter, encodedEnd),
@@ -584,68 +582,68 @@ V8MONKEY_TEST(IntUtf8_031, "Ill-formed UTF-8 sequences have their contents encod
     UTF8::UTF16Encoded expected(*encodedIter);
 
     const std::vector<char> testCase(*utfIter);
-    const char* inputBegin = testCase.data();
-    const char* inputEnd = inputBegin + testCase.size();
+    const auto inputBegin = std::begin(testCase);
+    const auto inputEnd = std::end(testCase);
 
-    const auto actual = UTF8::EncodeToUTF16(inputBegin, inputEnd);
+    const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(inputBegin, inputEnd)};
     V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
   }
 }
 
 
 V8MONKEY_TEST(IntUtf8_032, "Nullptrs handled correctly (1)") {
-  const uint16_t input[] = {0x0001u};
-  const uint16_t* degenerate = nullptr;
-  const UTF8::UTF16Encoded expected = {0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), degenerate);
+  const uint16_t input[] {0x0001u};
+  const uint16_t* degenerate {nullptr};
+  const UTF8::UTF16Encoded expected {0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), degenerate)};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_033, "Nullptrs handled correctly (2)") {
-  const uint16_t input[] = {0x0001u};
-  const uint16_t* degenerate = nullptr;
+  const uint16_t input[] {0x0001u};
+  const uint16_t* degenerate {nullptr};
   const UTF8::UTF16Encoded expected = {0x0000};
-  const auto actual = UTF8::EncodeToUTF16(degenerate, std::begin(input));
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(degenerate, std::begin(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_034, "Nullptrs handled correctly (3)") {
-  uint16_t* degenerate = nullptr;
-  const UTF8::UTF16Encoded expected = {0x0000};
-  const auto actual = UTF8::EncodeToUTF16(degenerate, degenerate);
+  uint16_t* degenerate {nullptr};
+  const UTF8::UTF16Encoded expected {0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(degenerate, degenerate)};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_035, "Nullptrs handled correctly (4)") {
-  const char input[] = {'\3'};
-  const char* degenerate = nullptr;
-  const UTF8::UTF16Encoded expected = {0x0000};
-  const auto actual = UTF8::EncodeToUTF16(std::begin(input), degenerate);
+  const char input[] {'\3'};
+  const char* degenerate {nullptr};
+  const UTF8::UTF16Encoded expected {0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(std::begin(input), degenerate)};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_036, "Nullptrs handled correctly (5)") {
-  const char input[] = {'\2'};
-  const char* degenerate = nullptr;
-  const UTF8::UTF16Encoded expected = {0x0000};
-  const auto actual = UTF8::EncodeToUTF16(degenerate, std::begin(input));
+  const char input[] {'\2'};
+  const char* degenerate {nullptr};
+  const UTF8::UTF16Encoded expected {0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(degenerate, std::begin(input))};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 
 V8MONKEY_TEST(IntUtf8_037, "Nullptrs handled correctly (6)") {
-  char* degenerate = nullptr;
-  const UTF8::UTF16Encoded expected = {0x0000};
-  const auto actual = UTF8::EncodeToUTF16(degenerate, degenerate);
+  char* degenerate {nullptr};
+  const UTF8::UTF16Encoded expected {0x0000};
+  const UTF8::UTF16Encoded actual {UTF8::EncodeToUTF16(degenerate, degenerate)};
 
   V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }

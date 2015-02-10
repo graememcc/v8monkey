@@ -12,15 +12,16 @@
 
 
 namespace v8 {
+  // XXX Move out of V8Monkey namespace ?
   namespace V8Monkey {
     namespace UTF8 {
       using UTF16Encoded = std::vector<char16_t>;
 
-      constexpr auto replacementChar = char16_t {0xfffdu};
-      constexpr auto continuationMask = 0x3fu;
+      constexpr char16_t replacementChar {0xfffdu};
+      constexpr unsigned int continuationMask {0x3fu};
 
 
-      // TODO: Find a suitable way to hide this implementation detail from includers
+      // TODO: Can we hide this implementation detail from includers?
       void utf8toSurrogatePair(const unsigned char c1, const unsigned char c2,
                                const unsigned char c3, const unsigned char c4, UTF16Encoded& dest) {
         auto ls_bottom6 = c4 & continuationMask;
@@ -42,22 +43,34 @@ namespace v8 {
       }
 
 
-      // TODO: Find a suitable way to hide this implementation detail from includers
-      template <typename T, typename U = typename std::iterator_traits<T>::value_type, bool Is16Bit = sizeof(U) == 2>
+      template <typename T>
+      bool isDegenerate(T begin, T end) {
+        return begin == end;
+      }
+
+
+      template <typename T>
+      bool isDegenerate(T* begin, T* end) {
+        return begin == end || !begin || !end;
+      }
+
+
+      // TODO: Can we hide this implementation detail from includers?
+      template <typename T, typename U = typename std::iterator_traits<T>::value_type, bool isTwoByte = sizeof(U) == 2>
       struct UTF16Encoder;
 
 
-      // TODO: Find a suitable way to hide this implementation detail from includers
-      // XXX Look at the concept name: Are these random access iterators (looking at the end - 1)? Note the expectation
+      // TODO: Can we hide this implementation detail from includers?
+      // Note: Assumes T and U are bidirectional iterators 
       template <typename T, typename U> struct UTF16Encoder<T, U, true> {
         static UTF16Encoded encode(T begin, T end) {
           // Handle degenerate iterators first. Note: the iterators could be pointers, and hence nullptrs
-          if (begin == end || !begin || !end) {
-            return UTF16Encoded {0x0000};
+          if (isDegenerate(begin, end)) {
+            return UTF16Encoded {0x0000u};
           }
 
-          auto needsTerminatingZeroAdded = bool {*(end - 1) != 0x0000};
-          auto result = UTF16Encoded {begin, end};
+          bool needsTerminatingZeroAdded { *(end - 1) != 0x0000u };
+          UTF16Encoded result {begin, end};
           if (needsTerminatingZeroAdded) {
             result.emplace_back(0x0000u);
           }
@@ -70,22 +83,20 @@ namespace v8 {
       // TODO: Find a suitable way to hide this implementation detail from includers
       template <typename T, typename U> struct UTF16Encoder<T, U, false> {
         static UTF16Encoded encode(T begin, T end) {
-          static_assert(sizeof(U) == 1, "Template constructed with wrong-size value type");
-
           // Handle degenerate iterators first
-          if (begin == end || !begin || !end) {
-            return UTF16Encoded(1, 0x0000);
+          if (isDegenerate(begin, end)) {
+            return UTF16Encoded {0x0000u};
           }
 
-          bool needsTerminatingZeroAdded = *(end - 1) != 0x0000;
+          bool needsTerminatingZeroAdded { *(end - 1) != 0x00u };
 
-          auto result = UTF16Encoded {};
+          UTF16Encoded result {};
           // We have an upper bound on the possible size of the result
           UTF16Encoded::size_type numberOfCodeUnits = static_cast<UTF16Encoded::size_type>(std::distance(begin, end));
           result.reserve(numberOfCodeUnits + (needsTerminatingZeroAdded ? 1 : 0));
 
           for (auto it = begin; it != end; ++it) {
-            unsigned char c = static_cast<unsigned char>(*it);
+            unsigned char c {static_cast<unsigned char>(*it)};
 
             // ASCII can be copied as-is
             if (!(c & 0x80u)) {
@@ -115,7 +126,7 @@ namespace v8 {
               continue;
             }
 
-            unsigned char c2 = static_cast<unsigned char>(*next);
+            unsigned char c2 {static_cast<unsigned char>(*next)};
 
             // We can now weed out any ill-formed encodings based on the second code-unit.
             if ((c == 0xe0u && c2 < 0xa0u) || (c == 0xedu && !(c2 < 0xa0u)) ||
@@ -137,7 +148,7 @@ namespace v8 {
               continue;
             }
 
-            unsigned char c3 = static_cast<unsigned char>(*next);
+            unsigned char c3 {static_cast<unsigned char>(*next)};
 
             if (c < 0xf0u) {
               it = next;
@@ -152,7 +163,7 @@ namespace v8 {
               continue;
             }
 
-            unsigned char c4 = static_cast<unsigned char>(*next);
+            unsigned char c4 {static_cast<unsigned char>(*next)};
             it = next;
 
             // Transform to a surrogate pair
