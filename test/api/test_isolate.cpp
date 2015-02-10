@@ -119,19 +119,24 @@ namespace {
   void* CheckIsolateStacking(void* = nullptr) {
     Isolate* original {Isolate::GetCurrent()};
     Isolate* first {Isolate::New()};
+
     first->Enter();
     Isolate* second {Isolate::New()};
     second->Enter();
     Isolate* third {Isolate::New()};
     third->Enter();
-    auto allDistinct = bool {original != first && original != second && original != third && first != second &&
-                             first != third && second != third};
+
+    bool allDistinct {original != first && original != second && original != third && first != second &&
+                      first != third && second != third};
+
     third->Exit();
-    auto returnedToSecond = bool {Isolate::GetCurrent() == second};
+    bool returnedToSecond {Isolate::GetCurrent() == second};
+
     Isolate::GetCurrent()->Exit();
-    auto returnedToFirst = bool {Isolate::GetCurrent() == first};
+    bool returnedToFirst {Isolate::GetCurrent() == first};
+
     Isolate::GetCurrent()->Exit();
-    auto returnedToOriginal = bool {Isolate::GetCurrent() == original};
+    bool returnedToOriginal {Isolate::GetCurrent() == original};
 
     first->Dispose();
     second->Dispose();
