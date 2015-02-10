@@ -154,8 +154,8 @@ includeopt += -isystem $(smheadersdir)
 # TODO: Do we want to allow the user to specify additional warnings? i.e. should this be additive?
 warningswitches = all extra init-self switch-default switch-enum unused  strict-overflow=4 shadow undef \
                   unsafe-loop-optimizations cast-qual cast-align conversion sign-conversion logical-op \
-                  missing-declarations packed padded redundant-decls unreachable-code inline abi ctor-dtor-privacy \
-                  non-virtual-dtor old-style-cast overloaded-virtual sign-promo missing-include-dirs
+                  packed redundant-decls unreachable-code inline abi ctor-dtor-privacy non-virtual-dtor \
+                  old-style-cast overloaded-virtual sign-promo missing-include-dirs
 warnings = $(addprefix -W, $(warningswitches))
 
 

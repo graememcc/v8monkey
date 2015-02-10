@@ -61,7 +61,7 @@ struct ArgParseResult {
  *
  */
 
-string stripLeadingTrailingSquareBrackets(string&& original) {
+string stripLeadingTrailingSquareBrackets(string original) {
   if (original.front() != '[' || original.back() != ']') {
     return string {original};
   }
@@ -135,7 +135,7 @@ ArgParseResult parseArgs(int argc, char** argv) {
       }
 
       // Strip square brackets if the user copied them from a test listing, and record the requested test
-      result.addTest(stripLeadingTrailingSquareBrackets(string(argv[i])));
+      result.addTest(stripLeadingTrailingSquareBrackets(argv[i]));
       result.setNext(RunByName);
       continue;
     }
@@ -158,8 +158,8 @@ ArgParseResult parseArgs(int argc, char** argv) {
  *
  */
 
-int usage(string progName, string errorMessage = "") {
-  bool errorSupplied = !errorMessage.empty();
+int usage(string& progName, const char* errorMessage = nullptr) {
+  bool errorSupplied {errorMessage && errorMessage[0] != '\0'};
 
   if (errorSupplied) {
     cerr << errorMessage << endl;
@@ -177,6 +177,11 @@ int usage(string progName, string errorMessage = "") {
   cout << endl;
 
   return errorSupplied ? 1 : 0;
+}
+
+
+int usage(string& progName, string&& errorMessage) {
+  return usage(progName, errorMessage.c_str());
 }
 
 
@@ -203,13 +208,13 @@ void runTestsByFile(const set<string>& aFileNames, set<string>& aTestsRan, set<s
  */
 
 void runTestsByName(const set<string>& aTestNames, const set<string>& aTestsRan, set<string>& aFailures) {
-  set<string>::const_iterator test = aTestNames.cbegin();
-  set<string>::const_iterator lastTest = aTestNames.cend();
-  set<string>::const_iterator notRan = aTestsRan.end();
+  set<string>::const_iterator test {aTestNames.cbegin()};
+  set<string>::const_iterator lastTest {aTestNames.cend()};
+  set<string>::const_iterator notRan {aTestsRan.end()};
 
   // For aesthetic purposes
-  bool hadOutputAlready = aTestsRan.size() > 0;
-  bool selfTriggeredOutput = false;
+  bool hadOutputAlready {aTestsRan.size() > 0};
+  bool selfTriggeredOutput {false};
 
   while (test != lastTest) {
     // Ensure that if a named test has already been executed when we ran all the tests from a particular file, then
@@ -234,7 +239,7 @@ void runTestsByName(const set<string>& aTestNames, const set<string>& aTestsRan,
  */
 
 void reportFailures(const set<string>& aFailures) {
-  size_t failureCount = aFailures.size();
+  auto failureCount = aFailures.size();
 
   cout << failureCount << " test failure";
   if (failureCount > 1) {
@@ -265,7 +270,7 @@ string getBaseName(char* argv0) {
 int main(int argc, char** argv) {
   string progName {getBaseName(argv[0])};
 
-  ArgParseResult result = parseArgs(argc, argv);
+  ArgParseResult result {parseArgs(argc, argv)};
 
   if (result.UsageRequested()) {
     exit(usage(progName));
