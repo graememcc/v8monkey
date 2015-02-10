@@ -14,7 +14,12 @@
 using namespace std;
 
 
-// XXX Get rid of the Gecko style argument names
+using TestName = V8MonkeyTest::TestName;
+using TestfileNames = set<V8MonkeyTest::TestfileName>;
+using TestNames = V8MonkeyTest::TestNames;
+using ExecutedTests = V8MonkeyTest::ExecutedTests;
+using TestFailures = V8MonkeyTest::TestFailures;
+
 
 enum ArgRequest {Usage, TestList, RegisteredTestCount, RunByFile, RunByName, RunAll, None, BadArg, FileError, NameError};
 
@@ -23,7 +28,7 @@ struct ArgParseResult {
   ArgRequest request1;
   ArgRequest request2;
   set<string> filenames;
-  set<string> testnames;
+  TestNames testnames;
   string badArg;
 
   ArgParseResult() : request1 {None}, request2 {None} {}
@@ -61,12 +66,12 @@ struct ArgParseResult {
  *
  */
 
-string stripLeadingTrailingSquareBrackets(string original) {
+TestName stripLeadingTrailingSquareBrackets(string original) {
   if (original.front() != '[' || original.back() != ']') {
-    return string {original};
+    return TestName {original};
   }
 
-  return string {original, 1, original.size() - 2};
+  return TestName {original, 1, original.size() - 2};
 }
 
 
@@ -88,7 +93,7 @@ ArgParseResult parseArgs(int argc, char** argv) {
   ArgParseResult result;
 
   for (auto i = 1; i < argc; i++) {
-    const string arg {argv[i]};
+    const auto arg = string {argv[i]};
 
     if (arg.front() != '-') {
       result.setError(arg);
@@ -159,7 +164,7 @@ ArgParseResult parseArgs(int argc, char** argv) {
  */
 
 int usage(string& progName, const char* errorMessage = nullptr) {
-  bool errorSupplied {errorMessage && errorMessage[0] != '\0'};
+  auto errorSupplied = bool {errorMessage && errorMessage[0] != '\0'};
 
   if (errorSupplied) {
     cerr << errorMessage << endl;
@@ -192,43 +197,38 @@ int usage(string& progName, string&& errorMessage) {
  */
 // XXX Can we indent test output?
 
-void runTestsByFile(const set<string>& aFileNames, set<string>& aTestsRan, set<string>& aFailures) {
-  for (const auto& filename : aFileNames) {
+void runTestsByFile(const TestfileNames& fileNames, ExecutedTests executedTests, TestFailures& testFailures) {
+  for (const auto& filename : fileNames) {
     cout << "Running tests from file " << filename << ": " << endl;
-    V8MonkeyTest::RunTestsForFile(filename, aTestsRan, aFailures);
+    V8MonkeyTest::RunTestsForFile(filename, executedTests, testFailures);
     cout << endl;
   }
 }
 
 
-// XXX Can we refactor this?
 /*
  * Run all the tests named in the given set, unless the test name is present in the given set of tests already ran.
  *
  */
 
-void runTestsByName(const set<string>& aTestNames, const set<string>& aTestsRan, set<string>& aFailures) {
-  set<string>::const_iterator test {aTestNames.cbegin()};
-  set<string>::const_iterator lastTest {aTestNames.cend()};
-  set<string>::const_iterator notRan {aTestsRan.end()};
+void runTestsByName(const TestNames& testNames, ExecutedTests& executedTests, TestFailures& testFailures) {
+  auto notExecuted = executedTests.end();
 
   // For aesthetic purposes
-  bool hadOutputAlready {aTestsRan.size() > 0};
-  bool selfTriggeredOutput {false};
+  auto hasPreviousOutput = bool {executedTests.size() > 0};
+  auto hasTriggeredOutput = bool {false};
 
-  while (test != lastTest) {
+  for (auto& test : testNames) {
     // Ensure that if a named test has already been executed when we ran all the tests from a particular file, then
     // don't run it again
-    if (aTestsRan.find(*test) == notRan) {
-      if (hadOutputAlready && !selfTriggeredOutput) {
+    if (executedTests.find(test) == notExecuted) {
+      if (hasPreviousOutput && !hasTriggeredOutput) {
         cout << endl;
-        selfTriggeredOutput = true;
+        hasTriggeredOutput = true;
       }
 
-      V8MonkeyTest::RunTestByName(*test, aFailures);
+      V8MonkeyTest::RunTestByName(test, executedTests, testFailures);
     }
-
-    test++;
   }
 }
 
@@ -238,8 +238,8 @@ void runTestsByName(const set<string>& aTestNames, const set<string>& aTestsRan,
  *
  */
 
-void reportFailures(const set<string>& aFailures) {
-  auto failureCount = aFailures.size();
+void reportFailures(const TestFailures& testFailures) {
+  auto failureCount = testFailures.size();
 
   cout << failureCount << " test failure";
   if (failureCount > 1) {
@@ -247,7 +247,7 @@ void reportFailures(const set<string>& aFailures) {
   }
   cout << ":" << endl;
 
-  for (auto& message : aFailures) {
+  for (auto& message : testFailures) {
     cout << message << endl;
   }
 }
@@ -260,7 +260,7 @@ void reportFailures(const set<string>& aFailures) {
  */
 
 string getBaseName(char* argv0) {
-  string fullName {argv0};
+  auto fullName = string {argv0};
   auto slash = fullName.rfind('/');
   auto diff = slash == string::npos ? 0 : slash + 1;
   return string {fullName, diff};
@@ -268,9 +268,8 @@ string getBaseName(char* argv0) {
 
 
 int main(int argc, char** argv) {
-  string progName {getBaseName(argv[0])};
-
-  ArgParseResult result {parseArgs(argc, argv)};
+  auto progName = string {getBaseName(argv[0])};
+  auto result = parseArgs(argc, argv);
 
   if (result.UsageRequested()) {
     exit(usage(progName));
@@ -278,7 +277,6 @@ int main(int argc, char** argv) {
     V8MonkeyTest::ListAllTests();
     exit(0);
   } else if (result.RegisteredTestCountRequested()) {
-    // XXX FIX
     V8MonkeyTest::CountTests();
     exit(0);
   } else if (result.FileNameErrorMade()) {
@@ -289,18 +287,18 @@ int main(int argc, char** argv) {
     exit(usage(progName, string("Unrecognised option: ") + result.badArg));
   }
 
-  // Compile the sets of tests ran to avoid duplication
-  set<string> testsRan;
+  // Track test execution, to avoid running a test more than once
+  auto executedTests = ExecutedTests {};
 
   // Also track test failures
-  set<string> testFailures;
+  auto testFailures = TestFailures {};
 
   if (result.RunByFileRequested()) {
-    runTestsByFile(result.filenames, testsRan, testFailures);
+    runTestsByFile(result.filenames, executedTests, testFailures);
   }
 
   if (result.RunByNameRequested()) {
-    runTestsByName(result.testnames, testsRan, testFailures);
+    runTestsByName(result.testnames, executedTests, testFailures);
   }
 
   if (result.RunAllRequested()) {

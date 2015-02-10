@@ -1,18 +1,26 @@
-#include <map>
-#include <set>
-#include <utility>
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <stdlib.h>
-#include <cstring>
+// exception
 #include <exception>
-#include <unistd.h>
+
+// cout
+#include <iostream>
+
+// string
+#include <string>
+
+// string stream
+#include <sstream>
+
+// waitpid
 #include <sys/wait.h>
 
+// make_pair
+#include <utility>
 
+// fork
+#include <unistd.h>
+
+// Class definition
 #include "V8MonkeyTest.h"
-
 
 using namespace std;
 
@@ -20,25 +28,21 @@ using namespace std;
 // XXX Need to make sure filenames are basenames, both here and in run_v8monkey_tests
 // XXX Do we want the containers to contain const V8MonkeyTest*
 
-map<string, set<string>> V8MonkeyTest::sTestsByFileName;
-map<string, V8MonkeyTest*> V8MonkeyTest::sTestsByName;
+std::map<V8MonkeyTest::TestfileName, V8MonkeyTest::TestNames> V8MonkeyTest::testsByFileName;
+std::map<V8MonkeyTest::TestName, V8MonkeyTest*> V8MonkeyTest::testsByName;
 
 
-V8MonkeyTest::V8MonkeyTest(const char* aFileName, const char* aCodeName, const char* aDescription, void (*aTestFunction)()):
-  mFileName(aFileName),
-  mCodeName(aCodeName),
-  mDescription(aDescription),
-  mTestFunction(aTestFunction)
-{
-  sTestsByName.insert(make_pair(aCodeName, this));
+V8MonkeyTest::V8MonkeyTest(const char* file, const char* name, const char* desc, void (*testFunction)()) :
+  fileName(file), testName(name), description(desc), test(testFunction) {
+  testsByName.insert(make_pair(name, this));
 
   // There are two scenarios for the following operation: either we will insert a new set (on the first time we
   // encountered the given filename), or the insertion will fail, as we've encountered this filename before.
   //
   // Either way, the result of this expression will be a <string, set<string>> iterator, which we can dereference to
   // get at the set associated with the filename. We can then insert the test codename.
-  map<string, set<string>>::iterator filenameEntry = sTestsByFileName.insert(make_pair(aFileName, set<string>())).first;
-  filenameEntry->second.insert(aCodeName);
+  auto filenameEntry = testsByFileName.insert(make_pair(file, set<TestName>())).first;
+  filenameEntry->second.insert(name);
 }
 
 
@@ -53,9 +57,8 @@ V8MonkeyTest::V8MonkeyTest(const char* aFileName, const char* aCodeName, const c
  *
  */
 
-bool
-V8MonkeyTest::Run()
-{
+// XXX Need to use Platform primitives for forking
+bool V8MonkeyTest::Run() {
   pid_t processID = fork();
 
   if (processID == 0) {
@@ -63,7 +66,7 @@ V8MonkeyTest::Run()
     cout << "Running " << GetFullDescription() << "... ";
 
     try {
-      mTestFunction();
+      test();
       cout << "OK" << endl;
       exit(0);
     } catch (exception& e) {
@@ -97,11 +100,10 @@ V8MonkeyTest::Run()
  * Return a string describing this test, suitable for output.
  *
  */
-string
-V8MonkeyTest::GetFullDescription()
-{
+
+V8MonkeyTest::TestDescription V8MonkeyTest::GetFullDescription() {
   stringstream s;
-  s << "[" << mCodeName << "] " << mDescription;
+  s << "[" << testName << "] " << description;
   return s.str();
 }
 
@@ -114,36 +116,24 @@ V8MonkeyTest::GetFullDescription()
  *
  */
 
-void
-V8MonkeyTest::ListAllTests()
-{
-  map<string, set<string>>::const_iterator filenameIterator = sTestsByFileName.cbegin();
-  map<string, set<string>>::const_iterator fileEnd = sTestsByFileName.cend();
-
-  // Deal with the degenerate case
-  if (filenameIterator == fileEnd) {
+void V8MonkeyTest::ListAllTests() {
+  if (testsByFileName.empty()) {
     cout << "No tests registered" << endl;
     return;
   }
 
-  while (filenameIterator != fileEnd) {
-    cout << "Tests defined by file " << filenameIterator->first << ":" << endl;
+  for (const auto& fileTests : testsByFileName) {
+    cout << "Tests defined by file " << fileTests.first << ":" << endl;
 
-    // If there is an entry for a filename, we are guaranteed that the set is not degenerate; it must contain at least
-    // one entry. Likewise, we are guaranteed that the set members exist in sTestsByName. Calling find on sTestsByName
-    // will not yield the end iterator.
-
-    set<string>::const_iterator testIterator = filenameIterator->second.cbegin();
-    set<string>::const_iterator testEnd = filenameIterator->second.end();
-
-    while (testIterator != testEnd) {
-      V8MonkeyTest* test = sTestsByName.find(*testIterator)->second;
+    for (const auto& testName : fileTests.second) {
+      // If there is an entry for a filename, we are guaranteed that the set of test names is not degenerate. Further,
+      // we are guaranteed that every member of that set is a member of testsByName. Calling find on testsByName
+      // cannot yield the end iterator.
+      V8MonkeyTest* test = testsByName.find(testName)->second;
       cout << test->GetFullDescription() << endl;
-      testIterator++;
     }
 
     cout << endl;
-    filenameIterator++;
   }
 }
 
@@ -152,10 +142,9 @@ V8MonkeyTest::ListAllTests()
  * This simply prints the number of registered tests to stdout. It is designed to be used by Makefiles rather than humans
  *
  */
-void
-V8MonkeyTest::CountTests()
-{
-  cout << sTestsByName.size();
+
+void V8MonkeyTest::CountTests() {
+  cout << "Registered tests: " << testsByName.size() << endl;
 }
 
 /*
@@ -164,20 +153,21 @@ V8MonkeyTest::CountTests()
  *
  */
 
-void
-V8MonkeyTest::RunTestByName(const string& aTestName, set<string>& aFailures)
-{
-  map<string, V8MonkeyTest*>::iterator lookupResult = sTestsByName.find(aTestName);
+void V8MonkeyTest::RunTestByName(const TestName& testName, ExecutedTests& testsExecuted, TestFailures& failures) {
+  auto lookupResult = testsByName.find(testName);
+  auto notFound = testsByName.end();
 
-  if (lookupResult == sTestsByName.end()) {
-    cerr << "Cannot run test named " << aTestName << " - no such test" << endl;
-    aFailures.insert(string("[") + aTestName + string("] <Test not found>"));
+  if (lookupResult == notFound) {
+    cerr << "Cannot run test named " << testName << " - no such test" << endl;
+    failures.insert(string("[") + testName + string("] <Test not found>"));
     return;
   }
 
-  bool result = lookupResult->second->Run();
+  auto result = bool {lookupResult->second->Run()};
+  testsExecuted.insert(testName);
+
   if (!result) {
-    aFailures.insert(lookupResult->second->GetFullDescription());
+    failures.insert(lookupResult->second->GetFullDescription());
   }
 }
 
@@ -188,27 +178,19 @@ V8MonkeyTest::RunTestByName(const string& aTestName, set<string>& aFailures)
  *
  */
 
-void
-V8MonkeyTest::RunTestsForFile(const string& aFileName, set<string>& aTestsRan, set<string>& aFailures)
-{
-  map<string, set<string>>::const_iterator testsForFileIterator = sTestsByFileName.find(aFileName);
-  map<string, set<string>>::const_iterator fileEnd = sTestsByFileName.cend();
+void V8MonkeyTest::RunTestsForFile(const string& fileName, ExecutedTests& testsExecuted, TestFailures& failures) {
+  auto testsForFile = testsByFileName.find(fileName);
+  auto notFound = testsByFileName.end();
 
   // Handle an unknown file
-  if (testsForFileIterator == fileEnd) {
-    cerr << "No tests found for file " << aFileName << endl;
+  if (testsForFile == notFound) {
+    cerr << "No tests found for file " << fileName << endl;
     return;
   }
 
-  // If there is an entry for a filename, we are guaranteed that the set is not degenerate; it must contain at least
-  // one entry.
-  set<string>::const_iterator testIterator = testsForFileIterator->second.cbegin();
-  set<string>::const_iterator testEnd = testsForFileIterator->second.end();
-
-  while (testIterator != testEnd) {
-    RunTestByName(*testIterator, aFailures);
-    aTestsRan.insert(*testIterator);
-    testIterator++;
+  for (auto& testName : testsForFile->second) {
+    RunTestByName(testName, testsExecuted, failures);
+    testsExecuted.insert(testName);
   }
 }
 
@@ -218,30 +200,17 @@ V8MonkeyTest::RunTestsForFile(const string& aFileName, set<string>& aTestsRan, s
  *
  */
 
-void
-V8MonkeyTest::RunAllTests(set<string>& aFailures)
-{
-  map<string, set<string>>::const_iterator filename = sTestsByFileName.cbegin();
-  map<string, set<string>>::const_iterator fileEnd = sTestsByFileName.cend();
-
-  // Deal with the degenerate case
-  if (filename == fileEnd) {
+void V8MonkeyTest::RunAllTests(TestFailures& failures) {
+  if (testsByFileName.empty()) {
     cout << "No tests registered" << endl;
     return;
   }
 
-  while (filename != fileEnd) {
-    // If there is an entry for a filename, we are guaranteed that the set is not degenerate; it must contain at least
-    // one entry.
+  auto testsExecuted = ExecutedTests {};
 
-    set<string>::const_iterator test = filename->second.cbegin();
-    set<string>::const_iterator testEnd = filename->second.end();
-
-    while (test != testEnd) {
-      RunTestByName(*test, aFailures);
-      test++;
+  for (auto& file : testsByFileName) {
+    for (auto& test : file.second) {
+      RunTestByName(test, testsExecuted, failures);
     }
-
-    filename++;
   }
 }

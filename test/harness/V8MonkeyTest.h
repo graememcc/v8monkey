@@ -1,5 +1,5 @@
 #ifndef V8MONKEY_V8MONKEYTEST_H
-#define V8MONKEY_V8MONKEYTEST_H 
+#define V8MONKEY_V8MONKEYTEST_H
 
 // map
 #include <map>
@@ -22,19 +22,26 @@
 
 class V8MonkeyTest {
   public:
-    V8MonkeyTest(const char* aFileName, const char* aCodeName, const char* aDescription, void (*aTestFunction)());
+    using TestDescription = std::string;
+    using TestfileName = std::string;
+    using TestName = std::string;
+    using TestNames = std::set<TestName>;
+    using ExecutedTests = std::set<TestName>;
+    using TestFailures = std::set<TestName>;
+
+    V8MonkeyTest(const char* file, const char* name, const char* desc, void (*testFunction)());
 
     // Return the test's filename
-    std::string GetFileName() { return mFileName; }
+    TestfileName GetFileName() { return fileName; }
 
     // Return the test's "codename"
-    std::string GetCodeName() { return mCodeName; }
+    TestName GetName() { return testName; }
 
     // Return the test's description
-    std::string GetDescription() { return mDescription; }
+    TestDescription GetDescription() { return description; }
 
     // Return a description of the test, suitable for displaying to standard output
-    std::string GetFullDescription();
+    TestDescription GetFullDescription();
 
     // Run the test function wrapped by this test (does not traverse the linked list). Returns true if the test
     // without error, false otherwise
@@ -49,28 +56,27 @@ class V8MonkeyTest {
     // Run all the tests for a given filename, warning on error to standard error if there are no such registered tests.
     // Fills the given set aFileName with the codenames of the tests ran, and the set aFailures with messages describing
     // any tests that failed.
-    static void RunTestsForFile(const std::string& aFileName, std::set<std::string>& aTestsRan,
-                                                              std::set<std::string>& aFailures);
+    static void RunTestsForFile(const TestfileName& fileName, ExecutedTests& testsExecuted, TestFailures& failures);
 
     // Run the test with a given name, or print an error to standard error if there is no such test. If the test fails,
     // a description of the test is added to the set aFailures.
-    static void RunTestByName(const std::string& aTestName, std::set<std::string>& aFailures);
+    static void RunTestByName(const TestName& testName, ExecutedTests& testsExecuted, TestFailures& failures);
 
     // Execute all tests known to the test harness, filling the given set with descriptions of the test failures
-    static void RunAllTests(std::set<std::string>& aFailures);
+    static void RunAllTests(TestFailures& failures);
 
   private:
     // A mapping from filenames to the names of the tests they contain
-    static std::map<std::string, std::set<std::string>> sTestsByFileName;
+    static std::map<TestfileName, TestNames> testsByFileName;
 
     // A mapping from test codenames to the relevant tests
-    static std::map<std::string, V8MonkeyTest*> sTestsByName;
+    static std::map<TestName, V8MonkeyTest*> testsByName;
 
     // Note we convert the char*'s to C++ strings to ensure membership tests compare contents, not pointers
-    std::string mFileName;
-    std::string mCodeName;
-    std::string mDescription;
-    void (*mTestFunction)();
+    TestfileName fileName;
+    TestName testName;
+    TestDescription description;
+    void (*test)();
 };
 
 
@@ -105,7 +111,7 @@ void* name(void* arg)
 #define V8MONKEY_TEST(name, description) \
    static void Test##name(); \
    V8MonkeyTest test##name(__FILE__, #name, description, &Test##name); \
-   static void Test##name() 
+   static void Test##name()
 #endif
 
 
