@@ -20,6 +20,8 @@
 #include "V8MonkeyTest.h"
 
 
+// XXX Needs Herb style
+
 namespace {
   // Key for below:
   // CB1 = First continuation code-unit, CB2 = Second continuation code-unit, CB3 = Third continuation code-unit
@@ -588,6 +590,64 @@ V8MONKEY_TEST(IntUtf8_031, "Ill-formed UTF-8 sequences have their contents encod
     const auto actual = UTF8::EncodeToUTF16(inputBegin, inputEnd);
     V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
   }
+}
+
+
+V8MONKEY_TEST(IntUtf8_032, "Nullptrs handled correctly (1)") {
+  const uint16_t input[] = {0x0001u};
+  const uint16_t* degenerate = nullptr;
+  const UTF8::UTF16Encoded expected = {0x0000};
+  const auto actual = UTF8::EncodeToUTF16(std::begin(input), degenerate);
+
+  V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
+}
+
+
+V8MONKEY_TEST(IntUtf8_033, "Nullptrs handled correctly (2)") {
+  const uint16_t input[] = {0x0001u};
+  const uint16_t* degenerate = nullptr;
+  const UTF8::UTF16Encoded expected = {0x0000};
+  const auto actual = UTF8::EncodeToUTF16(degenerate, std::begin(input));
+
+  V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
+}
+
+
+V8MONKEY_TEST(IntUtf8_034, "Nullptrs handled correctly (3)") {
+  uint16_t* degenerate = nullptr;
+  const UTF8::UTF16Encoded expected = {0x0000};
+  const auto actual = UTF8::EncodeToUTF16(degenerate, degenerate);
+
+  V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
+}
+
+
+V8MONKEY_TEST(IntUtf8_035, "Nullptrs handled correctly (4)") {
+  const char input[] = {'\3'};
+  const char* degenerate = nullptr;
+  const UTF8::UTF16Encoded expected = {0x0000};
+  const auto actual = UTF8::EncodeToUTF16(std::begin(input), degenerate);
+
+  V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
+}
+
+
+V8MONKEY_TEST(IntUtf8_036, "Nullptrs handled correctly (5)") {
+  const char input[] = {'\2'};
+  const char* degenerate = nullptr;
+  const UTF8::UTF16Encoded expected = {0x0000};
+  const auto actual = UTF8::EncodeToUTF16(degenerate, std::begin(input));
+
+  V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
+}
+
+
+V8MONKEY_TEST(IntUtf8_037, "Nullptrs handled correctly (6)") {
+  char* degenerate = nullptr;
+  const UTF8::UTF16Encoded expected = {0x0000};
+  const auto actual = UTF8::EncodeToUTF16(degenerate, degenerate);
+
+  V8MONKEY_CHECK(actual == expected, "Data correctly encoded");
 }
 
 

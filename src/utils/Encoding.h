@@ -16,27 +16,29 @@ namespace v8 {
     namespace UTF8 {
       using UTF16Encoded = std::vector<char16_t>;
 
-      constexpr char16_t replacementChar = 0xfffdu;
-      constexpr unsigned int continuationMask = 0x3fu;
+      constexpr auto replacementChar = char16_t {0xfffdu};
+      constexpr auto continuationMask = 0x3fu;
 
 
       // TODO: Find a suitable way to hide this implementation detail from includers
       void utf8toSurrogatePair(const unsigned char c1, const unsigned char c2,
                                const unsigned char c3, const unsigned char c4, UTF16Encoded& dest) {
-        char16_t ls_bottom6 = c4 & continuationMask;
-        char16_t ls_top4 = static_cast<char16_t>((c3 & 0x0f) << 6);
-        char16_t ls_base = ls_bottom6 | ls_top4;
+        auto ls_bottom6 = c4 & continuationMask;
+        auto ls_top4 = (c3 & 0x0fu) << 6;
+        auto ls_base = ls_bottom6 | ls_top4;
 
-        char16_t hs_bottom2 = static_cast<char16_t>((c3 & 0x30) >> 4);
-        char16_t hs_middle6 = static_cast<char16_t>((c2 & continuationMask) << 2);
-        char16_t hs_top4 = static_cast<char16_t>((c1 & 0x0f) << 8);
-        char16_t hs_base = (hs_bottom2 | hs_middle6 | hs_top4) - 0x40u;
+        auto hs_bottom2 = (c3 & 0x30u) >> 4;
+        auto hs_middle6 = (c2 & continuationMask) << 2;
+        auto hs_top4 = (c1 & 0x0fu) << 8;
+        // XXX For safety is it worth asserting that (hs_bottom2 | hs_middle6 | hs_top4) >= 0x40?
+        // XXX And is that bound even right? Is it >= 0x40? Check computation vs wiki / standard
+        auto hs_base = (hs_bottom2 | hs_middle6 | hs_top4) - 0x40u;
 
-        char16_t ls_modifier = 0xdc00;
-        char16_t hs_modifier = 0xd800;
+        auto ls_modifier = 0xdc00u;
+        auto hs_modifier = 0xd800u;
 
-        dest.emplace_back(hs_modifier + hs_base);
-        dest.emplace_back(ls_modifier + ls_base);
+        dest.emplace_back(static_cast<char16_t>(hs_modifier + hs_base));
+        dest.emplace_back(static_cast<char16_t>(ls_modifier + ls_base));
       }
 
 
@@ -46,22 +48,19 @@ namespace v8 {
 
 
       // TODO: Find a suitable way to hide this implementation detail from includers
+      // XXX Look at the concept name: Are these random access iterators (looking at the end - 1)? Note the expectation
       template <typename T, typename U> struct UTF16Encoder<T, U, true> {
         static UTF16Encoded encode(T begin, T end) {
-          // Handle degenerate iterators first
+          // Handle degenerate iterators first. Note: the iterators could be pointers, and hence nullptrs
           if (begin == end || !begin || !end) {
-            return UTF16Encoded(1, 0x0000);
+            return UTF16Encoded {0x0000};
           }
 
-          bool needsTerminatingZeroAdded = *(end - 1) != 0x0000;
-
-          // distance is usually unsigned, vector::size_type is usually signed
-          UTF16Encoded::size_type numberOfCodeUnits = static_cast<UTF16Encoded::size_type>(std::distance(begin, end));
-          UTF16Encoded result(numberOfCodeUnits + (needsTerminatingZeroAdded ? 1 : 0));
-
-          std::transform(begin, end, std::begin(result), [](U c) {
-            return static_cast<char16_t>(c);
-          });
+          auto needsTerminatingZeroAdded = bool {*(end - 1) != 0x0000};
+          auto result = UTF16Encoded {begin, end};
+          if (needsTerminatingZeroAdded) {
+            result.emplace_back(0x0000u);
+          }
 
           return result;
         }
@@ -80,7 +79,7 @@ namespace v8 {
 
           bool needsTerminatingZeroAdded = *(end - 1) != 0x0000;
 
-          UTF16Encoded result;
+          auto result = UTF16Encoded {};
           // We have an upper bound on the possible size of the result
           UTF16Encoded::size_type numberOfCodeUnits = static_cast<UTF16Encoded::size_type>(std::distance(begin, end));
           result.reserve(numberOfCodeUnits + (needsTerminatingZeroAdded ? 1 : 0));
