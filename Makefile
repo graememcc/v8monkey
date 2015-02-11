@@ -301,7 +301,7 @@ $(addprefix $(v8monkeyinternaldir)/, $(utilsobjects)): | $(v8monkeyinternaldir)/
 #**********************************************************************************************************************#
 
 
-.PHONY: all clean clobber check make_sm valgrind
+.PHONY: all clean clobber check make_sm valgrind valgrind-mem-api valgrind-mem-int
 
 
 # Run the testsuite
@@ -333,9 +333,14 @@ clobber:
 	rm -f $(mozillaroot)/js/src/configure
 
 
-valgrind: $(testsuites)
-	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --log-file=mem_api --trace-children=yes --gen-suppressions=all $(outdir)/test/run_v8monkey_tests
-	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --log-file=mem_internal --trace-children=yes  --suppressions=$(CURDIR)/int_suppress.supp --gen-suppressions=all $(outdir)/test/run_v8monkey_internal_tests
+valgrind-mem-api:
+	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --leak-check-heuristics=stdstring --log-file=mem_api --trace-children=yes --gen-suppressions=all $(outdir)/test/run_v8monkey_tests
+
+valgrind-mem-int:
+	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --leak-check-heuristics=stdstring --log-file=mem_internal --trace-children=yes  --suppressions=$(CURDIR)/int_suppress.supp --gen-suppressions=all $(outdir)/test/run_v8monkey_internal_tests
+
+
+valgrind: $(testsuites) valgrind-mem-api valgrind-mem-int
 	valgrind --tool=helgrind --log-file=thread_api --trace-children=yes $(outdir)/test/run_v8monkey_tests
 	valgrind --tool=helgrind --log-file=thread_internal --trace-children=yes $(outdir)/test/run_v8monkey_internal_tests
 
