@@ -55,24 +55,26 @@ V8MonkeyTest::V8MonkeyTest(const char* file, const char* name, const char* desc,
  */
 
 // XXX Need to use Platform primitives for forking
-bool V8MonkeyTest::Run() {
+V8MonkeyTest::TestResult V8MonkeyTest::Run() {
   pid_t processID {fork()};
 
-  if (processID == 0) {
+  bool isChild {processID == 0};
+
+  if (isChild) {
     // We are in the child process. Run the test
     cout << "Running " << GetFullDescription() << "... ";
 
     try {
       test();
       cout << "OK" << endl;
-      exit(0);
+      return TestResult {true, true};
     } catch (exception& e) {
       cout << "ERROR " << e.what() << endl;
-      exit(1);
+      return TestResult {false, true};
     }
   } else if (processID == -1) {
     // The fork failed. In the absence of any better ideas, report this as a test failure
-    return false;
+    return TestResult {false, false};
   } else {
     int status;
 
@@ -84,11 +86,11 @@ bool V8MonkeyTest::Run() {
       if (WIFSIGNALED(status)) {
         cout << "ERROR Crash" << endl;
       }
-      return false;
+      return TestResult  {false, false};
     }
 
     // Otherwise, treat exit code == 0 as success, and anything else as failure
-    return WEXITSTATUS(status) == 0;
+    return TestResult {WEXITSTATUS(status) == 0, false};
   }
 }
 
@@ -152,22 +154,24 @@ void V8MonkeyTest::CountTests() {
  *
  */
 
-void V8MonkeyTest::RunTestByName(const TestName& testName, ExecutedTests& testsExecuted, TestFailures& failures) {
+V8MonkeyTest::TestResult V8MonkeyTest::RunNamedTest(const TestName& testName, ExecutedTests& testsExecuted, TestFailures& failures) {
   auto lookupResult = testsByName.find(testName);
   auto notFound = testsByName.end();
 
   if (lookupResult == notFound) {
     cerr << "Cannot run test named " << testName << " - no such test" << endl;
     failures.insert(string("[") + testName + string("] <Test not found>"));
-    return;
+    return TestResult {false, false};
   }
 
-  bool result {lookupResult->second->Run()};
+  TestResult result = lookupResult->second->Run();
   testsExecuted.insert(testName);
 
-  if (!result) {
+  if (!result.processIsChild && result.failed) {
     failures.insert(lookupResult->second->GetFullDescription());
   }
+
+  return result;
 }
 
 
@@ -177,20 +181,30 @@ void V8MonkeyTest::RunTestByName(const TestName& testName, ExecutedTests& testsE
  *
  */
 
-void V8MonkeyTest::RunTestsForFile(const string& fileName, ExecutedTests& testsExecuted, TestFailures& failures) {
+V8MonkeyTest::TestResult V8MonkeyTest::RunTestsForFile(const string& fileName, ExecutedTests& testsExecuted, TestFailures& failures) {
   auto testsForFile = testsByFileName.find(fileName);
   auto notFound = testsByFileName.end();
 
   // Handle an unknown file
   if (testsForFile == notFound) {
     cerr << "No tests found for file " << fileName << endl;
-    return;
+    return TestResult {false, false};
   }
 
+  TestResult result;
+
   for (auto& testName : testsForFile->second) {
-    RunTestByName(testName, testsExecuted, failures);
-    testsExecuted.insert(testName);
+    result = RunNamedTest(testName, testsExecuted, failures);
+    if (!result.processIsChild) {
+      testsExecuted.insert(testName);
+    }
+
+    if (result.processIsChild) {
+      return result;
+    }
   }
+
+  return result;
 }
 
 
@@ -199,17 +213,24 @@ void V8MonkeyTest::RunTestsForFile(const string& fileName, ExecutedTests& testsE
  *
  */
 
-void V8MonkeyTest::RunAllTests(TestFailures& failures) {
+V8MonkeyTest::TestResult V8MonkeyTest::RunAllTests(TestFailures& failures) {
   if (testsByFileName.empty()) {
     cout << "No tests registered" << endl;
-    return;
+    return TestResult {false, false};
   }
 
   ExecutedTests testsExecuted {};
+  TestResult result;
 
   for (auto& file : testsByFileName) {
     for (auto& test : file.second) {
-      RunTestByName(test, testsExecuted, failures);
+      result = RunNamedTest(test, testsExecuted, failures);
+      if (result.processIsChild) {
+        return result;
+      }
     }
   }
+
+  // Signal to the caller that we're the parent process
+  return result;
 }

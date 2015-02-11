@@ -170,6 +170,7 @@ namespace {
     // If the implementation is broken, we'll dereference a dangling pointer here
     i->Exit();
 
+    i->Dispose();
     return reinterpret_cast<void*>(true);
   }
 
@@ -190,6 +191,7 @@ namespace {
 
     // We will have entered the default isolate courtesy of SetFatalErrorHandler
     i->Exit();
+    i->Dispose();
 
     return result;
   }

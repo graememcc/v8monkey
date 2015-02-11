@@ -29,6 +29,13 @@ class V8MonkeyTest {
     using ExecutedTests = std::set<TestName>;
     using TestFailures = std::set<TestName>;
 
+
+    struct TestResult {
+      bool failed;
+      bool processIsChild;
+    };
+
+
     V8MonkeyTest(const char* file, const char* name, const char* desc, void (*testFunction)());
 
     // Return the test's filename
@@ -45,7 +52,7 @@ class V8MonkeyTest {
 
     // Run the test function wrapped by this test (does not traverse the linked list). Returns true if the test
     // without error, false otherwise
-    bool Run();
+    TestResult Run();
 
     // Prints to stdout the names of all registered tests
     static void ListAllTests();
@@ -56,14 +63,14 @@ class V8MonkeyTest {
     // Run all the tests for a given filename, warning on error to standard error if there are no such registered tests.
     // Fills the given set aFileName with the codenames of the tests ran, and the set aFailures with messages describing
     // any tests that failed.
-    static void RunTestsForFile(const TestfileName& fileName, ExecutedTests& testsExecuted, TestFailures& failures);
+    static TestResult RunTestsForFile(const TestfileName& fileName, ExecutedTests& testsExecuted, TestFailures& failures);
 
     // Run the test with a given name, or print an error to standard error if there is no such test. If the test fails,
     // a description of the test is added to the set aFailures.
-    static void RunTestByName(const TestName& testName, ExecutedTests& testsExecuted, TestFailures& failures);
+    static TestResult RunNamedTest(const TestName& testName, ExecutedTests& testsExecuted, TestFailures& failures);
 
     // Execute all tests known to the test harness, filling the given set with descriptions of the test failures
-    static void RunAllTests(TestFailures& failures);
+    static TestResult RunAllTests(TestFailures& failures);
 
   private:
     // A mapping from filenames to the names of the tests they contain

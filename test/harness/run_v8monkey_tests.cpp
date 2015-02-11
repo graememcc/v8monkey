@@ -197,12 +197,20 @@ int usage(string& progName, string&& errorMessage) {
  */
 // XXX Can we indent test output?
 
-void runTestsByFile(const TestfileNames& fileNames, ExecutedTests executedTests, TestFailures& testFailures) {
+V8MonkeyTest::TestResult runTestsByFile(const TestfileNames& fileNames, ExecutedTests executedTests, TestFailures& testFailures) {
+  V8MonkeyTest::TestResult result;
   for (const auto& filename : fileNames) {
     cout << "Running tests from file " << filename << ": " << endl;
-    V8MonkeyTest::RunTestsForFile(filename, executedTests, testFailures);
+    result = V8MonkeyTest::RunTestsForFile(filename, executedTests, testFailures);
+
+    if (result.processIsChild) {
+      return result;
+    }
+
     cout << endl;
   }
+
+  return result;
 }
 
 
@@ -211,12 +219,13 @@ void runTestsByFile(const TestfileNames& fileNames, ExecutedTests executedTests,
  *
  */
 
-void runTestsByName(const TestNames& testNames, ExecutedTests& executedTests, TestFailures& testFailures) {
+V8MonkeyTest::TestResult runTestsByName(const TestNames& testNames, ExecutedTests& executedTests, TestFailures& testFailures) {
   auto notExecuted = executedTests.end();
 
   // For aesthetic purposes
   bool hasPreviousOutput {executedTests.size() > 0};
   bool hasTriggeredOutput {false};
+  V8MonkeyTest::TestResult result;
 
   for (auto& test : testNames) {
     // Ensure that if a named test has already been executed when we ran all the tests from a particular file, then
@@ -227,9 +236,15 @@ void runTestsByName(const TestNames& testNames, ExecutedTests& executedTests, Te
         hasTriggeredOutput = true;
       }
 
-      V8MonkeyTest::RunTestByName(test, executedTests, testFailures);
+      result = V8MonkeyTest::RunNamedTest(test, executedTests, testFailures);
+
+      if (result.processIsChild) {
+        return result;
+      }
     }
   }
+
+  return result;
 }
 
 
@@ -260,32 +275,40 @@ void reportFailures(const TestFailures& testFailures) {
  */
 
 string getBaseName(char* argv0) {
-  string fullName {argv0};
-  auto slash = fullName.rfind('/');
+  string name {argv0};
+  auto slash = name.rfind('/');
   auto diff = slash == string::npos ? 0 : slash + 1;
-  string result {fullName, diff};
-  return result;
+
+  if (diff != 0) {
+    auto newSize = name.size() - diff;
+    name.replace(0, newSize, name, diff, newSize);
+    name.resize(newSize);
+  }
+
+  return name;
 }
 
 
 int main(int argc, char** argv) {
+  using TestResult =  V8MonkeyTest::TestResult;
+
   string progName {getBaseName(argv[0])};
   auto result = parseArgs(argc, argv);
 
   if (result.UsageRequested()) {
-    exit(usage(progName));
+    return usage(progName);
   } else if (result.TestListRequested()) {
     V8MonkeyTest::ListAllTests();
-    exit(0);
+    return 0;
   } else if (result.RegisteredTestCountRequested()) {
     V8MonkeyTest::CountTests();
-    exit(0);
+    return 0;
   } else if (result.FileNameErrorMade()) {
-    exit(usage(progName, "Missing argument for -f/--file option"));
+    return usage(progName, "Missing argument for -f/--file option");
   } else if (result.TestNameErrorMade()) {
-    exit(usage(progName, "Missing argument for -n/--name option"));
+    return usage(progName, "Missing argument for -n/--name option");
   } else if (result.BadRequestMade()) {
-    exit(usage(progName, string("Unrecognised option: ") + result.badArg));
+    return usage(progName, string("Unrecognised option: ") + result.badArg);
   }
 
   // Track test execution, to avoid running a test more than once
@@ -295,15 +318,24 @@ int main(int argc, char** argv) {
   TestFailures testFailures {};
 
   if (result.RunByFileRequested()) {
-    runTestsByFile(result.filenames, executedTests, testFailures);
+    TestResult testResult = runTestsByFile(result.filenames, executedTests, testFailures);
+    if (testResult.processIsChild) {
+      return testResult.failed ? 1 : 0;
+    }
   }
 
   if (result.RunByNameRequested()) {
-    runTestsByName(result.testnames, executedTests, testFailures);
+    TestResult testResult = runTestsByName(result.testnames, executedTests, testFailures);
+    if (testResult.processIsChild) {
+      return testResult.failed ? 1 : 0;
+    }
   }
 
   if (result.RunAllRequested()) {
-    V8MonkeyTest::RunAllTests(testFailures);
+    TestResult testResult = V8MonkeyTest::RunAllTests(testFailures);
+    if (testResult.processIsChild) {
+      return testResult.failed ? 1 : 0;
+    }
   }
 
   if (!testFailures.empty()) {

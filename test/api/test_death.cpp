@@ -13,6 +13,7 @@ V8MONKEY_TEST(Death001, "V8::IsDead normally returns false (no init)") {
   i->Enter();
   V8MONKEY_CHECK(!V8::IsDead(), "V8 is still alive");
   i->Exit();
+  i->Dispose();
 }
 
 
