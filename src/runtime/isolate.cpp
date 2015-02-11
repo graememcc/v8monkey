@@ -32,6 +32,9 @@
 // V8MonkeyCommon class definition, TriggerFatalError, ASSERT
 #include "utils/V8MonkeyCommon.h"
 
+// V8_UNUSED
+#include "v8config.h"
+
 
 /*
  * In V8, an isolate is an object that owns a garbage-collected heap. Once threads explicitly "enter" such an isolate,
@@ -83,7 +86,7 @@ namespace {
 
 
   void ensureTLSKeys() {
-    static bool initialized {[]() noexcept {
+    static bool V8_UNUSED initialized {[]() noexcept {
       threadIDKey = Platform::CreateTLSKey();
       currentIsolateKey = Platform::CreateTLSKey();
       //smDataKey = Platform::CreateTLSKey(tearDownCXAndRT);
@@ -507,7 +510,8 @@ namespace v8 {
       // once this thread exits.
 
       // To aid tracking, we assign each thread a unique ID
-      int threadID {fetchOrAssignThreadID()};
+      // XXX Either use threadID, remove it or don't assign. In any case get rid of V8_UNUSED
+      int V8_UNUSED threadID {fetchOrAssignThreadID()};
 //
 //       // Likewise, it should have a JSRuntime and JSContext
 //       SpiderMonkeyUtils::AssignJSRuntimeAndJSContext();
