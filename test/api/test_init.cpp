@@ -26,6 +26,7 @@ V8MONKEY_TEST(Init002, "Initializing V8 does not enter an isolate") {
   V8::Initialize();
 
   V8MONKEY_CHECK(!Isolate::GetCurrent(), "Isolate::GetCurrent still nullptr");
+  V8::Dispose();
 }
 
 

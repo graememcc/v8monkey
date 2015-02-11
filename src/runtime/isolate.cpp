@@ -999,7 +999,7 @@ namespace v8 {
           i->Dispose();
         }
 
-        // XXX V8::Dispose();
+        V8::Dispose();
       }
     }
 

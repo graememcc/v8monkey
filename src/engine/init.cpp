@@ -123,7 +123,7 @@ namespace v8 {
   }
 //
 //
-//  bool V8::Dispose() {
+  bool V8::Dispose() {
 //    using namespace v8::V8Monkey;
 //
 //    if (!engineInitSucceeded || !v8initted) {
@@ -148,8 +148,8 @@ namespace v8 {
 //    i->Dispose();
 //
 //    V8IsDisposed = true;
-//    return true;
-//  }
+    return true;
+  }
 
 
   namespace V8Monkey {

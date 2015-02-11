@@ -17,9 +17,8 @@ V8MONKEY_TEST(Death001, "V8::IsDead normally returns false (no init)") {
 }
 
 
-// XXX
-//V8MONKEY_TEST(Death002, "V8::IsDead normally returns false (with init)") {
-  //V8::Initialize();
-  //V8MONKEY_CHECK(!V8::IsDead(), "I ain't dead yet!");
-  //XXX V8::Dispose();
-//}
+V8MONKEY_TEST(Death002, "V8::IsDead normally returns false (with init)") {
+  V8::Initialize();
+  V8MONKEY_CHECK(!V8::IsDead(), "I ain't dead yet!");
+  V8::Dispose();
+}

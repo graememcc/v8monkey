@@ -4980,18 +4980,18 @@ class V8_EXPORT V8 {
 //   * \param isolate The isolate in which to resume execution capability.
 //   */
 //  static void CancelTerminateExecution(Isolate* isolate);
-//
-//  /**
-//   * Releases any resources used by v8 and stops any utility threads
-//   * that may be running.  Note that disposing v8 is permanent, it
-//   * cannot be reinitialized.
-//   *
-//   * It should generally not be necessary to dispose v8 before exiting
-//   * a process, this should happen automatically.  It is only necessary
-//   * to use if the process needs the resources taken up by v8.
-//   */
-//  static bool Dispose();
-//
+
+  /**
+   * Releases any resources used by v8 and stops any utility threads
+   * that may be running.  Note that disposing v8 is permanent, it
+   * cannot be reinitialized.
+   *
+   * It should generally not be necessary to dispose v8 before exiting
+   * a process, this should happen automatically.  It is only necessary
+   * to use if the process needs the resources taken up by v8.
+   */
+  static bool Dispose();
+
 //  /**
 //   * Iterates through all external resources referenced from current isolate
 //   * heap.  GC is not invoked prior to iterating, therefore there is no
