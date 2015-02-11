@@ -385,11 +385,14 @@ $(v8platformheader): platform/platform.h
 #                                                       Includes                                                       #
 #**********************************************************************************************************************#
 
-v8monkeyheaders = $(addsuffix .h, $(addprefix $(v8monkeyheadersdir)/, v8 v8stdint))
+v8monkeyheaders = $(addsuffix .h, $(addprefix $(v8monkeyheadersdir)/, v8 v8config v8stdint))
 
 
 $(v8monkeyheadersdir)/%.h: include/%.h | $(v8monkeyheadersdir)
 	cp $< $(@D)
+
+
+$(v8monkeyheadersdir)/v8stdint.h: $(v8monkeyheadersdir)/v8config.h
 
 
 $(v8monkeyheader): $(v8monkeyheadersdir)/v8stdint.h
