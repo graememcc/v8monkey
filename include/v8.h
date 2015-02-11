@@ -163,7 +163,7 @@ class GlobalHandles;
 /**
  * General purpose unique identifier.
  */
-/*
+
 class UniqueId {
  public:
   explicit UniqueId(intptr_t data)
@@ -184,7 +184,7 @@ class UniqueId {
  private:
   intptr_t data_;
 };
-*/
+
 
 // --- Handles ---
 
@@ -219,12 +219,12 @@ class UniqueId {
  * behind the scenes and the same rules apply to these values as to
  * their handles.
  */
-//template <class T> class Handle {
- //public:
+template <class T> class Handle {
+ public:
   /**
    * Creates an empty handle.
    */
-  //V8_INLINE Handle() : val_(0) {}
+  V8_INLINE Handle() : val_(0) {}
 
   /**
    * Creates a handle for the contents of the specified handle.  This
@@ -236,29 +236,29 @@ class UniqueId {
    * Handle<String> to a variable declared as Handle<Value>, is legal
    * because String is a subclass of Value.
    */
-  //template <class S> V8_INLINE Handle(Handle<S> that)
-      //: val_(reinterpret_cast<T*>(*that)) {
+  template <class S> V8_INLINE Handle(Handle<S> that)
+      : val_(reinterpret_cast<T*>(*that)) {
     /**
      * This check fails when trying to convert between incompatible
      * handles. For example, converting from a Handle<String> to a
      * Handle<Number>.
      */
-    //TYPE_CHECK(T, S);
-  //}
+    TYPE_CHECK(T, S);
+  }
 
   /**
    * Returns true if the handle is empty.
    */
-  //V8_INLINE bool IsEmpty() const { return val_ == 0; }
+  V8_INLINE bool IsEmpty() const { return val_ == 0; }
 
   /**
    * Sets the handle to be empty. IsEmpty() will then return true.
    */
-  //V8_INLINE void Clear() { val_ = 0; }
+  V8_INLINE void Clear() { val_ = 0; }
 
-  //V8_INLINE T* operator->() const { return val_; }
+  V8_INLINE T* operator->() const { return val_; }
 
-  //V8_INLINE T* operator*() const { return val_; }
+  V8_INLINE T* operator*() const { return val_; }
 
   /**
    * Checks whether two handles are the same.
@@ -266,14 +266,15 @@ class UniqueId {
    * to which they refer are identical.
    * The handles' references are not checked.
    */
-  //template <class S> V8_INLINE bool operator==(const Handle<S>& that) const {
-    //internal::Object** a = reinterpret_cast<internal::Object**>(this->val_);
-    //internal::Object** b = reinterpret_cast<internal::Object**>(that.val_);
-    //if (a == 0) return b == 0;
-    //if (b == 0) return false;
-    //return *a == *b;
-  //}
+  template <class S> V8_INLINE bool operator==(const Handle<S>& that) const {
+    internal::Object** a = reinterpret_cast<internal::Object**>(this->val_);
+    internal::Object** b = reinterpret_cast<internal::Object**>(that.val_);
+    if (a == 0) return b == 0;
+    if (b == 0) return false;
+    return *a == *b;
+  }
 
+  // XXX
   //template <class S> V8_INLINE bool operator==(
       //const PersistentBase<S>& that) const {
     //internal::Object** a = reinterpret_cast<internal::Object**>(this->val_);
@@ -289,28 +290,30 @@ class UniqueId {
    * the objects to which they refer are different.
    * The handles' references are not checked.
    */
-  //template <class S> V8_INLINE bool operator!=(const Handle<S>& that) const {
-    //return !operator==(that);
-  //}
+  template <class S> V8_INLINE bool operator!=(const Handle<S>& that) const {
+    return !operator==(that);
+  }
 
+  // XXX
   //template <class S> V8_INLINE bool operator!=(
       //const Persistent<S>& that) const {
     //return !operator==(that);
   //}
 
-  //template <class S> V8_INLINE static Handle<T> Cast(Handle<S> that) {
-//#ifdef V8_ENABLE_CHECKS
+  template <class S> V8_INLINE static Handle<T> Cast(Handle<S> that) {
+#ifdef V8_ENABLE_CHECKS
     // If we're going to perform the type check then we have to check
     // that the handle isn't empty before doing the checked cast.
-    //if (that.IsEmpty()) return Handle<T>();
-//#endif
-    //return Handle<T>(T::Cast(*that));
-  //}
+    if (that.IsEmpty()) return Handle<T>();
+#endif
+    return Handle<T>(T::Cast(*that));
+  }
 
-  //template <class S> V8_INLINE Handle<S> As() {
-    //return Handle<S>::Cast(*this);
-  //}
+  template <class S> V8_INLINE Handle<S> As() {
+    return Handle<S>::Cast(*this);
+  }
 
+  // XXX
   //V8_INLINE static Handle<T> New(Isolate* isolate, Handle<T> that) {
     //return New(isolate, that.val_);
   //}
@@ -319,7 +322,8 @@ class UniqueId {
     //return New(isolate, that.val_);
   //}
 
- //private:
+ private:
+  // XXX
   //friend class Utils;
   //template<class F, class M> friend class Persistent;
   //template<class F> friend class PersistentBase;
@@ -337,6 +341,7 @@ class UniqueId {
   //friend class Object;
   //friend class Private;
 
+  // XXX
   /**
    * Creates a new handle for the specified value.
    */
@@ -344,10 +349,10 @@ class UniqueId {
 
   //V8_INLINE static Handle<T> New(Isolate* isolate, T* that);
 
-  //T* val_;
-//};
-//
-//
+  T* val_;
+};
+
+
 ///**
 // * A light-weight stack-allocated object handle.  All operations
 // * that return objects from within v8 return them in local handles.  They
