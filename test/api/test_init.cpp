@@ -41,66 +41,31 @@ V8MONKEY_TEST(Init003, "Initializing V8 returns false if entered isolate is dead
   i->Exit();
   i->Dispose();
 }
-//
-//
-//// Returns false if in a dead isolate
-//// Returns true if in an initted isolate
-//// Current isolate always unchanged
-//
-//// XXX No longer relevant?
-//V8MONKEY_TEST(Init001, "After V8 initialization, current isolate unchanged if originally in non-default isolate") {
-//  Isolate* i = Isolate::New();
-//  i->Enter();
-//
-//  V8::Initialize();
-//  V8MONKEY_CHECK(Isolate::GetCurrent() == i, "Isolate unchanged");
-//
-//  i->Exit();
-//  i->Dispose();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Init002, "After V8 initialization, entry count unchanged when non-default isolate already entered") {
-//  Isolate* initial = Isolate::GetCurrent();
-//  Isolate* i = Isolate::New();
-//  i->Enter();
-//  V8::Initialize();
-//  i->Exit();
-//
-//  // If initialize re-entered the current isolate,then we won't be back at initial
-//  V8MONKEY_CHECK(Isolate::GetCurrent() == initial, "Isolate entries correct");
-//
-//  i->Dispose();
-//  V8::Dispose();
-//}
-//
-//
-//// XXX No longer relevant?
-//V8MONKEY_TEST(Init003, "After V8 initialization, current isolate still default if no isolate originally entered") {
-//  Isolate* i = Isolate::GetCurrent();
-//  V8::Initialize();
-//
-//  V8MONKEY_CHECK(Isolate::GetCurrent() == i, "Isolate unchanged");
-//
-//  i->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//// XXX No longer relevant?
-//V8MONKEY_TEST(Init004, "After V8 initialization, current isolate unchanged when in default") {
-//  Isolate* i = Isolate::GetCurrent();
-//  i->Enter();
-//  V8::Initialize();
-//
-//  V8MONKEY_CHECK(Isolate::GetCurrent() == i, "Isolate unchanged");
-//
-//  i->Exit();
-//  V8::Dispose();
-//}
-//
-//
+
+
+V8MONKEY_TEST(Init004, "Initializing V8 returns true if in live isolate") {
+  Isolate* i {Isolate::New()};
+  i->Enter();
+
+  V8MONKEY_CHECK(V8::Initialize(), "V8::Initialize returned true");
+
+  i->Exit();
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(Init005, "Initializing V8 doesn't change isolate") {
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  V8::Initialize();
+
+  V8MONKEY_CHECK(Isolate::GetCurrent() == i, "V8::Initialize leaves isolate unchanged");
+
+  i->Exit();
+  i->Dispose();
+}
+
+
 ///*
 // * Tests disabled after threading support disabled
 // *
