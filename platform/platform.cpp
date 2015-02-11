@@ -4,6 +4,9 @@
 // exit
 #include <cstdlib>
 
+// memcpy
+#include <cstring>
+
 // pthread_key_(create|delete|get_specific|set_specific|t) pthread_(create|join|t)
 // pthread_mutex_(destroy|init|lock|t|unlock) pthread_once
 #include <pthread.h>
@@ -96,20 +99,9 @@ namespace v8 {
     }
 
 
-    TLSKey* Platform::CreateTLSKey() {
-      // We don't actually create an object, we just pretend whatever pthread_key_create gives us is a pointer.
-      // A test in test_platform checks that pthread_key_t fits, however, as noted there, I'd like to check this earlier,
-      // e.g. perhaps at the configure stage if we go down the configure/make route
-      pthread_key_t key;
-
-      // XXX Should we abort on non-zero return code?
-      pthread_key_create(&key, nullptr);
-
-      return reinterpret_cast<TLSKey*>(key);
-    }
-
-
     TLSKey* Platform::CreateTLSKey(void (*destructorFn)(void*)) {
+      static_assert(sizeof(pthread_key_t) <= sizeof(TLSKey*), "pthread_key_t won't fit in a pointer; cannot type-pun");
+
       // We don't actually create an object, we just pretend whatever pthread_key_create gives us is a pointer.
       // A test in test_platform checks that pthread_key_t fits, however, as noted there, I'd like to check this earlier,
       // e.g. perhaps at the configure stage if we go down the configure/make route
@@ -117,14 +109,16 @@ namespace v8 {
 
       // XXX Should we abort on non-zero return code?
       pthread_key_create(&key, destructorFn);
+      TLSKey* result;
+      std::memcpy(reinterpret_cast<char*>(&result), reinterpret_cast<char*>(&key), sizeof(pthread_key_t));
 
-      return reinterpret_cast<TLSKey*>(key);
+      return result;
     }
 
 
     void Platform::DeleteTLSKey(TLSKey* k) {
-      // Convince C++ we're not really losing precision
-      pthread_key_t key = *reinterpret_cast<pthread_key_t*>(&k);
+      pthread_key_t key;
+      std::memcpy(reinterpret_cast<char*>(&key), reinterpret_cast<char*>(&k), sizeof(pthread_key_t));
 
       // XXX Should we abort on non-zero return code?
       pthread_key_delete(key);
@@ -132,8 +126,8 @@ namespace v8 {
 
 
     void Platform::StoreTLSData(TLSKey* k, void* value) {
-      // Convince C++ we're not really losing precision
-      pthread_key_t key = *reinterpret_cast<pthread_key_t*>(&k);
+      pthread_key_t key;
+      std::memcpy(reinterpret_cast<char*>(&key), reinterpret_cast<char*>(&k), sizeof(pthread_key_t));
 
       // XXX Should we abort on non-zero return code?
       pthread_setspecific(key, value);
@@ -141,15 +135,10 @@ namespace v8 {
 
 
     void* Platform::GetTLSData(TLSKey* k) {
-      // Convince C++ we're not really losing precision
-      pthread_key_t key = *reinterpret_cast<pthread_key_t*>(&k);
+      pthread_key_t key;
+      std::memcpy(reinterpret_cast<char*>(&key), reinterpret_cast<char*>(&k), sizeof(pthread_key_t));
 
       return pthread_getspecific(key);
-    }
-
-
-    size_t Platform::GetTLSKeySize() {
-      return sizeof(pthread_key_t);
     }
 
 

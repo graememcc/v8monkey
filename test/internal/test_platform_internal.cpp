@@ -1,6 +1,9 @@
 // intptr_t
 #include <cinttypes>
 
+// memcpy
+#include <cstring>
+
 // Class under test
 #include "platform.h"
 
@@ -12,20 +15,26 @@
 
 
 namespace {
-  static bool destructorCalled {false};
+  bool destructorCalled {false};
 
+  intptr_t testData {42};
 
   void tlsDestructor(void* data) {
-    intptr_t i {42};
-    destructorCalled = data == *(reinterpret_cast<void**>(&i));
+    intptr_t realData;
+    std::memcpy(reinterpret_cast<char*>(&realData), reinterpret_cast<char*>(&data), sizeof(void*));
+
+    destructorCalled = realData == testData;
   }
 
 
   // Tests to see if a destructor is called
   void* thread_tls_destruct(void* arg) {
     v8::V8Platform::TLSKey* key {reinterpret_cast<v8::V8Platform::TLSKey*>(arg)};
-    intptr_t i {42};
-    v8::V8Platform::Platform::StoreTLSData(key, *(reinterpret_cast<void**>(&i)));
+
+    void* p;
+    std::memcpy(reinterpret_cast<char*>(&p), reinterpret_cast<char*>(&testData), sizeof(void*));
+
+    v8::V8Platform::Platform::StoreTLSData(key, p);
     return nullptr;
   }
 
@@ -37,15 +46,15 @@ namespace {
 
 
   // Support function for thread result test
-  #define THREAD_RESULT 100
+  int threadResult {1000};
   void* thread_join_main(void*) {
-    return reinterpret_cast<void*>(THREAD_RESULT);
+    return reinterpret_cast<void*>(threadResult);
   }
 
 
 
   // Support function for thread result test
-  #define THREAD_ARG 7
+  int threadArg {7};
   void* thread_arg_main(void* arg) {
     return arg;
   }
@@ -71,21 +80,14 @@ namespace {
 using namespace v8::V8Platform;
 
 
-// XXX This should probably be checked at configuration time, rather than getting this far
-// XXX And if not, we at least want to factor out the platform specific bit
-V8MONKEY_TEST(Plat001, "Platform-specific TLS key fits in a pointer") {
-  V8MONKEY_CHECK(Platform::GetTLSKeySize() <= sizeof(TLSKey*), "Opaque type fits in a pointer");
-}
-
-
-V8MONKEY_TEST(Plat002, "TLS Key get initially returns null") {
+V8MONKEY_TEST(Plat001, "TLS Key get initially returns null") {
   TLSKey* key {Platform::CreateTLSKey()};
   V8MONKEY_CHECK(Platform::GetTLSData(key) == nullptr, "Key value is initially null");
   Platform::DeleteTLSKey(key);
 }
 
 
-V8MONKEY_TEST(Plat003, "TLS Key get returns correct value") {
+V8MONKEY_TEST(Plat002, "TLS Key get returns correct value") {
   TLSKey* key {Platform::CreateTLSKey()};
   intptr_t value {42};
   Platform::StoreTLSData(key, reinterpret_cast<void*>(value));
@@ -94,7 +96,7 @@ V8MONKEY_TEST(Plat003, "TLS Key get returns correct value") {
 }
 
 
-V8MONKEY_TEST(Plat004, "Key creation with destructor works correctly") {
+V8MONKEY_TEST(Plat003, "Key creation with destructor works correctly") {
   TLSKey* key {Platform::CreateTLSKey(tlsDestructor)};
 
   destructorCalled = false;
@@ -105,7 +107,7 @@ V8MONKEY_TEST(Plat004, "Key creation with destructor works correctly") {
 }
 
 
-V8MONKEY_TEST(Plat005, "HasRan correct after thread runs") {
+V8MONKEY_TEST(Plat004, "HasRan correct after thread runs") {
   Thread t {thread_run_main};
   t.Run(nullptr);
   t.Join();
@@ -113,23 +115,23 @@ V8MONKEY_TEST(Plat005, "HasRan correct after thread runs") {
 }
 
 
-V8MONKEY_TEST(Plat006, "Thread joining returns correct value") {
+V8MONKEY_TEST(Plat005, "Thread joining returns correct value") {
   Thread t {thread_join_main};
   t.Run(nullptr);
   void* result {t.Join()};
-  V8MONKEY_CHECK(reinterpret_cast<intptr_t>(result) == THREAD_RESULT, "Value returned by thread join is correct");
+  V8MONKEY_CHECK(reinterpret_cast<intptr_t>(result) == threadResult, "Value returned by thread join is correct");
 }
 
 
-V8MONKEY_TEST(Plat007, "Thread argument passing works correctly") {
+V8MONKEY_TEST(Plat006, "Thread argument passing works correctly") {
   Thread t {thread_arg_main};
-  t.Run(reinterpret_cast<void*>(THREAD_ARG));
+  t.Run(reinterpret_cast<void*>(threadArg));
   void* result {t.Join()};
-  V8MONKEY_CHECK(reinterpret_cast<intptr_t>(result) == THREAD_ARG, "Value returned shows arg was passed correctly");
+  V8MONKEY_CHECK(reinterpret_cast<intptr_t>(result) == threadArg, "Value returned shows arg was passed correctly");
 }
 
 
-V8MONKEY_TEST(Plat008, "Run called with no arguments calls thread function with nullptr") {
+V8MONKEY_TEST(Plat007, "Run called with no arguments calls thread function with nullptr") {
   Thread t {thread_noarg_main};
   t.Run();
   void* result {t.Join()};
@@ -137,7 +139,7 @@ V8MONKEY_TEST(Plat008, "Run called with no arguments calls thread function with 
 }
 
 
-V8MONKEY_TEST(Plat009, "OneShot called only once") {
+V8MONKEY_TEST(Plat008, "OneShot called only once") {
   oneShotVal = 0;
   OneShot o(oneShot);
   o.Run();

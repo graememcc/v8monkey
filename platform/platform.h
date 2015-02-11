@@ -48,9 +48,13 @@ namespace v8 {
 
     // Platform-agnostic wrapper around a TLS key
     class APIEXPORT TLSKey {
-      private:
-        TLSKey() {}
-        ~TLSKey() {}
+      public:
+        TLSKey() = delete;
+        TLSKey(TLSKey& other) = delete;
+        TLSKey(TLSKey&& other) = delete;
+        TLSKey& operator=(TLSKey& other) = delete;
+        TLSKey& operator=(TLSKey&& other) = delete;
+        ~TLSKey() = delete;
     };
 
 
@@ -79,11 +83,8 @@ namespace v8 {
 
     class APIEXPORT Platform {
       public:
-        // Create a thread-local storage key
-        static TLSKey* CreateTLSKey();
-
-        // Create a thread-local storage key with the given destructor
-        static TLSKey* CreateTLSKey(void (*destructorFn)(void*));
+        // Create a thread-local storage key with the optional destructor
+        static TLSKey* CreateTLSKey(void (*destructorFn)(void*) = nullptr);
 
         // Delete a thread-local storage key
         static void DeleteTLSKey(TLSKey* k);
@@ -93,9 +94,6 @@ namespace v8 {
 
         // Retrieve a value from TLS
         static void* GetTLSData(TLSKey* k);
-
-        // For testing: returns size of platform-specific TLS key type
-        static size_t GetTLSKeySize();
 
         // Print to stderr
         static void PrintError(const char* message);
