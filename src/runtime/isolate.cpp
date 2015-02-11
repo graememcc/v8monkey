@@ -1,6 +1,9 @@
 // atomic_int, atomic_fetch_add
 #include <atomic>
 
+// memcpy
+#include <cstring>
+
 // DestructList
 // XXX That needs a better name
 #include "data_structures/destruct_list.h"
@@ -288,7 +291,8 @@ namespace {
 
   int fetchOrAssignThreadID() {
     void* raw_id {Platform::GetTLSData(threadIDKey)};
-    int existing_id {*reinterpret_cast<int*>(&raw_id)};
+    int existing_id;
+    std::memcpy(reinterpret_cast<char*>(&existing_id), reinterpret_cast<char*>(&raw_id), sizeof(int));
 
     if (existing_id > 0) {
       return existing_id;
