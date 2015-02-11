@@ -444,7 +444,7 @@ $(call variants, src/runtime/IsolateAPI): $(v8monkeyheader) src/runtime/isolate.
 $(call variants, src/runtime/isolate): $(JSAPIheader) src/data_structures/destruct_list.h \
                                        src/data_structures/objectblock.h src/runtime/isolate.h \
                                        src/utils/SpiderMonkeyUtils.h platform/platform.h src/utils/test.h \
-                                       src/utils/V8MonkeyCommon.h
+                                       src/utils/V8MonkeyCommon.h $(v8monkeyheadersdir)/v8config.h
 
 
 $(call variants, src/runtime/persistent): $(v8monkeyheader) src/data_structures/objectblock.h \
