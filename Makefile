@@ -333,10 +333,10 @@ clobber:
 	rm -f $(mozillaroot)/js/src/configure
 
 
-valgrind-mem-api:
+valgrind-mem-api: $(testsuites)
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --leak-check-heuristics=stdstring --log-file=mem_api --trace-children=yes --gen-suppressions=all $(outdir)/test/run_v8monkey_tests
 
-valgrind-mem-int:
+valgrind-mem-int: $(testsuites)
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --leak-check-heuristics=stdstring --log-file=mem_internal --trace-children=yes  --suppressions=$(CURDIR)/int_suppress.supp --gen-suppressions=all $(outdir)/test/run_v8monkey_internal_tests
 
 
