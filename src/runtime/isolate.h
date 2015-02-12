@@ -98,11 +98,11 @@ namespace v8 {
 //        // XXX Look for opportunities to use this
 //        static InternalIsolate* EnsureInIsolate();
 //
-//        // Has the current thread entered the given isolate?
-//        static bool IsEntered(InternalIsolate* i);
+        // Has the current thread entered the given isolate?
+        static bool IsEntered(Isolate* i);
 
         // Returns true if this isolate is dead
-        bool IsDead() { return hasFatalError; }
+        bool IsDead() const { return hasFatalError; }
 
         void SignalFatalError() { hasFatalError = true; }
 
@@ -118,21 +118,22 @@ namespace v8 {
 //        // Get the embedder data for this isolate
 //        void* GetEmbedderData() const { return embedderData; }
 //
-//        // Lock this isolate for the current thread
-//        void Lock();
-//
-//        // Unlock this isolate
-//        void Unlock();
-//
-//        // Returns true if a Locker has locked this isolate on behalf of some thread. Largely for future use.
-//        bool IsLocked() const {
-//          // This assumes that a thread's ID will never be zero. (Storing thread IDs in TLS would also be broken were
-//          // that not the case).
-//          return lockingThread != 0;
-//        }
-//
-//        // Is the current thread the one that locked me?
-//        bool IsLockedForThisThread() const;
+        // Lock this isolate for the current thread
+        void Lock();
+
+        // Unlock this isolate
+        void Unlock();
+
+        // Returns true if a Locker has locked this isolate on behalf of some thread. Largely for future use.
+        // XXX Does anybody use this?
+        bool IsLocked() const {
+          // This assumes that a thread's ID will never be zero. (Storing thread IDs in TLS would also be broken were
+          // that not the case).
+          return lockingThread != 0;
+        }
+
+        // Is the current thread the one that locked me?
+        bool IsLockedForThisThread() const;
 //
 //        // Return a copy of the handle scope data for this isolate. If manipulating this data, the caller must hold the
 //        // GC Mutex
@@ -188,11 +189,10 @@ namespace v8 {
 //        bool IsInitted() const { return isInitted; }
 //        void Init() { isInitted = true; }
 //
-//        #ifdef V8MONKEY_INTERNAL_TEST
-//        static InternalIsolate* FromIsolate(Isolate* i) {
-//          return reinterpret_cast<InternalIsolate*>(i);
-//        }
-//
+        static Isolate* FromAPIIsolate(::v8::Isolate* i) {
+          return reinterpret_cast<Isolate*>(i);
+        }
+
 //        static void SetGCRegistrationHooks(void (*onNotifier)(JSRuntime*, JSTraceDataOp, void*), void (*offNotifier)(JSRuntime*, JSTraceDataOp, void*)) {
 //          GCRegistrationHookFn = onNotifier;
 //          GCDeregistrationHookFn = offNotifier;
@@ -200,7 +200,6 @@ namespace v8 {
 //
 //        static void ForceGC();
 //
-//        #endif
 //
 //        // Initialize the default isolate and claim thread id 1
 //        static void EnsureDefaultIsolateForStaticInitializerThread();
@@ -232,11 +231,11 @@ namespace v8 {
 //        // Embedder data
 //        void* embedderData;
 //
-//        // ID of the thread that has "locked" this isolate. For future use.
-//        int lockingThread;
-//
-//        // Thread entry mutex. For future use.
-//        V8Platform::Mutex lockingMutex;
+        // ID of the thread that has "locked" this isolate. For future use.
+        int lockingThread {0};
+
+        // Thread entry mutex. For future use.
+        V8Platform::Mutex lockingMutex {};
 //
 //        // GC Mutex
 //        V8Platform::Mutex GCMutex;

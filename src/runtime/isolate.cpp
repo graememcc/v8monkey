@@ -780,29 +780,29 @@ namespace v8 {
 //     }
 //
 //
-//     /*
-//      * API for Lockers to "lock" the isolate for a given thread. As we are currently single-threaded, this is
-//      * essentially meaningless. Hopefully, this won't always be the case.
-//      *
-//      */
-//
-//     void InternalIsolate::Lock() {
-//       lockingMutex.Lock();
-//       lockingThread = fetchOrAssignThreadID();
-//     }
-//
-//
-//     void InternalIsolate::Unlock() {
-//       lockingThread = 0;
-//       lockingMutex.Unlock();
-//     }
-//
-//
-//     bool InternalIsolate::IsLockedForThisThread() const {
-//       return lockingThread == fetchOrAssignThreadID();
-//     }
-//
-//
+     /*
+      * API for Lockers to "lock" the isolate for a given thread. As we are currently single-threaded, this is
+      * essentially meaningless. Hopefully, this won't always be the case.
+      *
+      */
+
+     void Isolate::Lock() {
+       lockingMutex.Lock();
+       lockingThread = fetchOrAssignThreadID();
+     }
+
+
+     void Isolate::Unlock() {
+       lockingThread = 0;
+       lockingMutex.Unlock();
+     }
+
+
+     bool Isolate::IsLockedForThisThread() const {
+       return lockingThread == fetchOrAssignThreadID();
+     }
+
+
     /*
      * Returns the currently entered isolate. May return nullptr.
      *
@@ -811,22 +811,18 @@ namespace v8 {
     Isolate* Isolate::GetCurrent() {
       return GetCurrentIsolateFromTLS();
     }
-//
-//
-//     /*
-//      * Answers the question as to whether a thread has entered a given isolate.
-//      *
-//      */
-//
-//     bool InternalIsolate::IsEntered(InternalIsolate* i) {
-//       // The naive approach here would be to simply grab the isolate pointer from TLS and compare. However, this would
-//       // be incorrect for the main thread, as, for V8 compatability, it has a pointer to the default isolate regardless
-//       // of entry status.
-//       int threadID = fetchOrAssignThreadID();
-//       return i->FindThreadData(threadID) != nullptr;
-//     }
-//
-//
+
+
+     /*
+      * Answers the question as to whether a thread has entered a given isolate.
+      *
+      */
+
+    bool Isolate::IsEntered(Isolate* i) {
+      return GetCurrentIsolateFromTLS() == i;
+    }
+
+
 //     /*
 //      * In V8, the thread that runs the static initializers is permanently associated with the default isolate,
 //      * and has thread ID 1. This function ensures that this is also the case in V8Monkey. Additionally, it
@@ -987,7 +983,7 @@ namespace v8 {
 //     TestUtils::AutoIsolateCleanup::~AutoIsolateCleanup() {
 //       while (Isolate::GetCurrent() && InternalIsolate::IsEntered(InternalIsolate::GetCurrent())) {
 //         Isolate* i = Isolate::GetCurrent();
-//         InternalIsolate* ii = InternalIsolate::FromIsolate(i);
+//         InternalIsolate* ii = InternalIsolate::FromAPIIsolate(i);
 //
 //         // Isolates can be entered multiple times
 //         while (InternalIsolate::IsEntered(ii)) {
