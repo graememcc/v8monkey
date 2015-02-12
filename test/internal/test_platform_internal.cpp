@@ -21,7 +21,8 @@ namespace {
 
   void tlsDestructor(void* data) {
     intptr_t realData;
-    std::memcpy(reinterpret_cast<char*>(&realData), reinterpret_cast<char*>(&data), sizeof(void*));
+    static_assert(sizeof(intptr_t) <= sizeof(void*), "Somebody hasn't read their standard");
+    std::memcpy(reinterpret_cast<char*>(&realData), reinterpret_cast<char*>(&data), sizeof(intptr_t));
 
     destructorCalled = realData == testData;
   }
@@ -31,8 +32,9 @@ namespace {
   void* thread_tls_destruct(void* arg) {
     v8::V8Platform::TLSKey* key {reinterpret_cast<v8::V8Platform::TLSKey*>(arg)};
 
-    void* p;
-    std::memcpy(reinterpret_cast<char*>(&p), reinterpret_cast<char*>(&testData), sizeof(void*));
+    void* p = nullptr;
+    static_assert(sizeof(intptr_t) <= sizeof(void*), "Somebody hasn't read their standard");
+    std::memcpy(reinterpret_cast<char*>(&p), reinterpret_cast<char*>(&testData), sizeof(intptr_t));
 
     v8::V8Platform::Platform::StoreTLSData(key, p);
     return nullptr;

@@ -298,6 +298,7 @@ namespace {
     ensureTLSKeys();
     void* raw_id {Platform::GetTLSData(threadIDKey)};
     int existing_id;
+    static_assert(sizeof(int) <= sizeof(void*), "Int size prevents type-punning");
     std::memcpy(reinterpret_cast<char*>(&existing_id), reinterpret_cast<char*>(&raw_id), sizeof(int));
 
     if (existing_id > 0) {
