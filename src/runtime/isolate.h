@@ -66,9 +66,9 @@ namespace v8 {
         // XXX temp for version bump
         // XXX Make constructor private and friend public Isolate
         ~Isolate() = default;
-        Isolate(Isolate& other) = default;
+        Isolate(const Isolate& other) = default;
         Isolate(Isolate&& other) = default;
-        Isolate& operator=(Isolate& other) = default;
+        Isolate& operator=(const Isolate& other) = default;
         Isolate& operator=(Isolate&& other) = default;
 
         // Enter the given isolate
