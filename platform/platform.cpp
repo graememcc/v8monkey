@@ -31,12 +31,12 @@ namespace v8 {
         };
 
 
-        int Lock() {
+        int Lock() override {
           return pthread_mutex_lock(&platformMutex);
         }
 
 
-        int Unlock() {
+        int Unlock() override {
           return pthread_mutex_unlock(&platformMutex);
         }
 
@@ -54,7 +54,7 @@ namespace v8 {
         }
 
 
-        void Run() {
+        void Run() override {
           // XXX Should we abort on non-zero return code?
           pthread_once(&once_control, fn);
         }
@@ -70,14 +70,14 @@ namespace v8 {
         POSIXThread(ThreadFunction tf) : OSThread(tf) {}
 
 
-        void Run(void* arg) {
+        void Run(void* arg) override {
           // XXX We should exit or abort if we try to run a thread that has already ran. Which?
           hasRan = true;
           pthread_create(&identifier, nullptr, fn, arg);
         }
 
 
-        void* Join() {
+        void* Join() override {
           void* resultPtr;
           pthread_join(identifier, &resultPtr);
           return resultPtr;
