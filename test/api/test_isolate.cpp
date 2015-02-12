@@ -336,6 +336,7 @@ V8MONKEY_TEST(Isolate011, "Embedder data is initially null") {
   void* result = i->GetData(0);
 
   V8MONKEY_CHECK(!result, "Data was null");
+  i->Dispose();
 }
 
 
@@ -345,6 +346,7 @@ V8MONKEY_TEST(Isolate012, "Setting/getting data works as expected") {
   bool result = i->GetData(0) == i;
 
   V8MONKEY_CHECK(result, "Data was correct");
+  i->Dispose();
 }
 
 
