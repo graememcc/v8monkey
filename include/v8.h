@@ -4249,19 +4249,19 @@ class V8_EXPORT Isolate {
    * Associate embedder-specific data with the isolate. |slot| has to be
    * between 0 and GetNumberOfDataSlots() - 1.
    */
-//  V8_INLINE void SetData(uint32_t slot, void* data);
+  V8_INLINE void SetData(uint32_t slot, void* data);
 
   /**
    * Retrieve embedder-specific data from the isolate.
    * Returns NULL if SetData has never been called for the given |slot|.
    */
-//  V8_INLINE void* GetData(uint32_t slot);
+  V8_INLINE void* GetData(uint32_t slot);
 
   /**
    * Returns the maximum number of available embedder data slots. Valid slots
    * are in the range of 0 - GetNumberOfDataSlots() - 1.
    */
-//  V8_INLINE static uint32_t GetNumberOfDataSlots();
+  V8_INLINE static uint32_t GetNumberOfDataSlots();
 
   /**
    * Get statistics about the heap memory usage.
@@ -5734,20 +5734,20 @@ class Internals {
 //    *addr = static_cast<uint8_t>((*addr & ~kNodeStateMask) | value);
 //  }
 
-//  V8_INLINE static void SetEmbedderData(v8::Isolate* isolate,
-//                                        uint32_t slot,
-//                                        void* data) {
-//    uint8_t *addr = reinterpret_cast<uint8_t *>(isolate) +
-//                    kIsolateEmbedderDataOffset + slot * kApiPointerSize;
-//    *reinterpret_cast<void**>(addr) = data;
-//  }
+  V8_INLINE static void SetEmbedderData(v8::Isolate* isolate,
+                                        uint32_t slot,
+                                        void* data) {
+    uint8_t *addr = reinterpret_cast<uint8_t *>(isolate) +
+                    kIsolateEmbedderDataOffset + slot * kApiPointerSize;
+    *reinterpret_cast<void**>(addr) = data;
+  }
 
-//  V8_INLINE static void* GetEmbedderData(const v8::Isolate* isolate,
-//                                         uint32_t slot) {
-//    const uint8_t* addr = reinterpret_cast<const uint8_t*>(isolate) +
-//        kIsolateEmbedderDataOffset + slot * kApiPointerSize;
-//    return *reinterpret_cast<void* const*>(addr);
-//  }
+  V8_INLINE static void* GetEmbedderData(const v8::Isolate* isolate,
+                                         uint32_t slot) {
+    const uint8_t* addr = reinterpret_cast<const uint8_t*>(isolate) +
+        kIsolateEmbedderDataOffset + slot * kApiPointerSize;
+    return *reinterpret_cast<void* const*>(addr);
+  }
 
 //  V8_INLINE static internal::Object** GetRoot(v8::Isolate* isolate,
 //                                              int index) {
@@ -6661,22 +6661,22 @@ class Internals {
 //}
 
 
-//void Isolate::SetData(uint32_t slot, void* data) {
-//  typedef internal::Internals I;
-//  I::SetEmbedderData(this, slot, data);
-//}
+void Isolate::SetData(uint32_t slot, void* data) {
+  typedef internal::Internals I;
+  I::SetEmbedderData(this, slot, data);
+}
 
 
-//void* Isolate::GetData(uint32_t slot) {
-//  typedef internal::Internals I;
-//  return I::GetEmbedderData(this, slot);
-//}
+void* Isolate::GetData(uint32_t slot) {
+  typedef internal::Internals I;
+  return I::GetEmbedderData(this, slot);
+}
 
 
-//uint32_t Isolate::GetNumberOfDataSlots() {
-//  typedef internal::Internals I;
-//  return I::kNumIsolateDataSlots;
-//}
+uint32_t Isolate::GetNumberOfDataSlots() {
+  typedef internal::Internals I;
+  return I::kNumIsolateDataSlots;
+}
 
 
 //int64_t Isolate::AdjustAmountOfExternalAllocatedMemory(

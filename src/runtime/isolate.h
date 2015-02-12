@@ -1,6 +1,9 @@
 #ifndef V8MONKEY_ISOLATE_H
 #define V8MONKEY_ISOLATE_H
 
+// begin, end
+#include <iterator>
+
 // JSRuntime, JSTracer JSTraceDataOp
 #include "jsapi.h"
 
@@ -13,7 +16,7 @@
 // EXPORT_FOR_TESTING_ONLY
 #include "utils/test.h"
 
-// FatalErrorCallback
+// FatalErrorCallback, Isolate, kNumIsolateDataSlots
 #include "v8.h"
 
 // vector
@@ -53,7 +56,9 @@ namespace v8 {
 //
     class EXPORT_FOR_TESTING_ONLY Isolate {
       public:
-        Isolate() {}
+        Isolate() {
+          std::fill(std::begin(embedderData), std::end(embedderData), nullptr);
+        }
 
 //        InternalIsolate() : isDisposed(false), isRegisteredForGC(false), fatalErrorHandler(nullptr), threadData(nullptr),
 //                            embedderData(nullptr), lockingThread(0), isInitted(false) {
@@ -112,12 +117,6 @@ namespace v8 {
         // Get the fatal error handler for this isolate
         FatalErrorCallback GetFatalErrorHandler() const { return fatalErrorHandler; }
 
-//        // Set the embedder data for this isolate
-//        void SetEmbedderData(void* data) { embedderData = data; }
-//
-//        // Get the embedder data for this isolate
-//        void* GetEmbedderData() const { return embedderData; }
-//
         // Lock this isolate for the current thread
         void Lock();
 
@@ -205,6 +204,9 @@ namespace v8 {
 //        static void EnsureDefaultIsolateForStaticInitializerThread();
 //
       private:
+        // Embedder data. Must stay in sync with position exposed in v8.h
+        void* embedderData[Internals::kNumIsolateDataSlots];
+
         // Denotes whether this isolate is effectively dead
         bool hasFatalError {false};
 

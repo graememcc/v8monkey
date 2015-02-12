@@ -32,6 +32,9 @@
 // V8MonkeyCommon class definition, TriggerFatalError, ASSERT
 #include "utils/V8MonkeyCommon.h"
 
+// kIsolateEmbedderDataOffset
+#include "v8.h"
+
 // V8_UNUSED
 #include "v8config.h"
 
@@ -509,6 +512,10 @@ namespace v8 {
      */
 
     void Isolate::Enter() {
+      // XXX Move to a better spot?
+      static_assert(Internals::kIsolateEmbedderDataOffset == offsetof(Isolate, embedderData),
+                    "Isolate definition and v8 header out of sync");
+
       // As isolate entries stack, and threads can unlock allowing other threads to enter an isolate, we must note
       // which isolate the entering thread to exit to, and which thread will be considered the most-recently entered
       // once this thread exits.

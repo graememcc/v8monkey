@@ -323,8 +323,49 @@ V8MONKEY_TEST(Isolate010, "Attempt to dispose in-use isolate from another thread
   i->Enter();
   V8Platform::Thread child {CrossThreadBadDispose};
   child.Run(i);
+
   V8MONKEY_CHECK(child.Join(), "Disposing an in-use isolate is fatal");
+
   i->Exit();
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(Isolate011, "Embedder data is initially null") {
+  Isolate* i {Isolate::New()};
+  void* result = i->GetData(0);
+
+  V8MONKEY_CHECK(!result, "Data was null");
+}
+
+
+V8MONKEY_TEST(Isolate012, "Setting/getting data works as expected") {
+  Isolate* i {Isolate::New()};
+  i->SetData(0, i);
+  bool result = i->GetData(0) == i;
+
+  V8MONKEY_CHECK(result, "Data was correct");
+}
+
+
+V8MONKEY_TEST(Isolate013, "Embedder data is slot specific") {
+  Isolate* i {Isolate::New()};
+  i->SetData(0, i);
+
+  V8MONKEY_CHECK(i->GetData(0) == i && !i->GetData(1), "Data was correct");
+
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(Isolate014, "Embedder data is isolate specific") {
+  Isolate* i {Isolate::New()};
+  i->SetData(0, i);
+  Isolate* j {Isolate::New()};
+
+  V8MONKEY_CHECK(i->GetData(0) == i && j->GetData(0) == nullptr, "Data was correct");
+
+  j->Dispose();
   i->Dispose();
 }
 
