@@ -4101,25 +4101,25 @@ typedef void (*FatalErrorCallback)(const char* location, const char* message);
  */
 class V8_EXPORT Isolate {
  public:
-//  /**
-//   * Stack-allocated class which sets the isolate for all operations
-//   * executed within a local scope.
-//   */
-//  class V8_EXPORT Scope {
-//   public:
-//    explicit Scope(Isolate* isolate) : isolate_(isolate) {
-//      isolate->Enter();
-//    }
-//
-//    ~Scope() { isolate_->Exit(); }
-//
-//   private:
-//    Isolate* const isolate_;
-//
-//    // Prevent copying of Scope objects.
-//    Scope(const Scope&);
-//    Scope& operator=(const Scope&);
-//  };
+  /**
+   * Stack-allocated class which sets the isolate for all operations
+   * executed within a local scope.
+   */
+  class V8_EXPORT Scope {
+   public:
+    explicit Scope(Isolate* isolate) : isolate_(isolate) {
+      isolate->Enter();
+    }
+
+    ~Scope() { isolate_->Exit(); }
+
+   private:
+    Isolate* const isolate_;
+
+    // Prevent copying of Scope objects.
+    Scope(const Scope&);
+    Scope& operator=(const Scope&);
+  };
 //
 //
 //  /**

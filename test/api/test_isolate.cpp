@@ -195,6 +195,81 @@ namespace {
 
     return result;
   }
+
+
+  // Returns a void* wrapped bool denoting whether the current isolate equals the one prior to Scope creation when a
+  // single Scope is entered and destroyed
+  void* CheckSingleScopeRestoresInitialState(void* = nullptr) {
+    Isolate* initial {Isolate::GetCurrent()};
+    Isolate* i {Isolate::New()};
+    {
+      Isolate::Scope scope {i};
+    }
+
+    bool result {Isolate::GetCurrent() == initial};
+
+    i->Dispose();
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a void* wrapped bool denoting whether GetCurrent is correct after constructing a Scope
+  void* GetCurrentCorrectAfterScopeConstruction(void* = nullptr) {
+    Isolate* i {Isolate::New()};
+    bool result {};
+    {
+      Isolate::Scope scope {i};
+      result = Isolate::GetCurrent() == i;
+    }
+
+    i->Dispose();
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a void* wrapped bool denoting whether scopes stack correctly when the first isolate is explicitly entered
+  void* CheckScopesStackAfterExplicitEntry(void* = nullptr) {
+    Isolate* first {Isolate::New()};
+    first->Enter();
+
+    Isolate* second {Isolate::New()};
+    {
+      Isolate::Scope scope {second};
+    }
+
+    bool result {Isolate::GetCurrent() == first};
+
+    second->Dispose();
+    first->Exit();
+    first->Dispose();
+
+    return reinterpret_cast<void*>(result);
+  }
+
+
+  // Returns a void* wrapped bool denoting whether scopes stack correctly
+  void* CheckScopesStack(void* = nullptr) {
+    Isolate* first {Isolate::New()};
+    bool firstOK {}, secondOK {};
+    {
+      Isolate::Scope firstScope {first};
+      Isolate* second {Isolate::New()};
+      {
+        Isolate::Scope secondScope {second};
+        Isolate* third {Isolate::New()};
+        {
+          Isolate::Scope thirdScope {third};
+        }
+        secondOK = Isolate::GetCurrent() == second;
+        third->Dispose();
+      }
+      firstOK = Isolate::GetCurrent() == first;
+      second->Dispose();
+    }
+    first->Dispose();
+
+    return reinterpret_cast<void*>(firstOK && secondOK);
+  }
 }
 
 
@@ -252,6 +327,28 @@ V8MONKEY_TEST(Isolate010, "Attempt to dispose in-use isolate from another thread
   i->Exit();
   i->Dispose();
 }
+
+
+V8MONKEY_TEST(Scope001, "Creating and destroying a single scope leaves main in its initial state") {
+  V8MONKEY_CHECK(CheckSingleScopeRestoresInitialState(), "main thread returned to initial isolate after scope destruction");
+}
+
+
+V8MONKEY_TEST(Scope002, "GetCurrent() reports correct isolate after Scope construction (within Scope lifetime)") {
+  V8MONKEY_CHECK(GetCurrentCorrectAfterScopeConstruction(), "GetCurrent() was correct");
+}
+
+
+V8MONKEY_TEST(Scope003, "Scopes stack correctly for main with explicitly entered Isolates") {
+  V8MONKEY_CHECK(CheckScopesStackAfterExplicitEntry(), "Scope stacked correctly");
+}
+
+
+V8MONKEY_TEST(Scope004, "Multiple Scopes stack correctly for main thread") {
+  V8MONKEY_CHECK(CheckScopesStack(), "Scopes stacked correctly");
+}
+
+
 //
 //
 // using namespace v8;
@@ -268,83 +365,8 @@ V8MONKEY_TEST(Isolate010, "Attempt to dispose in-use isolate from another thread
 // namespace {
 //
 //
-//   // Returns a bool (cast to void*) denoting whether the current isolate equals the one prior to Scope creation when a
-//   // single Scope is entered and destroyed
-//   V8MONKEY_TEST_HELPER(CheckSingleScopeRestoresInitialState) {
-//     Isolate* initial {Isolate::GetCurrent()};
-//     Isolate* i {Isolate::New()};
-//     {
-//       Isolate::Scope scope(i);
-//     }
-//
-//     bool result = Isolate::GetCurrent() == initial;
-//
-//     i->Dispose();
-//     return reinterpret_cast<void*>(result);
-//   }
-//
-//
-//   // Returns a bool (cast to void*) denoting whether GetCurrent is correct after constructing a Scope
-//   V8MONKEY_TEST_HELPER(GetCurrentCorrectAfterScopeConstruction) {
-//     Isolate* i {Isolate::New()};
-//     bool result;
-//     {
-//       Isolate::Scope scope(i);
-//       result = Isolate::GetCurrent() == i;
-//     }
-//
-//     i->Dispose();
-//     return reinterpret_cast<void*>(result);
-//   }
-//
-//
-//   // Returns a bool (cast to void*) denoting whether scopes stack correctly when the first isolate is explicitly entered
-//   V8MONKEY_TEST_HELPER(CheckScopesStackAfterExplicitEntry) {
-//     Isolate* first {Isolate::New()};
-//     first->Enter();
-//
-//     Isolate* second {Isolate::New()};
-//     {
-//       Isolate::Scope scope(second);
-//     }
-//
-//     bool result = Isolate::GetCurrent() == first;
-//
-//     second->Dispose();
-//     first->Exit();
-//     first->Dispose();
-//
-//     return reinterpret_cast<void*>(result);
-//   }
-//
-//
-//   // Returns a bool (cast to void*) denoting whether scopes stack correctly
-//   V8MONKEY_TEST_HELPER(CheckScopesStack) {
-//     Isolate* first {Isolate::New()};
-//     bool firstOK, secondOK;
-//     {
-//       Isolate::Scope firstScope(first);
-//       Isolate* second {Isolate::New()};
-//       {
-//         Isolate::Scope secondScope(second);
-//         Isolate* third {Isolate::New()};
-//         {
-//           Isolate::Scope thirdScope(third);
-//         }
-//         secondOK = Isolate::GetCurrent() == second;
-//         third->Dispose();
-//       }
-//       firstOK = Isolate::GetCurrent() == first;
-//       second->Dispose();
-//     }
-//     first->Dispose();
-//
-//     return reinterpret_cast<void*>(firstOK && secondOK);
-//   }
-//
-//
 //   XXX No longer relevant?
-//   // Returns a bool (cast to void*) denoting whether attempts to dispose from a non-default isolate prove fatal
+//   // Returns a void* wrapped bool denoting whether attempts to dispose from a non-default isolate prove fatal
 //   V8MONKEY_TEST_HELPER(CheckV8DisposeFromNonDefaultIsFatal) {
 //     V8::Initialize();
 //     Isolate* i {Isolate::New()};
@@ -363,7 +385,7 @@ V8MONKEY_TEST(Isolate010, "Attempt to dispose in-use isolate from another thread
 //   }
 //
 //
-//   // Returns a bool (cast to void*) denoting whether attempts to dispose without init (when the executing thread is
+//   // Returns a void* wrapped bool denoting whether attempts to dispose without init (when the executing thread is
 //   // associated with the default isolate) work
 //   V8MONKEY_TEST_HELPER(CheckV8DisposeWithoutInit) {
 //     // Reminder: in V8, any thread that calls a function that implicitly enters the default isolate will then be
@@ -401,28 +423,6 @@ V8MONKEY_TEST(Isolate010, "Attempt to dispose in-use isolate from another thread
 //   V8MONKEY_CHECK(result, "Data was correct");
 //   j->Dispose();
 // }
-//
-//
-// V8MONKEY_TEST(Scope001, "Creating and destroying a single scope leaves main in its initial state") {
-//   V8MONKEY_CHECK(CheckSingleScopeRestoresInitialState(), "main thread returned to initial isolate after scope destruction");
-// }
-//
-//
-// V8MONKEY_TEST(Scope002, "GetCurrent() reports correct isolate after Scope construction (within Scope lifetime)") {
-//   V8MONKEY_CHECK(GetCurrentCorrectAfterScopeConstruction(), "GetCurrent() was correct");
-// }
-//
-//
-// V8MONKEY_TEST(Scope003, "Scopes stack correctly for main with explicitly entered Isolates") {
-//   V8MONKEY_CHECK(CheckScopesStackAfterExplicitEntry(), "Scope stacked correctly");
-// }
-//
-//
-// V8MONKEY_TEST(Scope004, "Multiple Scopes stack correctly for main thread") {
-//   V8MONKEY_CHECK(CheckScopesStack(), "Scopes stacked correctly");
-// }
-//
-//
 // V8MONKEY_TEST(Dispose001, "Attempt to dispose V8 when in non-default isolate (main thread) triggers fatal error") {
 //   void* result = CheckV8DisposeFromNonDefaultIsFatal();
 //   V8MONKEY_CHECK(result, "Disposing V8 from a non-default isolate is fatal");
