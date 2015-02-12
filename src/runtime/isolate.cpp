@@ -281,6 +281,8 @@ namespace {
     static std::atomic_int idCount {1};
 
     int threadID {std::atomic_fetch_add(&idCount, 1)};
+
+    // Note: we assume the caller has called ensureTLSKeys()
     Platform::StoreTLSData(threadIDKey, reinterpret_cast<void*>(threadID));
 
     return threadID;
@@ -293,6 +295,7 @@ namespace {
    */
 
   int fetchOrAssignThreadID() {
+    ensureTLSKeys();
     void* raw_id {Platform::GetTLSData(threadIDKey)};
     int existing_id;
     std::memcpy(reinterpret_cast<char*>(&existing_id), reinterpret_cast<char*>(&raw_id), sizeof(int));
