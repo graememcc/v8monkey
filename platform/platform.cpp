@@ -109,7 +109,7 @@ namespace v8 {
 
       // XXX Should we abort on non-zero return code?
       pthread_key_create(&key, destructorFn);
-      TLSKey* result;
+      TLSKey* result {nullptr};
       std::memcpy(reinterpret_cast<char*>(&result), reinterpret_cast<char*>(&key), sizeof(pthread_key_t));
 
       return result;
