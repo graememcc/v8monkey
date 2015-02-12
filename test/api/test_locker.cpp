@@ -99,6 +99,8 @@ V8MONKEY_TEST(Locker007, "IsLocked reports true if multiple locks created for sa
 
     V8MONKEY_CHECK(Locker::IsLocked(i), "Isolate still locked with mutiple lockers");
   }
+
+  i->Dispose();
 }
 
 
@@ -118,31 +120,42 @@ V8MONKEY_TEST(Locker008, "IsLocked reports false if multiple locks created for s
   }
 
   V8MONKEY_CHECK(!Locker::IsLocked(i), "Isolate not locked after mutiple lockers");
+
+  i->Dispose();
 }
 
 
 V8MONKEY_TEST(Locker009, "IsLocked reports false if unlocker constructed for single lock") {
   Isolate* i {Isolate::New()};
 
-  Locker l {i};
-  Unlocker u {i};
-  V8MONKEY_CHECK(!Locker::IsLocked(i), "Value correct after unlocker construction");
+  {
+    Locker l {i};
+    Unlocker u {i};
+    V8MONKEY_CHECK(!Locker::IsLocked(i), "Value correct after unlocker construction");
+  }
+
+  i->Dispose();
 }
 
 
 V8MONKEY_TEST(Locker010, "IsLocked reports false if unlocker constructed for multiple locks") {
   Isolate* i {Isolate::New()};
 
-  Locker l {i};
   {
-    Locker m {i};
+  Locker l {i};
 
     {
-      Locker n {i};
-      Unlocker u {i};
-      V8MONKEY_CHECK(!Locker::IsLocked(i), "Value correct after unlocker construction");
+      Locker m {i};
+
+      {
+        Locker n {i};
+        Unlocker u {i};
+        V8MONKEY_CHECK(!Locker::IsLocked(i), "Value correct after unlocker construction");
+      }
     }
   }
+
+  i->Dispose();
 }
 
 
@@ -174,6 +187,8 @@ V8MONKEY_TEST(Locker011, "IsLocked reports true after unlocker constructed deep 
   }
 
   V8MONKEY_CHECK(!Locker::IsLocked(i), "Value correct after lock 1 destroyed");
+
+  i->Dispose();
 }
 
 
@@ -182,10 +197,15 @@ V8MONKEY_TEST(Locker012, "IsLocked reports false when queried from different thr
   // to the thread which then queries it
 
   Isolate* i {Isolate::New()};
-  Locker l {i};
-  V8Platform::Thread t {CheckIsLockedStatus};
-  t.Run(i);
-  V8MONKEY_CHECK(!t.Join(), "Thread found isolate was not locked");
+
+  {
+    Locker l {i};
+    V8Platform::Thread t {CheckIsLockedStatus};
+    t.Run(i);
+    V8MONKEY_CHECK(!t.Join(), "Thread found isolate was not locked");
+  }
+
+  i->Dispose();
 }
 
 
@@ -285,7 +305,9 @@ V8MONKEY_TEST(Locker018, "Unlocking doesn't affect isolate entry status") {
       Unlocker u {i};
       V8MONKEY_CHECK(Isolate::GetCurrent() == i, "Unlocking didn't exit isolate");
     }
+
   }
 
+  i->Exit();
   i->Dispose();
 }
