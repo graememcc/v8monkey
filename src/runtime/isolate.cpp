@@ -24,7 +24,7 @@
 #include "utils/SpiderMonkeyUtils.h"
 
 // TLSKey, CreateTLSKey
-#include "platform.h"
+#include "platform/platform.h"
 
 // TestUtils EXPORT_FOR_TESTING_ONLY
 #include "utils/test.h"

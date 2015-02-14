@@ -8,7 +8,7 @@
 #include "jsapi.h"
 
 // Mutex
-#include "platform.h"
+#include "platform/platform.h"
 
 // V8MonkeyObject
 #include "types/base_types.h"

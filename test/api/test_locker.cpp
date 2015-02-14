@@ -1,5 +1,5 @@
 // Thread
-#include "platform.h"
+#include "platform/platform.h"
 
 // Class definition, Isolate::New
 #include "v8.h"

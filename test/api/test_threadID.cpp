@@ -1,6 +1,6 @@
 // TODO: If multi-threaded tests cannot be re-enabled, this header can be removed
 // Thread
-#include "platform.h"
+#include "platform/platform.h"
 
 // V8::GetCurrentThreadID Isolate::GetCurrent V8::Initialize
 #include "v8.h"

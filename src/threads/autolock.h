@@ -2,7 +2,7 @@
 #define V8MONKEY_AUTOLOCK_H
 
 // Mutex
-#include "platform.h"
+#include "platform/platform.h"
 
 
 namespace v8 {

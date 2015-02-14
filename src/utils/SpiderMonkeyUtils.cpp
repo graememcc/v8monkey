@@ -1,6 +1,6 @@
 // TLSKey, CreateTLSKey, GetTLSData, StoreTLSData
 // XXX Remove me if we don't need this for compartments
-#include "platform.h"
+#include "platform/platform.h"
 
 // SpiderMonkeyUtils definition
 #include "utils/SpiderMonkeyUtils.h"

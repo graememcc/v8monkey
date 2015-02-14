@@ -5,7 +5,7 @@
 #include <cstring>
 
 // Class under test
-#include "platform.h"
+#include "platform/platform.h"
 
 // Unit-testing support
 #include "V8MonkeyTest.h"

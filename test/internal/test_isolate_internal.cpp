@@ -5,7 +5,7 @@
 #include "runtime/isolate.h"
 
 // Thread
-#include "platform.h"
+#include "platform/platform.h"
 
 // TestUtils
 #include "utils/test.h"

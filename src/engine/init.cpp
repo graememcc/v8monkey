@@ -8,7 +8,7 @@
 #include "runtime/isolate.h"
 
 // Print
-#include "platform.h"
+#include "platform/platform.h"
 
 // string
 #include <string>

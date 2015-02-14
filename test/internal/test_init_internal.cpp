@@ -3,7 +3,7 @@
 
 // XXX Can be removed if threading is not restored
 // Thread
-#include "platform.h"
+#include "platform/platform.h"
 
 // InternalIsolate::IsEntered
 #include "runtime/isolate.h"

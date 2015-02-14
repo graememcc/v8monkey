@@ -62,10 +62,6 @@ v8lib = v8monkey-$(smfullversion)
 v8testlib = v8monkey-test-$(smfullversion)
 
 
-# We also build a shared library for platform abstractions, which can be used both by V8Monkey and the test harnesses
-platformlib = v8monkey-platform
-
-
 # TODO: Do we need to specify a SONAME for our libraries?
 
 
@@ -106,15 +102,8 @@ v8monkeyheadersdir = $(outdir)/include
 v8monkeyheader = $(v8monkeyheadersdir)/v8.h
 
 
-# The platform header (for dependency purposes)
-v8platformheader = $(v8monkeyheadersdir)/platform.h
-
 # Absolute filename of the V8Monkey library
 v8monkeytarget = $(outdir)/$(call libname, $(v8lib))
-
-
-# Absolute filename of the platform library
-v8platformtarget = $(outdir)/$(call libname, $(platformlib))
 
 
 # Directory where the "internal" library object files will be built
@@ -189,7 +178,7 @@ $(outdir)/%.o: %.cpp
 
 
 # Rule for headers: primarily to capture transitive header-only dependencies
-include/%.h platform/%.h src/%.h:
+include/%.h src/%.h:
 	touch $@
 
 
@@ -206,6 +195,9 @@ $(call variants, src/engine/version) $(outdir)/test/api/test_version.o: CXXFLAGS
 enginestems = $(addprefix src/engine/, init version)
 engineobjects = $(addsuffix .o, $(enginestems))
 
+platformstems = $(addprefix src/platform/, platform)
+platformobjects = $(addsuffix .o, $(platformstems))
+
 runtimestems = $(addprefix src/runtime/, IsolateAPI isolate handlescope persistent)
 runtimeobjects = $(addsuffix .o, $(runtimestems))
 
@@ -218,20 +210,14 @@ typeobjects = $(addsuffix .o, $(typestems))
 utilsstems = $(addprefix src/utils/, SpiderMonkeyUtils)
 utilsobjects = $(addsuffix .o, $(utilsstems))
 
-allstems = $(enginestems) $(runtimestems) $(threadstems) $(typestems) $(utilsstems)
-allobjects = $(engineobjects) $(runtimeobjects) $(threadobjects) $(typeobjects) $(utilsobjects)
+allstems = $(enginestems) $(platformstems) $(runtimestems) $(threadstems) $(typestems) $(utilsstems)
+allobjects = $(engineobjects) $(platformobjects) $(runtimeobjects) $(threadobjects) $(typeobjects) $(utilsobjects)
 
 v8sources = $(addsuffix .cpp, $(allstems))
 v8objects = $(addprefix $(outdir)/, $(allobjects))
 
 # Extra files for the internal test version of the library
 testlibobjects = $(addprefix $(v8monkeyinternaldir)/, $(allobjects))
-
-# The platform abstraction library contains the following:
-platformstems = platform
-platformfiles = $(addprefix platform/, $(platformstems))
-platformsources = $(addsuffix .cpp, $(platformfiles))
-platformobjects = $(addprefix $(outdir)/, $(addsuffix .o, $(platformfiles)))
 
 
 # Names of the test harness executables: we need these for the all target
@@ -248,7 +234,7 @@ testsuites = $(addprefix $(outdir)/test/, $(testharnesses))
 
 
 # Where are object files placed when we build them in their various guises?
-srctree = engine runtime threads types utils
+srctree = engine platform runtime threads types utils
 srcdirs = $(addprefix src/, $(srctree))
 objecthierarchy = $(addprefix $(outdir)/, $(srcdirs))
 internalobjecthierarchy = $(addprefix $(v8monkeyinternaldir)/, $(srcdirs))
@@ -285,11 +271,13 @@ $(toplevelhierarchy): | $(outdir)
 # This doesn't contain all directory dependencies. They are spread through the file
 # TODO Again, there must be a better way. Paging Makefile gurus.
 $(addprefix $(outdir)/, $(engineobjects)): | $(outdir)/src/engine
+$(addprefix $(outdir)/, $(platformobjects)): | $(outdir)/src/platform
 $(addprefix $(outdir)/, $(runtimeobjects)): | $(outdir)/src/runtime
 $(addprefix $(outdir)/, $(threadobjects)): | $(outdir)/src/threads
 $(addprefix $(outdir)/, $(typeobjects)): | $(outdir)/src/types
 $(addprefix $(outdir)/, $(utilsobjects)): | $(outdir)/src/utils
 $(addprefix $(v8monkeyinternaldir)/, $(engineobjects)): | $(v8monkeyinternaldir)/src/engine
+$(addprefix $(v8monkeyinternaldir)/, $(platformobjects)): | $(v8monkeyinternaldir)/src/platform
 $(addprefix $(v8monkeyinternaldir)/, $(runtimeobjects)): | $(v8monkeyinternaldir)/src/runtime
 $(addprefix $(v8monkeyinternaldir)/, $(threadobjects)): | $(v8monkeyinternaldir)/src/threads
 $(addprefix $(v8monkeyinternaldir)/, $(typeobjects)): | $(v8monkeyinternaldir)/src/types
@@ -321,10 +309,8 @@ check: $(testsuites)
 
 clean:
 	rm -f $(v8monkeytarget)
-	rm -f $(v8platformtarget)
 	rm -rf $(v8monkeyheadersdir)
 	rm -rf $(outdir)/src
-	rm -rf $(outdir)/platform
 	rm -rf $(outdir)/test
 
 
@@ -352,33 +338,6 @@ temp: $(v8monkeytarget) temp.cpp
 
 
 # TODO Provide a target or flag for debug builds. We need to ensure this builds a debug SpiderMonkey library too
-
-
-#**********************************************************************************************************************#
-#                                             Platform abstraction library                                             #
-#**********************************************************************************************************************#
-
-
-# To build the shared library, we need to build the platform
-# TODO: pthread is POSIX specific: need to factor this out
-$(v8platformtarget): $(platformobjects) $(v8platformheader)
-	@echo && \
-	echo "********************************************************************************" && \
-	echo "*                                                                              *" && \
-	echo "*                   Building platform abstraction library...                   * " && \
-	echo "*                                                                              *" && \
-	echo "********************************************************************************" && \
-	echo
-	$(CXX) -shared -o $@ $(platformobjects) -lpthread
-
-
-# The platform objects depend on the header
-$(platformobjects): $(v8platformheader) | $(outdir)/platform
-
-
-# The include file should also be copied
-$(v8platformheader): platform/platform.h
-	cp $< $(@D)
 
 
 #**********************************************************************************************************************#
@@ -410,7 +369,7 @@ all: $(v8monkeytarget) $(testsuites)
 
 
 # The main task is building the shared library
-$(v8monkeytarget): $(v8objects) $(v8monkeyheaders) $(smtarget) $(v8platformtarget)
+$(v8monkeytarget): $(v8objects) $(v8monkeyheaders) $(smtarget)
 	@echo && \
 	echo "********************************************************************************" && \
 	echo "*                                                                              *" && \
@@ -427,11 +386,14 @@ $(v8monkeytarget): $(v8objects) $(v8monkeyheaders) $(smtarget) $(v8platformtarge
 
 # XXX I think the objects should depend on the local h file
 
-$(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h $(v8platformheader) src/utils/test.h \
+$(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h src/platform/platform.h src/utils/test.h \
                                    src/utils/V8MonkeyCommon.h $(JSAPIheader)
 
 
 $(call variants, src/engine/version): $(v8monkeyheader)
+
+
+$(call variants, src/platform/platform): src/platform/platform.h
 
 
 $(call variants, src/runtime/handlescope): $(v8monkeyheader) src/data_structures/objectblock.h \
@@ -443,7 +405,7 @@ $(call variants, src/runtime/IsolateAPI): $(v8monkeyheader) src/runtime/isolate.
 
 $(call variants, src/runtime/isolate): $(v8monkeyheader) $(JSAPIheader) src/data_structures/destruct_list.h \
                                        src/data_structures/objectblock.h src/runtime/isolate.h \
-                                       src/utils/SpiderMonkeyUtils.h platform/platform.h src/utils/test.h \
+                                       src/utils/SpiderMonkeyUtils.h src/platform/platform.h src/utils/test.h \
                                        src/utils/V8MonkeyCommon.h $(v8monkeyheadersdir)/v8config.h
 
 
@@ -451,10 +413,10 @@ $(call variants, src/runtime/persistent): $(v8monkeyheader) src/data_structures/
                                            src/runtime/isolate.h src/types/base_types.h src/utils/V8MonkeyCommon.h
 
 
-src/runtime/isolate.h: $(v8monkeyheader) $(JSAPIheader) $(v8platformheader) src/utils/test.h src/types/base_types.h
+src/runtime/isolate.h: $(v8monkeyheader) $(JSAPIheader) src/platform/platform.h src/utils/test.h src/types/base_types.h
 
 
-src/threads/autolock.h: $(v8platformheader)
+src/threads/autolock.h: src/platform/platform.h
 
 
 $(call variants, src/threads/locker): $(v8monkeyheader) src/runtime/isolate.h
@@ -483,7 +445,7 @@ $(call variants, src/types/v8monkeyobject): $(v8monkeyheader) src/types/base_typ
 src/utils/V8MonkeyCommon.h: src/utils/test.h
 
 
-$(call variants, src/utils/SpiderMonkeyUtils): $(v8platformheader) src/utils/SpiderMonkeyUtils.h
+$(call variants, src/utils/SpiderMonkeyUtils): src/platform/platform.h src/utils/SpiderMonkeyUtils.h
 
 
 src/utils/SpiderMonkeyUtils.h: src/utils/test.h
@@ -532,7 +494,7 @@ $(outdir)/test/harness/V8MonkeyTest.o: $(outdir)/test/harness
 
 # Build the "standard" test harness
 $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobjects) $(outdir)/test/harness/V8MonkeyTest.o \
-                                   $(v8monkeytarget) $(v8platformtarget)
+                                   $(v8monkeytarget)
 	@echo && \
 	echo "********************************************************************************" && \
 	echo "*                                                                              *" && \
@@ -541,8 +503,7 @@ $(outdir)/test/run_v8monkey_tests: test/harness/run_v8monkey_tests.cpp $(testobj
 	echo "********************************************************************************" && \
 	echo
 	$(CXX) $(CXXFLAGS) -g -o $@ test/harness/run_v8monkey_tests.cpp $(outdir)/test/harness/V8MonkeyTest.o $(testobjects) \
-                        $(call linkcommand, $(outdir), $(v8lib))\
-                        $(call linkcommand, $(outdir), $(platformlib))
+                        $(call linkcommand, $(outdir), $(v8lib))
 
 
 # The individual object files depend on the existence of their output directory
@@ -564,13 +525,13 @@ $(call apitest, death): $(v8monkeyheader)
 $(call apitest, handlescope): $(v8monkeyheader)
 
 
-$(call apitest, init): $(v8monkeyheader) $(v8platformheader) src/utils/V8MonkeyCommon.h
+$(call apitest, init): $(v8monkeyheader) src/platform/platform.h src/utils/V8MonkeyCommon.h
 
 
-$(call apitest, isolate): $(v8monkeyheader) $(v8platformheader)
+$(call apitest, isolate): $(v8monkeyheader) src/platform/platform.h
 
 
-$(call apitest, locker): $(v8monkeyheader)  $(v8platformheader)
+$(call apitest, locker): $(v8monkeyheader)  src/platform/platform.h
 
 
 $(call apitest, number): $(v8monkeyheader)
@@ -579,7 +540,7 @@ $(call apitest, number): $(v8monkeyheader)
 $(call apitest, primitives): $(v8monkeyheader)
 
 
-$(call apitest, threadID): $(v8monkeyheader) $(v8platformheader)
+$(call apitest, threadID): $(v8monkeyheader) src/platform/platform.h
 
 
 #**********************************************************************************************************************#
@@ -614,14 +575,13 @@ $(v8monkeytesttarget): $(testlibobjects) $(v8monkeyheader) $(smtarget)
 	echo "*                                                                              *" && \
 	echo "********************************************************************************" && \
 	echo
-	$(CXX) -shared -o $@ $(testlibobjects) $(call linkcommand, $(smlibdir), $(smlib)) $(v8platformtarget)
+	$(CXX) -shared -o $@ $(testlibobjects) $(call linkcommand, $(smlibdir), $(smlib))
 
 
 # Build the internal test harness
 # Note: we reuse the driver file run_v8monkey_tests.cpp. That isn't a copy/paste error
 $(outdir)/test/run_v8monkey_internal_tests: test/harness/run_v8monkey_tests.cpp $(internaltestobjects) \
-                                            $(outdir)/test/harness/V8MonkeyTest.o $(v8monkeytesttarget) \
-                                            $(v8platformtarget)
+                                            $(outdir)/test/harness/V8MonkeyTest.o $(v8monkeytesttarget)
 	@echo && \
 	echo "********************************************************************************" && \
 	echo "*                                                                              *" && \
@@ -631,8 +591,7 @@ $(outdir)/test/run_v8monkey_internal_tests: test/harness/run_v8monkey_tests.cpp 
 	echo
 	$(CXX) $(CXXFLAGS) -o $@ test/harness/run_v8monkey_tests.cpp $(outdir)/test/harness/V8MonkeyTest.o \
                         $(internaltestobjects) \
-                        $(call linkcommand, $(outdir)/test/internalLib, $(v8testlib)) \
-                        $(call linkcommand, $(outdir), $(platformlib))
+                        $(call linkcommand, $(outdir)/test/internalLib, $(v8testlib))
 
 
 #**********************************************************************************************************************#
@@ -657,10 +616,10 @@ $(call inttest, handlescope): $(v8monkeyheader) src/data_structures/objectblock.
                               src/utils/test.h src/utils/V8MonkeyCommon.h
 
 
-$(call inttest, init): $(v8monkeyheader) $(v8platformheader) src/runtime/isolate.h src/utils/test.h
+$(call inttest, init): $(v8monkeyheader) src/platform/platform.h src/runtime/isolate.h src/utils/test.h
 
 
-$(call inttest, isolate): $(v8monkeyheader) $(JSAPIheader) $(v8platformheader) src/runtime/isolate.h src/utils/test.h \
+$(call inttest, isolate): $(v8monkeyheader) $(JSAPIheader) src/platform/platform.h src/runtime/isolate.h src/utils/test.h \
                           src/types/base_types.h src/utils/SpiderMonkeyUtils.h
 
 
@@ -670,7 +629,7 @@ $(call inttest, miscutils): src/utils/MiscUtils.h
 $(call inttest, objectblock): src/data_structures/objectblock.h
 
 
-$(call inttest, platform): $(v8platformheader)
+$(call inttest, platform): src/platform/platform.h
 
 
 $(call inttest, persistent): $(v8monkeyheader) src/data_structures/objectblock.h src/runtime/isolate.h \
