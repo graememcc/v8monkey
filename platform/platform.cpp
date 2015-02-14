@@ -91,23 +91,33 @@ namespace v8 {
     }
 
 
-    class POSIXOneTimeFunction: public OSOnce {
-      public:
-        POSIXOneTimeFunction(OneTimeFunction f): OSOnce (f) {
-          // Is it safe to place the macro definition in the initializer list?
-          once_control = PTHREAD_ONCE_INIT;
-        }
+    OneShot::OneShot(OneTimeFunction f) : oneTimeFunction {f}, privateData {nullptr} {
+      if (sizeof(pthread_once_t) > sizeof(void*)) {
+        pthread_once_t* once {new pthread_once_t};
+        *once = PTHREAD_ONCE_INIT;
+        privateData = reinterpret_cast<void*>(once);
+      } else {
+        pthread_once_t once {PTHREAD_ONCE_INIT};
+        std::memcpy(reinterpret_cast<char*>(&privateData), reinterpret_cast<char*>(&once), sizeof(pthread_once_t));
+      }
+    }
 
 
-        void Run() override {
-          // XXX Should we abort on non-zero return code?
-          pthread_once(&once_control, fn);
-        }
+    OneShot::~OneShot() {
+      if (sizeof(pthread_once_t) > sizeof(void*)) {
+        pthread_once_t* once {reinterpret_cast<pthread_once_t*>(privateData)};
+        delete once;
+      }
+    }
 
 
-      private:
-        pthread_once_t once_control;
-    };
+    void OneShot::Run() {
+      if (sizeof(pthread_once_t) <= sizeof(void*)) {
+        pthread_once(reinterpret_cast<pthread_once_t*>(&privateData), oneTimeFunction);
+      } else {
+        pthread_once(reinterpret_cast<pthread_once_t*>(privateData), oneTimeFunction);
+      }
+    }
 
 
     Thread::~Thread() {
@@ -146,11 +156,6 @@ namespace v8 {
       }
 
       return resultPtr;
-    }
-
-
-    OSOnce* Platform::CreateOneShotFunction(OneTimeFunction f) {
-      return new POSIXOneTimeFunction(f);
     }
 
 

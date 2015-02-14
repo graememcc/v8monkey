@@ -1,4 +1,3 @@
-Executed Thread
 #include "platform.h"
 
 // Isolate, V8::{Initialize, SetFatalErrorHandler}

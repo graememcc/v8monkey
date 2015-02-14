@@ -17,23 +17,11 @@
 
 namespace v8 {
   namespace V8Platform {
-    class Once;
-    class Thread;
-
-
     // Platform-agnostic one-shot functions (e.g. pthread_once on POSIX, InitOnceExecuteOnce on Windows)
-    typedef void (*OneTimeFunction)();
-    class OSOnce {
-      public:
-        OSOnce(OneTimeFunction f) : fn(f) {}
+    using OneTimeFunction = void (*)();
 
-        virtual ~OSOnce() {}
-        virtual void Run() = 0;
-
-
-      protected:
-        OneTimeFunction fn;
-    };
+    // Platform-agnostic thread execution functions
+    using ThreadFunction = void* (*)(void*);
 
 
     // Platform-agnostic wrapper around a TLS key
@@ -46,29 +34,6 @@ namespace v8 {
         TLSKey& operator=(TLSKey&& other) = delete;
         ~TLSKey() = delete;
     };
-
-
-    // Platform-agnostic wrapper around a thread
-    typedef void* (*ThreadFunction)(void*);
-    class OSThread {
-      public:
-        OSThread(ThreadFunction tf) : fn(tf), hasRan(false) {}
-
-        virtual ~OSThread() {}
-
-        // Start the given thread. Undefined if the thread is already running or has already completed.
-        virtual void Run(void* arg = nullptr) = 0;
-
-        // Has this thread ever started?
-        bool HasRan() { return hasRan; }
-
-        virtual void* Join() = 0;
-
-      protected:
-        ThreadFunction fn;
-        bool hasRan;
-    };
-
 
 
     class APIEXPORT Platform {
@@ -90,33 +55,39 @@ namespace v8 {
 
         // Exit with error
         static void ExitWithError(const char* message);
-
-      private:
-        // Create and initialize a Thread
-        static OSThread* CreateThread(ThreadFunction tf);
-
-        // Create and initialize a one-time function
-        static OSOnce* CreateOneShotFunction(OneTimeFunction f);
-
-      friend class OneShot;
-      friend class Mutex;
-      friend class Thread;
     };
 
 
     // RAII class for handling OSOnce pointers
     class APIEXPORT OneShot {
       public:
-        OneShot(OneTimeFunction f) : oneShot (Platform::CreateOneShotFunction(f)) {}
-        ~OneShot() { delete oneShot; }
+        OneShot(OneTimeFunction f);
 
-        void Run() {
-          oneShot->Run();
+        ~OneShot();
+
+        void Run();
+
+        OneShot(OneShot&& other) {
+          // XXX Assert privateData is null
+          void* otherData = other.privateData;
+          other.privateData = nullptr;
+          privateData = otherData;
         }
 
+        OneShot& operator=(OneShot&& other) {
+          // XXX Assert privateData is null
+          void* otherData = other.privateData;
+          other.privateData = nullptr;
+          privateData = otherData;
+          return *this;
+        }
+
+        OneShot(const OneShot& other) = delete;
+        OneShot& operator=(const OneShot& other) = delete;
+
       private:
-        OSOnce* oneShot;
-        // XXX Delete copy constructor
+        OneTimeFunction oneTimeFunction;
+        void* privateData;
     };
 
 
