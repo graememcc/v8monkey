@@ -15,35 +15,80 @@
 #include "platform.h"
 
 
+namespace {
+  pthread_mutex_t mutexFromRaw(void* raw) {
+    pthread_mutex_t p {};
+    std::memcpy(reinterpret_cast<char*>(&p), reinterpret_cast<char*>(&raw), sizeof(pthread_mutex_t));
+    return p;
+  }
+
+
+  pthread_mutex_t* mutexPtrFromRaw(void* raw) {
+    pthread_mutex_t* p {reinterpret_cast<pthread_mutex_t*>(raw)};
+    return p;
+  }
+}
+
+
 namespace v8 {
   namespace V8Platform {
-    class POSIXMutex: public OSMutex {
-      public:
-        POSIXMutex() {
-          // XXX Should we abort on failure?
-          pthread_mutex_init(&platformMutex, nullptr);
-        };
+    Mutex::Mutex() {
+      if (sizeof(pthread_mutex_t) > sizeof(void*)) {
+        pthread_mutex_t* platformMutex {new pthread_mutex_t};
+        // XXX Should we abort on failure?
+        pthread_mutex_init(platformMutex, nullptr);
+        privateData = reinterpret_cast<void*>(platformMutex);
+      } else {
+        pthread_mutex_t platformMutex {};
+        // XXX Should we abort on failure?
+        pthread_mutex_init(&platformMutex, nullptr);
+        std::memcpy(reinterpret_cast<char*>(privateData), reinterpret_cast<char*>(&platformMutex),
+                    sizeof(pthread_mutex_t));
+      }
+    }
 
 
-        ~POSIXMutex() {
-          // XXX Should we abort on failure?
-          pthread_mutex_destroy(&platformMutex);
-        };
+    Mutex::~Mutex() {
+      if (sizeof(pthread_mutex_t) > sizeof(void*)) {
+        pthread_mutex_t* platformMutex {mutexPtrFromRaw(privateData)};
+        // XXX assert not null
+        // XXX Should we abort on failure?
+        pthread_mutex_destroy(platformMutex);
+        delete platformMutex;
+      } else {
+        pthread_mutex_t platformMutex = mutexFromRaw(privateData);
+        // XXX Should we abort on failure?
+        pthread_mutex_destroy(&platformMutex);
+      }
+    }
 
 
-        int Lock() override {
-          return pthread_mutex_lock(&platformMutex);
-        }
+    void Mutex::Lock() {
+      if (sizeof(pthread_mutex_t) > sizeof(void*)) {
+        pthread_mutex_t* platformMutex {mutexPtrFromRaw(privateData)};
+        // XXX assert not null
+        // XXX Should we abort on failure?
+        pthread_mutex_unlock(platformMutex);
+      } else {
+        pthread_mutex_t platformMutex = mutexFromRaw(privateData);
+        // XXX Should we abort on failure?
+        pthread_mutex_unlock(&platformMutex);
+      }
+    }
 
 
-        int Unlock() override {
-          return pthread_mutex_unlock(&platformMutex);
-        }
-
-
-      private:
-        pthread_mutex_t platformMutex;
-    };
+    void Mutex::Unlock() {
+      if (sizeof(pthread_mutex_t) > sizeof(void*)) {
+        pthread_mutex_t* platformMutex {mutexPtrFromRaw(privateData)};
+        // XXX assert not null
+        // XXX Should we abort on failure?
+        pthread_mutex_unlock(platformMutex);
+      } else {
+        pthread_mutex_t platformMutex = mutexFromRaw(privateData);
+        // XXX Should we abort on failure?
+        pthread_mutex_unlock(&platformMutex);
+      }
+    }
 
 
     class POSIXOneTimeFunction: public OSOnce {
@@ -87,11 +132,6 @@ namespace v8 {
       private:
         pthread_t identifier;
     };
-
-
-    OSMutex* Platform::CreateMutex() {
-      return new POSIXMutex();
-    }
 
 
     OSOnce* Platform::CreateOneShotFunction(OneTimeFunction f) {

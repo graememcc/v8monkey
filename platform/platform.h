@@ -18,17 +18,7 @@
 namespace v8 {
   namespace V8Platform {
     class Once;
-    class Mutex;
     class Thread;
-
-
-    // Class representing a simple mutex
-    class OSMutex {
-      public:
-        virtual ~OSMutex() {}
-        virtual int Lock() = 0;
-        virtual int Unlock() = 0;
-    };
 
 
     // Platform-agnostic one-shot functions (e.g. pthread_once on POSIX, InitOnceExecuteOnce on Windows)
@@ -102,9 +92,6 @@ namespace v8 {
         static void ExitWithError(const char* message);
 
       private:
-        // Create and initialize a platform-specific mutex
-        static OSMutex* CreateMutex();
-
         // Create and initialize a Thread
         static OSThread* CreateThread(ThreadFunction tf);
 
@@ -136,36 +123,32 @@ namespace v8 {
     // RAII class for handling OSMutex pointers
     class APIEXPORT Mutex {
       public:
-        Mutex() : mutex (Platform::CreateMutex()) {}
+        Mutex();
+
+        ~Mutex();
+
+        void Lock();
+
+        void Unlock();
 
         Mutex(Mutex&& other) {
-          OSMutex* ptr = other.mutex;
-          other.mutex = nullptr;
-          mutex = ptr;
+          void* otherData = other.privateData;
+          other.privateData = nullptr;
+          privateData = otherData;
         }
-
-        ~Mutex() { delete mutex; }
 
         Mutex& operator=(Mutex&& other) {
-          OSMutex* ptr = other.mutex;
-          other.mutex = nullptr;
-          mutex = ptr;
+          void* otherData = other.privateData;
+          other.privateData = nullptr;
+          privateData = otherData;
           return *this;
-        }
-
-        void Lock() {
-          mutex->Lock();
-        }
-
-        void Unlock() {
-          mutex->Unlock();
         }
 
         Mutex(const Mutex& other) = delete;
         Mutex& operator=(const Mutex& other) = delete;
 
       private:
-        OSMutex* mutex;
+        void* privateData;
     };
 
 
