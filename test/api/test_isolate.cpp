@@ -1,4 +1,4 @@
-// Thread
+Executed Thread
 #include "platform.h"
 
 // Isolate, V8::{Initialize, SetFatalErrorHandler}
@@ -393,6 +393,7 @@ V8MONKEY_TEST(Isolate015, "Slots don't overlap") {
     V8MONKEY_CHECK(i->GetData(0) == slot1 && i->GetData(1) == slot2, "Data was correct");
   }
 
+  i->Dispose();
 }
 
 
