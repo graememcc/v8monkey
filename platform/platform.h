@@ -132,12 +132,14 @@ namespace v8 {
         void Unlock();
 
         Mutex(Mutex&& other) {
+          // XXX Assert privateData is null
           void* otherData = other.privateData;
           other.privateData = nullptr;
           privateData = otherData;
         }
 
         Mutex& operator=(Mutex&& other) {
+          // XXX Assert privateData is null
           void* otherData = other.privateData;
           other.privateData = nullptr;
           privateData = otherData;
@@ -148,32 +150,35 @@ namespace v8 {
         Mutex& operator=(const Mutex& other) = delete;
 
       private:
-        void* privateData;
+        void* privateData {nullptr};
     };
 
 
     // RAII class for handling OSThreads
     class APIEXPORT Thread {
       public:
-        Thread(ThreadFunction fn) : thread(Platform::CreateThread(fn)) {}
-        ~Thread() { delete thread; }
+        Thread(ThreadFunction fn) : threadFunction {fn} {}
+
+        ~Thread();
+
+        bool HasExecuted() { return hasExecuted; }
+
+        void Run(void* arg = nullptr);
+
+        void* Join();
 
         Thread(Thread&& other) {
-          OSThread* ptr = other.thread;
-          other.thread = nullptr;
-          thread = ptr;
+          // XXX Assert privateData is null
+          void* otherData = other.privateData;
+          other.privateData = nullptr;
+          privateData = otherData;
         }
 
-        void Run(void* arg = nullptr) { thread->Run(arg); }
-
-        bool HasRan() { return thread->HasRan(); }
-
-        void* Join() { return thread->Join(); }
-
         Thread& operator=(Thread&& other) {
-          OSThread* ptr = other.thread;
-          other.thread = nullptr;
-          thread = ptr;
+          // XXX Assert privateData is null
+          void* otherData = other.privateData;
+          other.privateData = nullptr;
+          privateData = otherData;
           return *this;
         }
 
@@ -181,7 +186,9 @@ namespace v8 {
         Thread& operator=(const Thread& other) = delete;
 
       private:
-        OSThread* thread;
+        ThreadFunction threadFunction;
+        void* privateData {nullptr};
+        bool hasExecuted {false};
     };
   }
 }

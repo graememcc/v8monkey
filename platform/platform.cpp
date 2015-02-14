@@ -110,28 +110,43 @@ namespace v8 {
     };
 
 
-    class POSIXThread: public OSThread {
-      public:
-        POSIXThread(ThreadFunction tf) : OSThread(tf) {}
+    Thread::~Thread() {
+      if (sizeof(pthread_t) > sizeof(void*)) {
+        pthread_t* thread {reinterpret_cast<pthread_t*>(privateData)};
+        delete thread;
+      }
+    }
 
 
-        void Run(void* arg) override {
-          // XXX We should exit or abort if we try to run a thread that has already ran. Which?
-          hasRan = true;
-          pthread_create(&identifier, nullptr, fn, arg);
-        }
+    void Thread::Run(void* arg) {
+      // XXX Assert not been executed
+      if (sizeof(pthread_t) <= sizeof(void*)) {
+        pthread_create(reinterpret_cast<pthread_t*>(&privateData), nullptr, threadFunction, arg);
+      } else {
+        pthread_t* thread {new pthread_t};
+        pthread_create(thread, nullptr, threadFunction, arg);
+        privateData = reinterpret_cast<void*>(thread);
+      }
+
+      hasExecuted = true;
+    }
 
 
-        void* Join() override {
-          void* resultPtr;
-          pthread_join(identifier, &resultPtr);
-          return resultPtr;
-        }
+    void* Thread::Join() {
+      // XXX Assert we've been executed
+      void* resultPtr;
 
+      if (sizeof(pthread_t) <= sizeof(void*)) {
+        pthread_t thread {};
+        std::memcpy(reinterpret_cast<char*>(&thread), reinterpret_cast<char*>(&privateData), sizeof(pthread_t));
+        pthread_join(thread, &resultPtr);
+      } else {
+        pthread_t thread {*reinterpret_cast<pthread_t*>(privateData)};
+        pthread_join(thread, &resultPtr);
+      }
 
-      private:
-        pthread_t identifier;
-    };
+      return resultPtr;
+    }
 
 
     OSOnce* Platform::CreateOneShotFunction(OneTimeFunction f) {
@@ -179,11 +194,6 @@ namespace v8 {
       std::memcpy(reinterpret_cast<char*>(&key), reinterpret_cast<char*>(&k), sizeof(pthread_key_t));
 
       return pthread_getspecific(key);
-    }
-
-
-    OSThread* Platform::CreateThread(ThreadFunction tf) {
-      return new POSIXThread(tf);
     }
 
 

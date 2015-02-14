@@ -113,7 +113,7 @@ V8MONKEY_TEST(Plat004, "HasRan correct after thread runs") {
   Thread t {thread_run_main};
   t.Run(nullptr);
   t.Join();
-  V8MONKEY_CHECK(t.HasRan(), "HasRan reported true");
+  V8MONKEY_CHECK(t.HasExecuted(), "HasRan reported true");
 }
 
 
