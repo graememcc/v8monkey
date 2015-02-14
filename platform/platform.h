@@ -137,7 +137,21 @@ namespace v8 {
     class APIEXPORT Mutex {
       public:
         Mutex() : mutex (Platform::CreateMutex()) {}
+
+        Mutex(Mutex&& other) {
+          OSMutex* ptr = other.mutex;
+          other.mutex = nullptr;
+          mutex = ptr;
+        }
+
         ~Mutex() { delete mutex; }
+
+        Mutex& operator=(Mutex&& other) {
+          OSMutex* ptr = other.mutex;
+          other.mutex = nullptr;
+          mutex = ptr;
+          return *this;
+        }
 
         void Lock() {
           mutex->Lock();
@@ -147,9 +161,11 @@ namespace v8 {
           mutex->Unlock();
         }
 
+        Mutex(const Mutex& other) = delete;
+        Mutex& operator=(const Mutex& other) = delete;
+
       private:
         OSMutex* mutex;
-        // XXX Delete copy constructor
     };
 
 
@@ -159,15 +175,30 @@ namespace v8 {
         Thread(ThreadFunction fn) : thread(Platform::CreateThread(fn)) {}
         ~Thread() { delete thread; }
 
+        Thread(Thread&& other) {
+          OSThread* ptr = other.thread;
+          other.thread = nullptr;
+          thread = ptr;
+        }
+
         void Run(void* arg = nullptr) { thread->Run(arg); }
 
         bool HasRan() { return thread->HasRan(); }
 
         void* Join() { return thread->Join(); }
 
+        Thread& operator=(Thread&& other) {
+          OSThread* ptr = other.thread;
+          other.thread = nullptr;
+          thread = ptr;
+          return *this;
+        }
+
+        Thread(const Thread& other) = delete;
+        Thread& operator=(const Thread& other) = delete;
+
       private:
         OSThread* thread;
-        // XXX Delete copy constructor
     };
   }
 }
