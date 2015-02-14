@@ -372,6 +372,30 @@ V8MONKEY_TEST(Isolate014, "Embedder data is isolate specific") {
 }
 
 
+V8MONKEY_TEST(Isolate015, "Slots don't overlap") {
+  static_assert(sizeof(void*) == 4 || sizeof(void*) == 8, "Unexpected pointer size breaks test");
+
+  Isolate* i {Isolate::New()};
+
+  if (sizeof(void*) == 8) {
+    void* slot1 {reinterpret_cast<void*>(0x0f0f0f0f0f0f0f0fu)};
+    void* slot2 {reinterpret_cast<void*>(0xf0f0f0f0f0f0f0f0u)};
+    i->SetData(0, slot1);
+    i->SetData(1, slot2);
+
+    V8MONKEY_CHECK(i->GetData(0) == slot1 && i->GetData(1) == slot2, "Data was correct");
+  } else if (sizeof(void*) == 4) {
+    void* slot1 {reinterpret_cast<void*>(0x0f0f0f0fu)};
+    void* slot2 {reinterpret_cast<void*>(0xf0f0f0f0u)};
+    i->SetData(0, slot1);
+    i->SetData(1, slot2);
+
+    V8MONKEY_CHECK(i->GetData(0) == slot1 && i->GetData(1) == slot2, "Data was correct");
+  }
+
+}
+
+
 V8MONKEY_TEST(Scope001, "Creating and destroying a single scope leaves main in its initial state") {
   V8MONKEY_CHECK(CheckSingleScopeRestoresInitialState(), "main thread returned to initial isolate after scope destruction");
 }
