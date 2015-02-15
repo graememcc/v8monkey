@@ -55,6 +55,12 @@ namespace {
       }
 
       void AttemptDispose(bool isBeingDestroyed = false) {
+        V8MONKEY_ASSERT(!isDisposed || isBeingDestroyed, "V8::Dispose called more than once?");
+
+        if (isDisposed) {
+          return;
+        }
+
         if (isBeingDestroyed) {
           int threadsWithRuntimes {std::atomic_load(&runtimeCount)};
           V8MONKEY_ASSERT(threadsWithRuntimes <= 1, "Attempting to destroy V8 when other threads still exist");
@@ -99,6 +105,14 @@ namespace v8{
     }
 
 
+    void TearDownSpiderMonkey() {
+      // Allow harmless V8::Dispose calls without init
+      if (!tearDown.get()) {
+        return;
+      }
+
+      tearDown->AttemptDispose();
+    }
 /*
     JSRuntime* SpiderMonkeyUtils::GetJSRuntimeForThread() {
       RTCXData rtcx = GetJSRuntimeAndJSContext();
