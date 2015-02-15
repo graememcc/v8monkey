@@ -1,3 +1,6 @@
+// for_each
+#include <algorithm>
+
 // atomic_int, atomic_fetch_add
 #include <atomic>
 
@@ -11,7 +14,7 @@
 // Objectblock
 #include "data_structures/objectblock.h"
 
-// std::end
+// std::begin, std::end
 #include <iterator>
 
 // JSContext JS_GC JS_NewContext JS_NewRuntime JSRuntime JS::RuntimeOptionsRef JSTracer JSTraceDataOp
@@ -169,20 +172,6 @@ namespace {
 
     return createAndAssignThreadID();
   }
-
-
-//   /*
-//    * Interface to isolate tracing for the SpiderMonkey garbage collector. When a thread enters an isolate, the isolate
-//    * will register itself as a GC rooter with that thread's JSRuntime. This is the function that SpiderMonkey will call
-//    * when tracing roots.
-//    *
-//    */
-//
-//   void GCTracingFunction(JSTracer* tracer, void* data) {
-//     // All we need to do is cast to the isolate, and invoke Trace
-//     v8::V8Monkey::InternalIsolate* i = reinterpret_cast<v8::V8Monkey::InternalIsolate*>(data);
-//     i->Trace(tracer);
-//   }
 //
 //
 //   /*
@@ -794,24 +783,24 @@ namespace v8 {
 //     }
 //
 //
-//     /*
-//      * Invoked by the SpiderMonkey garbage collector. Compiles the information required by individual object's tracing
-//      * functions, then iterates over the object blocks for Locals and Persistents respectively.
-//      *
-//      */
-//
-//     void InternalIsolate::Trace(JSTracer* tracer) {
-//       // Don't allow API mutation of the handle structures during tracing
-//       AutoGCMutex(this);
-//
-//       TraceData td = {SpiderMonkeyUtils::GetJSRuntimeForThread(), tracer};
-//
-//       // Trace Local handles from HandleScopes
-//       ObjectBlock<V8MonkeyObject>::Iterate(handleScopeData.limit, handleScopeData.next, tracingIterationFunction, &td);
-//
-//       // Trace Persistent handles
-//       ObjectBlock<V8MonkeyObject>::Iterate(persistentData.limit, persistentData.next, tracingIterationFunction, &td);
-//     }
+    /*
+     * Invoked by the SpiderMonkey garbage collector. Compiles the information required by individual object's tracing
+     * functions, then iterates over the object blocks for Locals and Persistents respectively.
+     *
+     */
+
+    void Isolate::Trace(JSTracer* tracer) {
+      // Don't allow API mutation of the handle structures during tracing
+      AutoGCMutex(this);
+
+      JSRuntime* rt {::v8::SpiderMonkey::GetJSRuntimeForThread()};
+      std::for_each(std::begin(localHandleData), std::end(localHandleData), [&rt, &tracer](HandleElement& obj) {
+        obj->Trace(rt, tracer);
+      });
+
+      // Trace Persistent handles
+      //ObjectBlock<V8MonkeyObject>::Iterate(persistentData.limit, persistentData.next, tracingIterationFunction, &td);
+    }
   }
 //
 //

@@ -4,13 +4,16 @@
 // begin, end
 #include <iterator>
 
-// JSRuntime, JSTracer JSTraceDataOp
+// JSRuntime, JSTracer, JSTraceDataOp
 #include "jsapi.h"
+
+// shared_ptr
+#include "memory"
 
 // Mutex
 #include "platform/platform.h"
 
-// V8MonkeyObject
+// Object
 #include "types/base_types.h"
 
 // EXPORT_FOR_TESTING_ONLY
@@ -55,7 +58,11 @@ namespace v8 {
 //     */
 //
     class EXPORT_FOR_TESTING_ONLY Isolate {
+      using HandleElement = std::shared_ptr<Object>;
+      using LocalHandles = std::vector<HandleElement>;
+
       public:
+        // XXX Put an initializer list here once we have the shape of InternalIsolate nailed down
         Isolate() {
           std::fill(std::begin(embedderData), std::end(embedderData), nullptr);
         }
@@ -85,12 +92,6 @@ namespace v8 {
         // Dispose of the given isolate
         void Dispose();
 
-//        // Is the given isolate the special default isolate?
-//        static bool IsDefaultIsolate(InternalIsolate* i) { return i == defaultIsolate; }
-//
-//        // Return the default isolate
-//        static InternalIsolate* GetDefaultIsolate() { return defaultIsolate; }
-//
         // Find the current InternalIsolate for the calling thread
         static Isolate* GetCurrent();
 
@@ -152,36 +153,38 @@ namespace v8 {
 //        // XXX Check need to hold it in dispose/destructor
 //        void SetPersistentHandleData(HandleData& hd);
 //
-//        // Lock the GC Mutex to allow the caller to safely mutate HandleData
-//        void LockGCMutex() {
-//          GCMutex.Lock();
-//        }
-//
-//        // Signal that the caller has ceased manipulating the HandleData and that it is safe to trace objects
-//        void UnlockGCMutex() {
-//          GCMutex.Unlock();
-//        }
-//
-//        // GC Rooting
-//        void Trace(JSTracer* tracer);
+        // Lock the GC Mutex to allow the caller to safely mutate HandleData
+        void LockGCMutex() {
+          GCMutex.Lock();
+        }
+
+        // Signal that the caller has ceased manipulating the HandleData and that it is safe to trace objects
+        void UnlockGCMutex() {
+          GCMutex.Unlock();
+        }
 //
 //        // Cease object rooting. Public as a TLS destructor function must be able to call it.
 //        void RemoveGCRooter();
 //
-//        // RAII helper
-//        class AutoGCMutex {
-//          public:
-//            AutoGCMutex(InternalIsolate* i) : isolate(i) {
-//              isolate->LockGCMutex();
-//            }
-//
-//            ~AutoGCMutex() {
-//              isolate->UnlockGCMutex();
-//            }
-//
-//          private:
-//            InternalIsolate* isolate;
-//        };
+        // RAII helper
+        class AutoGCMutex {
+          public:
+            AutoGCMutex(Isolate* i) : isolate(i) {
+              isolate->LockGCMutex();
+            }
+
+            ~AutoGCMutex() {
+              isolate->UnlockGCMutex();
+            }
+
+            AutoGCMutex(const AutoGCMutex& other) = delete;
+            AutoGCMutex(AutoGCMutex&& other) = delete;
+            AutoGCMutex& operator=(const AutoGCMutex& other) = delete;
+            AutoGCMutex& operator=(AutoGCMutex&& other) = delete;
+
+         private:
+            Isolate* isolate;
+        };
 //
 //
 //        // Provided for V8 compat
@@ -213,6 +216,25 @@ namespace v8 {
         // XXX Temporary
         // Record the isolate that the most-recently entered thread should return to when it exits this isolate
         std::vector<Isolate*> previousIsolates {};
+
+        // XXX May or may not be temporary
+        LocalHandles localHandleData {};
+
+        /*
+         * Interface to isolate tracing for the SpiderMonkey garbage collector. When a thread enters an isolate, the isolate
+         * will register itself as a GC rooter with that thread's JSRuntime. This is the function that SpiderMonkey will call
+         * when tracing roots.
+         *
+         */
+
+        friend void GCTracingFunction(JSTracer* tracer, void* data) {
+          // All we need to do is cast to the isolate, and invoke Trace
+          Isolate* i = reinterpret_cast<Isolate*>(data);
+          i->Trace(tracer);
+        }
+
+        // GC Rooting
+        void Trace(JSTracer* tracer);
 //        struct ThreadData;
 //
 //        // Tell SpiderMonkey about this isolate
@@ -239,8 +261,8 @@ namespace v8 {
         // Thread entry mutex. For future use.
         V8Platform::Mutex lockingMutex {};
 //
-//        // GC Mutex
-//        V8Platform::Mutex GCMutex;
+        // GC Mutex
+        V8Platform::Mutex GCMutex {};
 //
 //        // In a single threaded application, there is no need to explicitly construct an isolate. V8 constructs a
 //        // "default" isolate automatically, and use it where necessary. Note that this changes in V8 3.29.79

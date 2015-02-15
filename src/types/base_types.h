@@ -15,7 +15,7 @@
 
 
 namespace v8 {
-  namespace V8Monkey {
+  namespace internal {
 
     /*
      * The base class of all internal refcounted objects (i.e. anything that can be stored in a Local or Persistent
@@ -30,11 +30,11 @@ namespace v8 {
      *
      */
 
-    class EXPORT_FOR_TESTING_ONLY V8HandleObject {
+    class EXPORT_FOR_TESTING_ONLY Object {
       public:
-        V8HandleObject() : weakCount{0}, callbackList(nullptr) {}
+        Object() : weakCount{0}, callbackList(nullptr) {}
 
-        virtual ~V8HandleObject();
+        virtual ~Object();
 
         // Bump the reference count
 //        void AddRef() {
@@ -64,10 +64,10 @@ namespace v8 {
 //        #endif
 //
 
-        V8HandleObject(const V8HandleObject& other) = delete;
-        V8HandleObject(V8HandleObject&& other) = delete;
-        V8HandleObject& operator=(const V8HandleObject& other) = delete;
-        V8HandleObject& operator=(V8HandleObject&& other) = delete;
+        Object(const Object& other) = delete;
+        Object(Object&& other) = delete;
+        Object& operator=(const Object& other) = delete;
+        Object& operator=(Object&& other) = delete;
 
       private:
 //        int refCount;
@@ -179,7 +179,7 @@ namespace v8 {
      */
 
     #ifdef V8MONKEY_INTERNAL_TEST
-    class DummyV8MonkeyObject: public V8HandleObject {
+    class DummyV8MonkeyObject: public Object {
       public:
         void Trace(JSRuntime*, JSTracer*) override {}
 
@@ -196,7 +196,7 @@ namespace v8 {
 
     // Many tests seek to test when objects are deleted. To this end, we use special fake objects, that set a flag at
     // the given location if they were deleted
-    class DeletionObject: public V8HandleObject {
+    class DeletionObject: public Object {
       public:
         DeletionObject() : index {-1}, ptr {nullptr} {}
         DeletionObject(bool* boolPtr) : index(-1), ptr(boolPtr) {}
@@ -229,7 +229,7 @@ namespace v8 {
 
     // Some tests need to check that their objects are traced by the garbage collector. This dummy class can be used
     // for that purpose
-    class TraceFake : public V8HandleObject {
+    class TraceFake : public Object {
       public:
         TraceFake(bool* boolPtr) : ptr(boolPtr) {}
 
