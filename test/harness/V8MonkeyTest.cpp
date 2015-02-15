@@ -67,14 +67,14 @@ V8MonkeyTest::TestResult V8MonkeyTest::Run() {
     try {
       test();
       cout << "OK" << endl;
-      return TestResult {true, true};
+      return TestResult {false, true};
     } catch (exception& e) {
       cout << "ERROR " << e.what() << endl;
-      return TestResult {false, true};
+      return TestResult {true, true};
     }
   } else if (processID == -1) {
     // The fork failed. In the absence of any better ideas, report this as a test failure
-    return TestResult {false, false};
+    return TestResult {true, false};
   } else {
     int status;
 
@@ -86,11 +86,11 @@ V8MonkeyTest::TestResult V8MonkeyTest::Run() {
       if (WIFSIGNALED(status)) {
         cout << "ERROR Crash" << endl;
       }
-      return TestResult  {false, false};
+      return TestResult  {true, false};
     }
 
     // Otherwise, treat exit code == 0 as success, and anything else as failure
-    return TestResult {WEXITSTATUS(status) == 0, false};
+    return TestResult {WEXITSTATUS(status) != 0, false};
   }
 }
 
