@@ -3,20 +3,7 @@
 
 // EXPORT_FOR_TESTING_ONLY
 #include "utils/test.h"
-//
-//
-/*
-#ifdef DEBUG
-  #define ASSERT(condition, location, message) do {\
-      if (!(condition)) {\
-        v8::V8Monkey::V8MonkeyCommon::TriggerFatalError(location, message);\
-      }\
-    } while (0)
-#else
-  #define ASSERT(condition, location, message) ((void) 0)
-#endif
-*/
-//
+
 namespace v8 {
   namespace V8Monkey {
 //    class EXPORT_FOR_TESTING_ONLY V8MonkeyCommon {
@@ -44,6 +31,19 @@ namespace v8 {
 //    };
   }
 }
+
+
+#ifdef DEBUG
+  #define xstr(s) str(s)
+  #define str(s) #s
+  #define V8MONKEY_ASSERT(condition, message) do {\
+      if (!(condition)) {\
+        ::v8::V8Monkey::TriggerFatalError(__FILE__ ":" xstr(__LINE__), "Assertion failure: " message); \
+      }\
+    } while (0)
+#else
+  #define V8MONKEY_ASSERT(condition, message) ((void) 0)
+#endif
 
 
 #endif

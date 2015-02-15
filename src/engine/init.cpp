@@ -154,10 +154,13 @@ namespace v8 {
 
   namespace V8Monkey {
     void TriggerFatalError(const char* location, const char* message) {
+      v8::FatalErrorCallback fn {nullptr};
       v8::internal::Isolate* i {v8::internal::Isolate::GetCurrent()};
-      v8::FatalErrorCallback fn {i->GetFatalErrorHandler()};
+      if (i) {
+        fn = i->GetFatalErrorHandler();
+      }
 
-      if (fn) {
+      if (i && fn) {
         fn(location, message);
         i->SignalFatalError();
         return;

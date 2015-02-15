@@ -29,7 +29,7 @@
 // TestUtils EXPORT_FOR_TESTING_ONLY
 #include "utils/test.h"
 
-// V8MonkeyCommon class definition, TriggerFatalError, ASSERT
+// V8MonkeyCommon class definition, TriggerFatalError, V8MONKEY_ASSERT
 #include "utils/V8MonkeyCommon.h"
 
 // kIsolateEmbedderDataOffset
