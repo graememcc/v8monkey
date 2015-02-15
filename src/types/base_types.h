@@ -12,30 +12,31 @@
 
 // Value
 #include "v8.h"
-//
-//
-//namespace v8 {
-//  namespace V8Monkey {
-//
-//    /*
-//     * The base class of all internal refcounted objects (i.e. anything that can be stored in a Local or Persistent
-//     * handle).
-//     *
-//     * As noted in the comments in persistent.cpp, there is some machinery here to implement weak handles for
-//     * for Persistents, which ultimately can only be implemented when SpiderMonkey root tracing occurs. The key point
-//     * is that all derived classes must call ShouldTrace in their Trace implementation. If they participate in
-//     * SpiderMonkey root tracing, they should only call the relevant SpiderMonkey tracing method if ShouldTrace returns
-//     * true. If ShouldTrace returns false, callers should assume the object has been destructed.
-//     *
-//     */
-//
-//    class EXPORT_FOR_TESTING_ONLY V8MonkeyObject {
-//      public:
-//        V8MonkeyObject() : refCount(0), weakCount(0), isNearDeath(false), callbackList(nullptr) {}
-//
-//        virtual ~V8MonkeyObject();
-//
-//        // Bump the reference count
+
+
+namespace v8 {
+  namespace V8Monkey {
+
+    /*
+     * The base class of all internal refcounted objects (i.e. anything that can be stored in a Local or Persistent
+     * handle).
+     *
+* XXX Check the below at end of reinstatement, see if it is still true
+     * As noted in the comments in persistent.cpp, there is some machinery here to implement weak handles for
+     * for Persistents, which ultimately can only be implemented when SpiderMonkey root tracing occurs. The key point
+     * is that all derived classes must call ShouldTrace in their Trace implementation. If they participate in
+     * SpiderMonkey root tracing, they should only call the relevant SpiderMonkey tracing method if ShouldTrace returns
+     * true. If ShouldTrace returns false, callers should assume the object has been destructed.
+     *
+     */
+
+    class EXPORT_FOR_TESTING_ONLY V8HandleObject {
+      public:
+        V8HandleObject() : weakCount{0}, callbackList(nullptr) {}
+
+        virtual ~V8HandleObject();
+
+        // Bump the reference count
 //        void AddRef() {
 //          refCount++;
 //        }
@@ -45,16 +46,16 @@
 //          RemoveRef(nullptr, &refCount);
 //        }
 //
-//        // Support for weak Persistent handles. See persistent.cpp/v8monkeyobject.cpp for details
+        // Support for weak Persistent handles. See persistent.cpp/v8monkeyobject.cpp for details
 //        void MakeWeak(V8MonkeyObject** slotPtr, void* parameters, WeakReferenceCallback callback);
 //        void ClearWeakness(V8MonkeyObject** slotPtr);
 //        bool IsWeak(V8MonkeyObject** slotPtr);
 //        bool IsNearDeath();
 //        void PersistentRelease(V8MonkeyObject** slotPtr);
-//        bool ShouldTrace();
-//
-//        // Called when the SpiderMonkey garbage collector requests a trace
-//        virtual void Trace(JSRuntime* runtime, JSTracer* tracer) = 0;
+        bool ShouldTrace();
+
+        // Called when the SpiderMonkey garbage collector requests a trace
+        virtual void Trace(JSRuntime* runtime, JSTracer* tracer) = 0;
 //
 //        #ifdef V8MONKEY_INTERNAL_TEST
 //        int RefCount() { return refCount; }
@@ -62,9 +63,15 @@
 //        int WeakCount() { return weakCount; }
 //        #endif
 //
-//      private:
+
+        V8HandleObject(const V8HandleObject& other) = delete;
+        V8HandleObject(V8HandleObject&& other) = delete;
+        V8HandleObject& operator=(const V8HandleObject& other) = delete;
+        V8HandleObject& operator=(V8HandleObject&& other) = delete;
+
+      private:
 //        int refCount;
-//        int weakCount;
+        int weakCount;
 //        bool isNearDeath;
 //
 //        struct WeakRefListElem {
@@ -76,6 +83,7 @@
 //        };
 //
 //        WeakRefListElem* callbackList;
+        void* callbackList;
 //
 //        // Find the callback information for the given slot
 //        WeakRefListElem* FindForSlot(V8MonkeyObject** slotPtr);
@@ -88,7 +96,7 @@
 //
 //        // Used for isolate teardown
 //        void IsolateRelease();
-//    };
+    };
 //
 //
 //    /*
@@ -165,64 +173,80 @@
 //    };
 //
 //
-//    /*
-//     * A dummy implementation of V8MonkeyObject for testing purposes
-//     *
-//     */
-//    #ifdef V8MONKEY_INTERNAL_TEST
-//    class DummyV8MonkeyObject: public V8MonkeyObject {
-//      public:
-//        DummyV8MonkeyObject() {}
-//        ~DummyV8MonkeyObject() {}
-//        void Trace(JSRuntime*, JSTracer*) {}
-//
-//        inline bool operator== (const DummyV8MonkeyObject &other) {
-//          return &other == this;
-//        }
-//    };
-//
-//
-//    // Many tests seek to test when objects are deleted. To this end, we use special fake objects, that set a flag at
-//    // the given location if they were deleted
-//    class DeletionObject: public V8MonkeyObject {
-//      public:
-//        DeletionObject() : index(-1), ptr(nullptr) {}
-//        DeletionObject(bool* boolPtr) : index(-1), ptr(boolPtr) {}
-//
-//        DeletionObject(bool* boolPtr, int i) : index(i), ptr(boolPtr) {}
-//
-//        ~DeletionObject() {
-//          if (ptr) {
-//            *ptr = true;
-//          }
-//        }
-//
-//        int index;
-//
-//        void Trace(JSRuntime*, JSTracer*) {
-//          // Some tests require that this object participate in tracing for the deletion semantics
-//          ShouldTrace();
-//        }
-//
-//      private:
-//        bool* ptr;
-//    };
-//
-//
-//    // Some tests need to check that their objects are traced by the garbage collector. This dummy class can be used
-//    // for that purpose
-//    class TraceFake : public V8MonkeyObject {
-//      public:
-//        TraceFake(bool* boolPtr) : ptr(boolPtr) {}
-//        ~TraceFake() {}
-//        void Trace(JSRuntime*, JSTracer*) { *ptr = true; }
-//      private:
-//        bool* ptr;
-//    };
-//
-//    #endif
-//  }
-//}
+    /*
+     * A dummy implementation of V8MonkeyObject for testing purposes
+     *
+     */
+
+    #ifdef V8MONKEY_INTERNAL_TEST
+    class DummyV8MonkeyObject: public V8HandleObject {
+      public:
+        void Trace(JSRuntime*, JSTracer*) override {}
+
+        inline bool operator== (const DummyV8MonkeyObject &other) {
+          return &other == this;
+        }
+
+        DummyV8MonkeyObject(const DummyV8MonkeyObject& other) = default;
+        DummyV8MonkeyObject(DummyV8MonkeyObject&& other) = default;
+        DummyV8MonkeyObject& operator=(const DummyV8MonkeyObject& other) = default;
+        DummyV8MonkeyObject& operator=(DummyV8MonkeyObject&& other) = default;
+    };
+
+
+    // Many tests seek to test when objects are deleted. To this end, we use special fake objects, that set a flag at
+    // the given location if they were deleted
+    class DeletionObject: public V8HandleObject {
+      public:
+        DeletionObject() : index {-1}, ptr {nullptr} {}
+        DeletionObject(bool* boolPtr) : index(-1), ptr(boolPtr) {}
+
+        DeletionObject(bool* boolPtr, int i) : index(i), ptr(boolPtr) {}
+
+        ~DeletionObject() {
+          if (ptr) {
+            *ptr = true;
+          }
+        }
+
+        // XXX What is this used for?!?
+        int index;
+
+        void Trace(JSRuntime*, JSTracer*) override {
+          // Some tests require that this object participate in tracing for the deletion semantics
+          ShouldTrace();
+        }
+
+        DeletionObject(const DeletionObject& other) = default;
+        DeletionObject(DeletionObject&& other) = default;
+        DeletionObject& operator=(const DeletionObject& other) = default;
+        DeletionObject& operator=(DeletionObject&& other) = default;
+
+      private:
+        bool* ptr;
+    };
+
+
+    // Some tests need to check that their objects are traced by the garbage collector. This dummy class can be used
+    // for that purpose
+    class TraceFake : public V8HandleObject {
+      public:
+        TraceFake(bool* boolPtr) : ptr(boolPtr) {}
+
+        void Trace(JSRuntime*, JSTracer*) override { *ptr = true; }
+
+        ~TraceFake() = default;
+        TraceFake(const TraceFake& other) = default;
+        TraceFake(TraceFake&& other) = default;
+        TraceFake& operator=(const TraceFake& other) = default;
+        TraceFake& operator=(TraceFake&& other) = default;
+      private:
+        bool* ptr;
+    };
+
+    #endif
+  }
+}
 
 
 #endif
