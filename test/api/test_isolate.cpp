@@ -490,47 +490,6 @@ V8MONKEY_TEST(Scope004, "Multiple Scopes stack correctly for main thread") {
 //   V8MONKEY_CHECK(result, "Data was correct");
 //   j->Dispose();
 // }
-// V8MONKEY_TEST(Dispose001, "Attempt to dispose V8 when in non-default isolate (main thread) triggers fatal error") {
-//   void* result = CheckV8DisposeFromNonDefaultIsFatal();
-//   V8MONKEY_CHECK(result, "Disposing V8 from a non-default isolate is fatal");
-//
-//   Isolate::GetCurrent()->Dispose();
-//   V8::Dispose();
-// }
-//
-//
-// V8MONKEY_TEST(Dispose002, "V8::Dispose returns true when successful") {
-//   // Init enters the default isolate
-//   V8::Initialize();
-//   // Exit default isolate in preparation for disposal
-//   Isolate::GetCurrent()->Exit();
-//
-//   bool result = V8::Dispose();
-//   V8MONKEY_CHECK(result, "Disposing V8 returned true");
-// }
-//
-//
-// V8MONKEY_TEST(Dispose003, "V8::Dispose returns false when unsuccessful") {
-//   V8::Initialize();
-//   Isolate* i {Isolate::New()};
-//   i->Enter();
-//
-//   V8::SetFatalErrorHandler(dummyFatalErrorHandler);
-//   bool result = V8::Dispose();
-//
-//   i->Exit();
-//   i->Dispose();
-//   Isolate::GetCurrent()->Exit();
-//   Isolate::GetCurrent()->Dispose();
-//
-//   V8MONKEY_CHECK(!result, "Failed dispose returned false");
-// }
-//
-//
-// V8MONKEY_TEST(Dispose004, "Dispose without init works correctly from main") {
-//   void* result = CheckV8DisposeWithoutInit();
-//   V8MONKEY_CHECK(result, "Disposing V8 without init from main works");
-// }
 //
 //
 // /*

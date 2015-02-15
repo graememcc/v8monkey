@@ -66,6 +66,44 @@ V8MONKEY_TEST(Init005, "Initializing V8 doesn't change isolate") {
 }
 
 
+V8MONKEY_TEST(Dispose001, "V8::Dispose returns true when successful") {
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  V8::Initialize();
+  i->Exit();
+  i->Dispose();
+  V8MONKEY_CHECK(V8::Dispose(), "Disposing V8 returned true");
+}
+
+
+V8MONKEY_TEST(Dispose002, "OK to call V8::Dispose without entering isolate") {
+  V8::Initialize();
+  V8MONKEY_CHECK(V8::Dispose(), "Disposing V8 returned true");
+}
+
+
+V8MONKEY_TEST(Dispose003, "OK to call V8::Dispose without initting V8") {
+  V8MONKEY_CHECK(V8::Dispose(), "Disposing V8 returned true");
+}
+
+
+// V8MONKEY_TEST(Dispose003, "V8::Dispose returns false when unsuccessful") {
+//   V8::Initialize();
+//   Isolate* i {Isolate::New()};
+//   i->Enter();
+//
+//   V8::SetFatalErrorHandler(dummyFatalErrorHandler);
+//   bool result = V8::Dispose();
+//
+//   i->Exit();
+//   i->Dispose();
+//   Isolate::GetCurrent()->Exit();
+//   Isolate::GetCurrent()->Dispose();
+//
+//   V8MONKEY_CHECK(!result, "Failed dispose returned false");
+// }
+
+
 ///*
 // * Tests disabled after threading support disabled
 // *

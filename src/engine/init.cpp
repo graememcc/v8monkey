@@ -10,6 +10,9 @@
 // Print
 #include "platform/platform.h"
 
+// EnsureSpiderMonkey TearDownSpiderMonkey
+#include "utils/SpiderMonkeyUtils.h"
+
 // string
 #include <string>
 
@@ -37,10 +40,6 @@
 //  static_assert(sizeof(v8::Local<v8::Value>) == sizeof(v8::Value*), "Handles are pointer-sized");
 //  static_assert(sizeof(v8::Local<v8::Value>) == sizeof(v8::Value*), "Locals are pointer-sized");
 //  static_assert(sizeof(v8::Persistent<v8::Value>) == sizeof(v8::Value*), "Persistents are pointer-sized");
-//
-//  // Was SpiderMonkey initted succesfully?
-//  bool engineInitAttempted = false;
-//  bool engineInitSucceeded = false;
 //
 //
 //  // Has V8 been initted? We sometimes need to distinguish between V8 and SM inits
@@ -89,7 +88,6 @@
 //        if (engineInitSucceeded) {
 //          // Force any extant threads to dispose of their JSRuntimes and JSContexts
 //          v8::V8Monkey::V8MonkeyCommon::ForceMainThreadRTCXDisposal();
-//          JS_ShutDown();
 //        }
 //      }
 //  } staticInitializer;
@@ -101,17 +99,13 @@ namespace v8 {
 //  // function local static, initialized by a function call. We will want to make the called function noexcept so that we terminate
 //  // hard if SpiderMonkey init fails.
   bool V8::Initialize() {
+    SpiderMonkey::EnsureSpiderMonkey();
+
     // XXX Shouldn't need two calls here
     if (Isolate::GetCurrent() && V8::IsDead()) {
       return false;
     }
 //    v8initted = true;
-//
-//    if (!engineInitSucceeded) {
-//      // The V8 API appears to present engine init as infallible. In SpiderMonkey, failure—though unlikely—is possible.
-//      // If init failed, I doubt we'll be able to sensibly proceed.
-//      exit(1);
-//    }
 //
 //    // On initialization, if the calling thread has not entered an isolate, the default isolate will be entered
 //    V8Monkey::InternalIsolate::EnsureInIsolate();
@@ -124,6 +118,7 @@ namespace v8 {
 //
 //
   bool V8::Dispose() {
+    SpiderMonkey::TearDownSpiderMonkey();
 //    using namespace v8::V8Monkey;
 //
 //    if (!engineInitSucceeded || !v8initted) {
@@ -148,6 +143,7 @@ namespace v8 {
 //    i->Dispose();
 //
 //    V8IsDisposed = true;
+    // V8::Dispose unconditionally returns true
     return true;
   }
 

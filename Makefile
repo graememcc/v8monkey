@@ -387,7 +387,7 @@ $(v8monkeytarget): $(v8objects) $(v8monkeyheaders) $(smtarget)
 # XXX I think the objects should depend on the local h file
 
 $(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h src/platform/platform.h src/utils/test.h \
-                                   src/utils/V8MonkeyCommon.h $(JSAPIheader)
+                                   src/utils/V8MonkeyCommon.h src/utils/SpiderMonkeyUtils.h $(JSAPIheader)
 
 
 $(call variants, src/engine/version): $(v8monkeyheader)
@@ -448,7 +448,8 @@ $(call variants, src/types/v8monkeyobject): $(v8monkeyheader) src/types/base_typ
 src/utils/V8MonkeyCommon.h: src/utils/test.h
 
 
-$(call variants, src/utils/SpiderMonkeyUtils): src/platform/platform.h src/utils/SpiderMonkeyUtils.h
+$(call variants, src/utils/SpiderMonkeyUtils): $(JSAPIheader) src/platform/platform.h src/utils/SpiderMonkeyUtils.h \
+											   src/utils/V8MonkeyCommon.h
 
 
 src/utils/SpiderMonkeyUtils.h: src/utils/test.h

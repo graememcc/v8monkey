@@ -15,6 +15,8 @@ namespace v8 {
   namespace SpiderMonkey {
     // Checks if SpiderMonkey is initialized, and if not, performs that initialization in a thread-safe fashion
     void EnsureSpiderMonkey();
+
+    void TearDownSpiderMonkey();
   }
 
 
