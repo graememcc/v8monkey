@@ -33,6 +33,17 @@ namespace {
 
   std::atomic<int> runtimeCount {0};
 
+
+  void RecordJSRuntimeConstruction() {
+    std::atomic_fetch_add(&runtimeCount, 1);
+  }
+
+
+  void RecordJSRuntimeDestruction() {
+    std::atomic_fetch_sub(&runtimeCount, 1);
+  }
+
+
   /*
    * This class is used to ensure we always teardown SpiderMonkey after it has been initialized, regardless of whether
    * the client remembers to call V8::Dispose or not.
@@ -113,6 +124,7 @@ namespace v8{
 
       tearDown->AttemptDispose();
     }
+
 /*
     JSRuntime* SpiderMonkeyUtils::GetJSRuntimeForThread() {
       RTCXData rtcx = GetJSRuntimeAndJSContext();
