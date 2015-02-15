@@ -14,6 +14,8 @@
 // Class definition
 #include "platform.h"
 
+// V8MONKEY_ASSERT
+#include "utils/V8MonkeyCommon.h"
 
 namespace {
   pthread_mutex_t mutexFromRaw(void* raw) {
@@ -51,7 +53,7 @@ namespace v8 {
     Mutex::~Mutex() {
       if (sizeof(pthread_mutex_t) > sizeof(void*)) {
         pthread_mutex_t* platformMutex {mutexPtrFromRaw(privateData)};
-        // XXX assert not null
+        V8MONKEY_ASSERT(platformMutex, "Native mutex is a nullptr");
         // XXX Should we abort on failure?
         pthread_mutex_destroy(platformMutex);
         delete platformMutex;
@@ -66,7 +68,7 @@ namespace v8 {
     void Mutex::Lock() {
       if (sizeof(pthread_mutex_t) > sizeof(void*)) {
         pthread_mutex_t* platformMutex {mutexPtrFromRaw(privateData)};
-        // XXX assert not null
+        V8MONKEY_ASSERT(platformMutex, "Native mutex is a nullptr");
         // XXX Should we abort on failure?
         pthread_mutex_unlock(platformMutex);
       } else {
@@ -80,7 +82,7 @@ namespace v8 {
     void Mutex::Unlock() {
       if (sizeof(pthread_mutex_t) > sizeof(void*)) {
         pthread_mutex_t* platformMutex {mutexPtrFromRaw(privateData)};
-        // XXX assert not null
+        V8MONKEY_ASSERT(platformMutex, "Native mutex is a nullptr");
         // XXX Should we abort on failure?
         pthread_mutex_unlock(platformMutex);
       } else {
@@ -106,6 +108,7 @@ namespace v8 {
     OneShot::~OneShot() {
       if (sizeof(pthread_once_t) > sizeof(void*)) {
         pthread_once_t* once {reinterpret_cast<pthread_once_t*>(privateData)};
+        V8MONKEY_ASSERT(once, "Native OneShot is a nullptr");
         delete once;
       }
     }
@@ -115,6 +118,7 @@ namespace v8 {
       if (sizeof(pthread_once_t) <= sizeof(void*)) {
         pthread_once(reinterpret_cast<pthread_once_t*>(&privateData), oneTimeFunction);
       } else {
+        V8MONKEY_ASSERT(privateData, "Native OneShot is a nullptr");
         pthread_once(reinterpret_cast<pthread_once_t*>(privateData), oneTimeFunction);
       }
     }
@@ -129,7 +133,7 @@ namespace v8 {
 
 
     void Thread::Run(void* arg) {
-      // XXX Assert not been executed
+      V8MONKEY_ASSERT(!hasExecuted, "Attempting to execute thread that has already executed");
       if (sizeof(pthread_t) <= sizeof(void*)) {
         pthread_create(reinterpret_cast<pthread_t*>(&privateData), nullptr, threadFunction, arg);
       } else {
@@ -143,7 +147,7 @@ namespace v8 {
 
 
     void* Thread::Join() {
-      // XXX Assert we've been executed
+      V8MONKEY_ASSERT(hasExecuted, "Attempting to join thread that has not been executed");
       void* resultPtr;
 
       if (sizeof(pthread_t) <= sizeof(void*)) {
@@ -151,6 +155,7 @@ namespace v8 {
         std::memcpy(reinterpret_cast<char*>(&thread), reinterpret_cast<char*>(&privateData), sizeof(pthread_t));
         pthread_join(thread, &resultPtr);
       } else {
+        V8MONKEY_ASSERT(privateData, "Native Thread is a nullptr");
         pthread_t thread {*reinterpret_cast<pthread_t*>(privateData)};
         pthread_join(thread, &resultPtr);
       }

@@ -393,7 +393,10 @@ $(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h src/p
 $(call variants, src/engine/version): $(v8monkeyheader)
 
 
-$(call variants, src/platform/platform): src/platform/platform.h
+src/platform/platform.h: src/utils/V8MonkeyCommon.h
+
+
+$(call variants, src/platform/platform): src/platform/platform.h src/utils/V8MonkeyCommon.h
 
 
 $(call variants, src/runtime/handlescope): $(v8monkeyheader) src/data_structures/objectblock.h \
@@ -419,7 +422,7 @@ src/runtime/isolate.h: $(v8monkeyheader) $(JSAPIheader) src/platform/platform.h 
 src/threads/autolock.h: src/platform/platform.h
 
 
-$(call variants, src/threads/locker): $(v8monkeyheader) src/runtime/isolate.h
+$(call variants, src/threads/locker): $(v8monkeyheader) src/runtime/isolate.h src/utils/V8MonkeyCommon.h
 
 
 src/types/base_types.h: $(v8monkeyheader) $(JSAPIheader) src/utils/test.h

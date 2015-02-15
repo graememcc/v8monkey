@@ -4,6 +4,10 @@
 // size_t
 #include <cstddef>
 
+// V8MONKEY_ASSERT
+#include "utils/V8MonkeyCommon.h"
+
+
 /*
  * This file abstracts away platform specific details, though at time of writing the only implementation is for Linux
  *
@@ -68,14 +72,14 @@ namespace v8 {
         void Run();
 
         OneShot(OneShot&& other) {
-          // XXX Assert privateData is null
+          V8MONKEY_ASSERT(privateData == nullptr, "Moving in to non-null OneShot?");
           void* otherData = other.privateData;
           other.privateData = nullptr;
           privateData = otherData;
         }
 
         OneShot& operator=(OneShot&& other) {
-          // XXX Assert privateData is null
+          V8MONKEY_ASSERT(privateData == nullptr, "Move assigning in to non-null OneShot?");
           void* otherData = other.privateData;
           other.privateData = nullptr;
           privateData = otherData;
@@ -103,14 +107,14 @@ namespace v8 {
         void Unlock();
 
         Mutex(Mutex&& other) {
-          // XXX Assert privateData is null
+          V8MONKEY_ASSERT(privateData == nullptr, "Moving in to non-null Mutex?");
           void* otherData = other.privateData;
           other.privateData = nullptr;
           privateData = otherData;
         }
 
         Mutex& operator=(Mutex&& other) {
-          // XXX Assert privateData is null
+          V8MONKEY_ASSERT(privateData == nullptr, "Move assigning in to non-null Mutex?");
           void* otherData = other.privateData;
           other.privateData = nullptr;
           privateData = otherData;
@@ -139,14 +143,14 @@ namespace v8 {
         void* Join();
 
         Thread(Thread&& other) {
-          // XXX Assert privateData is null
+          V8MONKEY_ASSERT(privateData == nullptr, "Moving in to non-null Thread?");
           void* otherData = other.privateData;
           other.privateData = nullptr;
           privateData = otherData;
         }
 
         Thread& operator=(Thread&& other) {
-          // XXX Assert privateData is null
+          V8MONKEY_ASSERT(privateData == nullptr, "Move assigning in to non-null Thread?");
           void* otherData = other.privateData;
           other.privateData = nullptr;
           privateData = otherData;

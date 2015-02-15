@@ -4,6 +4,9 @@
 // Locker interface
 #include "v8.h"
 
+// V8MONKEY_ASSERT
+#include "utils/V8MonkeyCommon.h"
+
 
 /*
  * TODO: This code was originally written for the early attempt at supporting multithreading. Much of the code could
@@ -25,7 +28,7 @@ namespace v8 {
 
 
   bool Locker::IsLocked(Isolate* iso) {
-    // XXX Assert isolate not nullptr
+    V8MONKEY_ASSERT(iso, "Attempting to lock nullptr isolate");
     internal::Isolate* i {internal::Isolate::FromAPIIsolate(iso)};
     return i->IsLockedForThisThread();
   }
@@ -37,7 +40,7 @@ namespace v8 {
       return true;
     }()};
 
-    // XXX Assert iso not nullptr
+    V8MONKEY_ASSERT(iso, "Attempting to lock nullptr isolate");
     isolate_ = internal::Isolate::FromAPIIsolate(iso);
 
     if (!isolate_->IsLockedForThisThread()) {
@@ -77,9 +80,9 @@ namespace v8 {
 //    }
 //
 
-    // XXX Assert iso not nullptr
-    // XXX Assert iso locked
+    V8MONKEY_ASSERT(iso, "Attempting to lock nullptr isolate");
     isolate_ = internal::Isolate::FromAPIIsolate(iso);
+    V8MONKEY_ASSERT(isolate_->IsLockedForThisThread(), "Attempting to unlock unlocked isolate");
     isolate_->Unlock();
   }
 
