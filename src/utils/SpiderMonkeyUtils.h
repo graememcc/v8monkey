@@ -13,10 +13,65 @@ struct JSCompartment;
 
 namespace v8 {
   namespace SpiderMonkey {
-    // Checks if SpiderMonkey is initialized, and if not, performs that initialization in a thread-safe fashion
+    struct SpiderMonkeyData {
+      JSRuntime* rt;
+      JSContext* cx;
+    };
+
+
+    /*
+     * Checks if SpiderMonkey is initialized, and if not, performs that initialization in a thread-safe fashion
+     *
+     */
+
     void EnsureSpiderMonkey();
 
+
+    /*
+     * Shuts down SpiderMonkey if safe to do so, otherwise aborts with an error
+     *
+     */
+
     void TearDownSpiderMonkey();
+
+
+    /*
+     * Create a JSRuntime and JSContext for the given thread, and store those values in TLS.
+     *
+     * Aborts if creating either of those objects fails, as most of our assumptions will be hopelessly broken.
+     *
+     * // XXX Write a test for the below (if possible)
+     * Calling this function on a particular thread more than once has no effect: the JSRuntime and JSContext
+     * will be assigned by the first call, and will not be changed by later calls.
+     *
+     */
+
+    void EnsureRuntimeAndContext();
+
+
+    /*
+     * Returns a SpiderMonkeyData struct containing the JSRuntime and JSContext for the current thread. Either entry in
+     * the struct may be null.
+     *
+     */
+
+    SpiderMonkeyData GetJSRuntimeAndJSContext();
+
+
+    /*
+     * Return the assigned JSRuntime for this thread. May be null if one has not yet been assigned.
+     *
+     */
+
+    JSRuntime* GetJSRuntimeForThread();
+
+
+    /*
+     * Return the assigned JSContext for this thread. May be null if one has not yet been assigned.
+     *
+     */
+
+    JSContext* GetJSContextForThread();
   }
 
 
@@ -31,49 +86,9 @@ namespace v8 {
 //     *
 //     */
 //
-//    struct RTCXData {
-//      JSRuntime* rt;
-//      JSContext* cx;
-//    };
-//
 //
 //    class EXPORT_FOR_TESTING_ONLY SpiderMonkeyUtils {
 //      public:
-//
-//        /*
-//         * Create a JSRuntime and JSContext for the given thread, and store those values in TLS.
-//         *
-//         * Triggers a fatal error (invoking the user-defined or default error handler) if creating either of those
-//         * objects fails.
-//         *
-//         * // XXX Write a test for the below (if possible)
-//         * Calling this function on a particular thread more than once has no effect: the JSRuntime and JSContext
-//         * will be assigned by the first call, and will not be changed by later calls.
-//         */
-//
-//        static void AssignJSRuntimeAndJSContext();
-//
-//        /*
-//         * Returns a RTCXData struct containing the JSRuntime and JSContext for the current thread. Either entry in
-//         * the struct may be null.
-//         *
-//         */
-//
-//        static RTCXData GetJSRuntimeAndJSContext();
-//
-//        /*
-//         * Return the assigned JSRuntime for this thread. May be null if one has not yet been assigned.
-//         *
-//         */
-//
-//        static JSRuntime* GetJSRuntimeForThread();
-//
-//        /*
-//         * Return the assigned JSContext for this thread. May be null if one has not yet been assigned.
-//         *
-//         */
-//
-//        static JSContext* GetJSContextForThread();
 //
 //        /*
 //         * Return the current JSCompartment for this thread. If the thread has not yet entered a compartment, then this
@@ -101,17 +116,6 @@ namespace v8 {
 //        //   (Related: on exit, we will need to exit every compartment
 //        //
 //
-//        private:
-//
-//          /*
-//           * Define the TLS keys. Intended to only be called once, by the OneTrueStaticInitializer
-//           *
-//           */
-//
-//          static void InitialiseSpiderMonkeyDataTLSKeys();
-//
-//
-//        friend class V8MonkeyCommon;
 //    };
 //  }
 }

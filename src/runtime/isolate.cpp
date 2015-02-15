@@ -80,10 +80,8 @@ namespace {
 
   // The thread's unique ID
   TLSKey* threadIDKey {nullptr};
-//   // The internal isolate that the thread has entered
+  // The internal isolate that the thread has entered
   TLSKey* currentIsolateKey {nullptr};
-//   // List of isolates that the thread has entered and not yet exited
-//   TLSKey* smDataKey = nullptr;
 //
 //
 
@@ -92,7 +90,6 @@ namespace {
     static bool V8_UNUSED initialized {[]() noexcept {
       threadIDKey = Platform::CreateTLSKey();
       currentIsolateKey = Platform::CreateTLSKey();
-      //smDataKey = Platform::CreateTLSKey(tearDownCXAndRT);
 
       return true;
     }()};
@@ -121,8 +118,9 @@ namespace {
     ensureTLSKeys();
     Platform::StoreTLSData(currentIsolateKey, i);
   }
-//
-//
+
+
+// XXX Keep this comment, move it and repurpose it for wherever we do the rooted isolate tracking
 //   /*
 //    * When a JSContext is destroyed, a garbage collection is performed. Therefore, when the main thread exits, prior to
 //    * JSContext destruction, we must ensure that the thread has disposed of each entered isolate, regardless of whether the
@@ -134,145 +132,6 @@ namespace {
 //    *       work needed here
 //    *
 //    */
-//
-//   struct SpiderMonkeyData {
-//     // A POD struct containing the JSRuntime and JSContext pointers
-//     RTCXData rtcx;
-//
-//     // Pointer to a list of isolates that have not been disposed or destructed, and are therefore still known to
-//     // SpiderMonkey for rooting
-//     DestructingList<InternalIsolate>* isolateList;
-//   };
-//
-//
-//   /*
-//    * Function passed to DestructingList to destroy its contents. In effect, this will iterate over a list of
-//    * InternalIsolates, removing them as GC rooters.
-//    *
-//    */
-//
-//   void unhookFromGC(InternalIsolate* i) {
-//     i->RemoveGCRooter();
-//   }
-//
-//
-//   /*
-//    * Assign this thread a JSRuntime and JSContext if necessary, and create the DestructingList which will tear down
-//    * any isolates that the client failed to dispose.
-//    *
-//    */
-//
-//   void ensureRuntimeAndContext() {
-//     ASSERT(smDataKey, "InternalIsolate::Enter", "SpiderMonkey TLS key not initialised");
-//
-//     // Don't reassign if already assigned
-//     // It is acceptable for this function to be called many times, indeed InternalIsolate::Enter does so.
-//     void* raw_id = Platform::GetTLSData(smDataKey);
-//     if (raw_id) {
-//       return;
-//     }
-//
-//     JSRuntime* rt = JS_NewRuntime(JS::DefaultHeapMaxBytes);
-//
-//     if (!rt) {
-//       // The game is up
-//       V8MonkeyCommon::TriggerFatalError("InternalIsolate::Enter", "SpiderMonkey's JS_NewRuntime failed");
-//       return;
-//     }
-//
-//     // The stackChunkSize parameter isn't actually used by SpiderMonkey. However, it might affect implementation of
-//     // the V8 resource constraints class.
-//     JSContext* cx = JS_NewContext(rt, 8192);
-//     if (!cx) {
-//       // The game is up
-//       JS_DestroyRuntime(rt);
-//       V8MonkeyCommon::TriggerFatalError("InternalIsolate::Enter", "SpiderMonkey's JS_NewContext failed");
-//       return;
-//     }
-//
-//     // Set options here. Note: the MDN page for JS_NewContext tells us to use JS_(G|S)etOptions. This changed in
-//     // bug 880330.
-//     JS::RuntimeOptionsRef(rt).setVarObjFix(true);
-//
-//     SpiderMonkeyData* data = new SpiderMonkeyData{{rt, cx},  new DestructingList<InternalIsolate>(unhookFromGC)};
-//
-//     Platform::StoreTLSData(smDataKey, data);
-//   }
-//
-//
-//   /*
-//    * Add an entered isolate to the list of isolates that require disposal on shutdown. The list of isolates is a
-//    * DestructingList pointed to by a field in the smData struct in TLS.
-//    *
-//    */
-//
-//   void AddIsolateToGCTLSList(v8::V8Monkey::InternalIsolate* i) {
-//     void* raw = Platform::GetTLSData(smDataKey);
-//     ASSERT(raw, "AddIsolateToGCTLSList", "Somehow entered an isolate without creating SpiderMonkey data");
-//
-//     SpiderMonkeyData* data = reinterpret_cast<SpiderMonkeyData*>(raw);
-//     data->isolateList->Add(i);
-//   }
-//
-//
-//   /*
-//    * Remove an isolate from the GC teardown list (by calling the teardown list's Delete function, which will in
-//    * turn invoke RemoveGCRooter).
-//    *
-//    */
-//
-//   void DeleteIsolateFromGCTLSList(v8::V8Monkey::InternalIsolate* i) {
-//     void* raw = Platform::GetTLSData(smDataKey);
-//     ASSERT(raw, "DeleteIsolateFromGCTLSList", "Somehow entered isolate without creating SpiderMonkey data");
-//
-//     SpiderMonkeyData* data = reinterpret_cast<SpiderMonkeyData*>(raw);
-//     data->isolateList->Delete(i);
-//   }
-//
-//
-//   /*
-//    * TLS Key destructor. Disposes of any isolates that are GC roots for the thread's JSRuntime/JSContext, and then
-//    * tears down those SpiderMonkey objects.
-//    *
-//    */
-//
-//   void tearDownCXAndRT(void* raw) {
-//     if (!raw) {
-//       return;
-//     }
-//
-//     SpiderMonkeyData* data = reinterpret_cast<SpiderMonkeyData*>(raw);
-//
-//     // Must teardown isolates hooked into GC before destroying SpiderMonkey runtime objects
-//     delete data->isolateList;
-//
-//     ASSERT(data->rtcx.rt, "tearDownCXAndRT", "JSRuntime* was null");
-//     ASSERT(data->rtcx.cx, "tearDownCXAndRT", "JSContext* was null");
-//
-//     JS_DestroyContext(data->rtcx.cx);
-//     JS_DestroyRuntime(data->rtcx.rt);
-//
-//     delete data;
-//   }
-//
-//
-//   /*
-//    * Returns a unique thread ID
-//    *
-//    */
-//
-//   int CreateThreadID() {
-//     // Thread IDs must be greater than 0; otherwise we wouldn't be able to tell if the value is the thread ID, or
-//     // represents the case where the given thread has no data for the TLS key
-//     static int nextID = 1;
-//
-//     // For my own reference, preserving the comment about locking here, even though I have pulled threading support
-//     // for the moment:
-//     // We just use a plain ole mutex here. V8 drops down to ASM, using a lock-prefixed xaddl instruction to avoid
-//     // overhead
-//     int result = nextID++;
-//     return result;
-//   }
 
 
   /*
@@ -489,6 +348,7 @@ namespace v8 {
      * Record a thread exit, and pop it's previous isolate from our container.
      *
      */
+
     Isolate* Isolate::RecordThreadExit() {
       // XXX If we keep this, assert not empty
       auto end = std::end(previousIsolates) - 1;
@@ -910,23 +770,6 @@ namespace v8 {
 //      */
 //     void SpiderMonkeyUtils::AssignJSRuntimeAndJSContext() {
 //       ensureRuntimeAndContext();
-//     }
-//
-//
-//     /*
-//      * Although part of SpiderMonkeyUtils, we must implement this here, as the lifetime of the objects in TLS storage
-//      * is related to isolate teardown.
-//      *
-//      */
-//
-//     RTCXData SpiderMonkeyUtils::GetJSRuntimeAndJSContext() {
-//       void* raw = Platform::GetTLSData(smDataKey);
-//       if (raw) {
-//         SpiderMonkeyData* data = reinterpret_cast<SpiderMonkeyData*>(raw);
-//         return {data->rtcx.rt, data->rtcx.cx};
-//       }
-//
-//       return {nullptr, nullptr};
 //     }
 //
 //

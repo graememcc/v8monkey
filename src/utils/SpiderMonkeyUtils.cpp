@@ -21,26 +21,98 @@
 #include "V8MonkeyCommon.h"
 
 
-// XXX Remove me if we don't need this for compartments
-using namespace v8::V8Platform;
-
-
 namespace {
+  using namespace v8::V8Platform;
+
+
   class SpiderMonkeyTearDown;
-
-
   std::unique_ptr<SpiderMonkeyTearDown> tearDown {nullptr};
+
 
   std::atomic<int> runtimeCount {0};
 
 
-  void RecordJSRuntimeConstruction() {
+  void recordJSRuntimeConstruction() {
     std::atomic_fetch_add(&runtimeCount, 1);
   }
 
 
-  void RecordJSRuntimeDestruction() {
+  void recordJSRuntimeDestruction() {
     std::atomic_fetch_sub(&runtimeCount, 1);
+  }
+
+
+  // Stores pointer to RTCX data for each thread
+  TLSKey* smDataKey {nullptr};
+
+
+  void tearDownRuntimeAndContext(void* raw) {
+    using SpiderMonkeyData = v8::SpiderMonkey::SpiderMonkeyData;
+
+    if (!raw) {
+      return;
+    }
+
+    SpiderMonkeyData* data {reinterpret_cast<SpiderMonkeyData*>(raw)};
+
+    V8MONKEY_ASSERT(data->rt, "JSRuntime* was null");
+    V8MONKEY_ASSERT(data->cx, "JSContext* was null");
+
+    JS_DestroyContext(data->cx);
+    JS_DestroyRuntime(data->rt);
+
+    // We might be called by the SpiderMonkeyTearDown class, so zero out the pointers
+    Platform::StoreTLSData(smDataKey, nullptr);
+
+    recordJSRuntimeDestruction();
+  }
+
+
+  void ensureTLSKey() {
+    static bool V8_UNUSED initialized {[]() {
+      smDataKey = Platform::CreateTLSKey(tearDownRuntimeAndContext);
+      return true;
+    }()};
+  }
+
+
+  /*
+   * Assign this thread a JSRuntime and JSContext. The caller should have checked that the thread doesn't already have
+   * one assigned.
+   *
+   */
+
+  void assignRuntimeAndContext() {
+    using SpiderMonkeyData = v8::SpiderMonkey::SpiderMonkeyData;
+
+    ensureTLSKey();
+
+    JSRuntime* rt {JS_NewRuntime(JS::DefaultHeapMaxBytes)};
+
+    if (!rt) {
+      // The game is up, abort
+      v8::V8Monkey::TriggerFatalError("InternalIsolate::Enter", "SpiderMonkey's JS_NewRuntime failed", false);
+      return;
+    }
+
+    // At time of writing, the stackChunkSize parameter isn't actually used by SpiderMonkey. However, it might affect
+    // implementation of the V8 resource constraints class.
+    JSContext* cx {JS_NewContext(rt, 8192)};
+    if (!cx) {
+      // The game is up
+      JS_DestroyRuntime(rt);
+      v8::V8Monkey::TriggerFatalError("InternalIsolate::Enter", "SpiderMonkey's JS_NewContext failed", false);
+      return;
+    }
+
+    // Set options here. Note: the MDN page for JS_NewContext tells us to use JS_(G|S)etOptions. This changed in
+    // bug 880330.
+    JS::RuntimeOptionsRef(rt).setVarObjFix(true);
+
+    SpiderMonkeyData* data {new SpiderMonkeyData {rt, cx}};
+    Platform::StoreTLSData(smDataKey, data);
+
+    recordJSRuntimeConstruction();
   }
 
 
@@ -76,8 +148,11 @@ namespace {
           int threadsWithRuntimes {std::atomic_load(&runtimeCount)};
           V8MONKEY_ASSERT(threadsWithRuntimes <= 1, "Attempting to destroy V8 when other threads still exist");
 
-          // XXX Add logic to force disposal of last thread's runtime
+          // The main thread hasn't exited, so the TLSKey destructor will not have been called to tear down the
+          // runtime and context, so we must do it manually.
           if (threadsWithRuntimes == 1) {
+            v8::SpiderMonkey::SpiderMonkeyData data = v8::SpiderMonkey::GetJSRuntimeAndJSContext();
+            tearDownRuntimeAndContext(&data);
           }
         }
 
@@ -125,19 +200,47 @@ namespace v8{
       tearDown->AttemptDispose();
     }
 
+
+  void EnsureRuntimeAndContext() {
+    static bool V8_UNUSED initialized {[]() {
+      // It is a SpiderMonkey API requirement that the first thread's runtime and context are stood up in a thread-safe
+      // fashion
+      assignRuntimeAndContext();
+      return true;
+    }()};
+
+    // We assume that if the thread has a JSRuntime, then it must also have a JSContext
+    if (GetJSRuntimeForThread()) {
+      return;
+    }
+
+    assignRuntimeAndContext();
+  }
+
+
+  SpiderMonkeyData GetJSRuntimeAndJSContext() {
+    ensureTLSKey();
+    void* raw = ::v8::V8Platform::Platform::GetTLSData(smDataKey);
+    if (raw) {
+      SpiderMonkeyData* data {reinterpret_cast<SpiderMonkeyData*>(raw)};
+      return {data->rt, data->cx};
+    }
+
+    return {nullptr, nullptr};
+  }
+
+
+  JSRuntime* GetJSRuntimeForThread() {
+    return GetJSRuntimeAndJSContext().rt;
+  }
+
+
+  JSContext* GetJSContextForThread() {
+    return GetJSRuntimeAndJSContext().cx;
+  }
+
+
 /*
-    JSRuntime* SpiderMonkeyUtils::GetJSRuntimeForThread() {
-      RTCXData rtcx = GetJSRuntimeAndJSContext();
-      return rtcx.rt;
-    }
-
-
-    JSContext* SpiderMonkeyUtils::GetJSContextForThread() {
-      RTCXData rtcx = GetJSRuntimeAndJSContext();
-      return rtcx.cx;
-    }
-
-
     JSCompartment* SpiderMonkeyUtils::GetCurrentCompartment() {
       // XXX TODO
       return nullptr;
