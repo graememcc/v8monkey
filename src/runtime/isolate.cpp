@@ -17,7 +17,7 @@
 // std::begin, std::end
 #include <iterator>
 
-// JSContext JS_GC JS_NewContext JS_NewRuntime JSRuntime JS::RuntimeOptionsRef JSTracer JSTraceDataOp
+// JS_AddExtraGCRootsTracer, JS_GC JS_RemoveExtraGCRootsTracer, JSTracer JSTraceDataOp
 #include "jsapi.h"
 
 // Class definition
@@ -135,6 +135,19 @@ namespace {
 //    *       work needed here
 //    *
 //    */
+
+    /*
+     * Interface to isolate tracing for the SpiderMonkey garbage collector. When a thread enters an isolate, the isolate
+     * will register itself as a GC rooter with that thread's JSRuntime. This is the function that SpiderMonkey will call
+     * when tracing roots.
+     *
+     */
+
+    void GCTracingFunction(JSTracer* tracer, void* data) {
+      // All we need to do is cast to the isolate, and invoke Trace
+      v8::internal::Isolate* i = reinterpret_cast<v8::internal::Isolate*>(data);
+      i->Trace(tracer);
+    }
 
 
   /*
@@ -372,13 +385,13 @@ namespace v8 {
       // To aid tracking, we assign each thread a unique ID
       // XXX Either use threadID, remove it or don't assign. In any case get rid of V8_UNUSED
       int V8_UNUSED threadID {fetchOrAssignThreadID()};
-//
-//       // Likewise, it should have a JSRuntime and JSContext
-//       SpiderMonkeyUtils::AssignJSRuntimeAndJSContext();
-//
-//       // Register this isolate with SpiderMonkey for GC
-//       AddGCRooter();
-//
+
+      // Likewise, it should have a JSRuntime and JSContext
+      ::v8::SpiderMonkey::EnsureRuntimeAndContext();
+
+      // Register this isolate with SpiderMonkey for GC
+      AddGCRooter();
+
       // What isolate was the thread in previously?
       Isolate* previousIsolate {GetCurrentIsolateFromTLS()};
 
@@ -448,16 +461,21 @@ namespace v8 {
         V8Monkey::TriggerFatalError("v8::Isolate::Dispose", "Attempt to dispose isolate in which threads are active");
         return;
       }
-//       // Unhook this isolate from SpiderMonkey GC rooting
-//       if (isRegisteredForGC) {
-//         DeleteIsolateFromGCTLSList(this);
-//       }
-//
+
+      // Unhook this isolate from SpiderMonkey GC rooting
+      if (isRegisteredForGC) {
+        RemoveGCRooter();
+      }
+
+      // TODO Should we worry about the possibility of an already-queued GC being beaten to the lock by the
+      //      RemoveGCRooter call above? If that was the case, we could beat it to the lock again below, and then
+      //      we delete ourselves...
+
 //       // Although we have just unhooked ourselves from the garbage collector, there might already be a GC running
 //       AutoGCMutex(this);
 //
-//       // Ensure we don't attempt to delete the default isolate multiple times
-//       isDisposed = true;
+      // Signal to the destructor that we've unhooked from GC Rooting
+      isDisposed = true;
 //
 //       // As we no longer participate in rooting, we must release any remaining objects if their persistents failed to
 //       // do so. Once a particular isolate is destroyed, it is an API misuse error to dereference Persistents containing
@@ -486,88 +504,78 @@ namespace v8 {
   }
 
 
-//     /*
-//      * The destructor must check to see if the isolate is the default isolate, and if so dispose it to force
-//      * GC unrooting in case the client never called Dispose. For all other isolates, this should be a no-op.
-//      *
-//      */
-//
-//     InternalIsolate::~InternalIsolate() {
-//       // XXX Should we assert about containing threads on Dispose too/instead of?
-//       ASSERT(!ContainsThreads(), "InternalIsolate::~InternalIsolate", "Threads still active");
-//       // XXX Why are we asserting isDisposed here? Is that a V8 compat thing?
-//       ASSERT(isDisposed || IsDefaultIsolate(this), "InternalIsolate::~InternalIsolate", "Isolate not disposed");
-//
-//       // XXX Does V8 assert if the default isolate has not been disposed? Reword comment below based on the results of
-//       //     your investigation.
-//       // It's possible the client never called dispose for the default isolate, although they probably should have.
-//       // In those circumstances, we must ensure that Dispose is called in order to cease GC Rooting. This must happen
-//       // before JSRuntime and JSContext teardown, which, if the default isolate is being deleted, is about to happen.
-//       if (!isDisposed) {
-//         Dispose();
-//       }
-//     }
-//
-//
-//     /*
-//      * An InternalIsolate contains two structures containing pointers to V8MonkeyObjects. Objects created whilst the
-//      * thread has entered this isolate will be referenced there. Some of those objects might wrap SpiderMonkey objects,
-//      * and need to participate in GC rooting. This function adds a tracing function which will traverse and trace those
-//      * structures.
-//      *
-//      */
-//
-//     void InternalIsolate::AddGCRooter() {
-//       AutoGCMutex(this);
-//
-//       // Protect against isolate re-entry
-//       if (isRegisteredForGC) {
-//         return;
-//       }
-//
-//       #ifdef V8MONKEY_INTERNAL_TEST
-//         if (GCRegistrationHookFn) {
-//           GCRegistrationHookFn(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
-//         } else {
-//           JS_AddExtraGCRootsTracer(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
-//         }
-//       #else
-//         JS_AddExtraGCRootsTracer(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
-//       #endif
-//
-//       AddIsolateToGCTLSList(this);
-//       isRegisteredForGC = true;
-//     }
-//
-//
-//     /*
-//      * Called on isolate disposal to unhook the isolate from GC Rooting. Objects created whilst in this isolate are
-//      * now effectively dead, so the SpiderMonkey objects they wrapped no longer need to be rooted, and can be reaped
-//      * by the SpiderMonkey garbage collector.
-//      *
-//      */
-//
-//     void InternalIsolate::RemoveGCRooter() {
-//       AutoGCMutex(this);
-//
-//       if (!isRegisteredForGC) {
-//         return;
-//       }
-//
-//       // Deregister this isolate from SpiderMonkey
-//       #ifdef V8MONKEY_INTERNAL_TEST
-//         if (GCDeregistrationHookFn) {
-//           GCDeregistrationHookFn(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
-//         } else {
-//           JS_RemoveExtraGCRootsTracer(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
-//         }
-//       #else
-//         JS_RemoveExtraGCRootsTracer(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
-//       #endif
-//
-//       DeleteIsolateFromGCTLSList(this);
-//       isRegisteredForGC = false;
-//     }
+    /*
+     * The destructor must check to see if the isolate is the default isolate, and if so dispose it to force
+     * GC unrooting in case the client never called Dispose. For all other isolates, this should be a no-op.
+     *
+     */
+
+    Isolate::~Isolate() {
+      V8MONKEY_ASSERT(!ContainsThreads(), "Destructing an isolate with threads still active");
+      V8MONKEY_ASSERT(isDisposed, "Isolate not disposed");
+
+      // It's possible the client never called dispose for the isolate, although they should have. We will need to
+      // grudgingly do it for them; we must ensure that we have disengaged from GC Rooting, which must happen
+      // before JSRuntime and JSContext teardown, which is likely about to happen.
+      if (!isDisposed) {
+        Dispose();
+      }
+    }
+
+
+     /*
+      * An InternalIsolate contains two structures containing pointers to V8MonkeyObjects. Objects created whilst the
+      * thread has entered this isolate will be referenced there. Some of those objects might wrap SpiderMonkey objects,
+      * and need to participate in GC rooting. This function adds a tracing function which will traverse and trace those
+      * structures.
+      *
+      */
+
+    void Isolate::AddGCRooter() {
+      AutoGCMutex {this};
+
+      // Protect against isolate re-entry
+      if (isRegisteredForGC) {
+        return;
+      }
+
+      #ifdef V8MONKEY_INTERNAL_TEST
+//        if (GCRegistrationHookFn) {
+//          GCRegistrationHookFn(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
+//        } else {
+//          JS_AddExtraGCRootsTracer(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
+//        }
+      #else
+        JS_AddExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
+      #endif
+
+      isRegisteredForGC = true;
+    }
+
+
+    /*
+     * Called on isolate disposal to unhook the isolate from GC Rooting. Objects created whilst in this isolate are
+     * now effectively dead, so the SpiderMonkey objects they wrapped no longer need to be rooted, and can be reaped
+     * by the SpiderMonkey garbage collector.
+     *
+     */
+
+    void Isolate::RemoveGCRooter() {
+      AutoGCMutex {this};
+
+      // Deregister this isolate from SpiderMonkey
+      #ifdef V8MONKEY_INTERNAL_TEST
+//        if (GCDeregistrationHookFn) {
+//          GCDeregistrationHookFn(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
+//        } else {
+//          JS_RemoveExtraGCRootsTracer(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
+//        }
+      #else
+        JS_RemoveExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
+      #endif
+
+      isRegisteredForGC = false;
+    }
 //
 //
 //     /*
@@ -791,7 +799,7 @@ namespace v8 {
 
     void Isolate::Trace(JSTracer* tracer) {
       // Don't allow API mutation of the handle structures during tracing
-      AutoGCMutex(this);
+      AutoGCMutex {this};
 
       JSRuntime* rt {::v8::SpiderMonkey::GetJSRuntimeForThread()};
       std::for_each(std::begin(localHandleData), std::end(localHandleData), [&rt, &tracer](HandleElement& obj) {
@@ -801,7 +809,6 @@ namespace v8 {
       // Trace Persistent handles
       //ObjectBlock<V8MonkeyObject>::Iterate(persistentData.limit, persistentData.next, tracingIterationFunction, &td);
     }
-  }
 //
 //
 //
@@ -812,9 +819,10 @@ namespace v8 {
 //     void (*InternalIsolate::GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
 //
 //
-//     void InternalIsolate::ForceGC() {
-//       JS_GC(SpiderMonkeyUtils::GetJSRuntimeForThread());
-//     }
+     void Isolate::ForceGC() {
+       JS_GC(::v8::SpiderMonkeyGetJSRuntimeForThread());
+     }
+  }
 //
 //
     namespace TestUtils {
@@ -849,6 +857,7 @@ namespace v8 {
         V8::Dispose();
       }
     }
-
+  #else
+    }
   #endif
 }

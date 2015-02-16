@@ -1,7 +1,7 @@
 // atomic_int
 #include <atomic>
 
-// JS_Init, JS_ShutDown
+// JS_Init, JS_NewContext, JS_NewRuntime, JS::RuntimeOptionsRef, JS_ShutDown
 #include "jsapi.h"
 
 // unique_ptr
@@ -86,6 +86,7 @@ namespace {
     using SpiderMonkeyData = v8::SpiderMonkey::SpiderMonkeyData;
 
     ensureTLSKey();
+    v8::SpiderMonkey::EnsureSpiderMonkey();
 
     JSRuntime* rt {JS_NewRuntime(JS::DefaultHeapMaxBytes)};
 
@@ -144,16 +145,20 @@ namespace {
           return;
         }
 
-        if (isBeingDestroyed) {
-          int threadsWithRuntimes {std::atomic_load(&runtimeCount)};
-          V8MONKEY_ASSERT(threadsWithRuntimes <= 1, "Attempting to destroy V8 when other threads still exist");
+        int threadsWithRuntimes {std::atomic_load(&runtimeCount)};
 
-          // The main thread hasn't exited, so the TLSKey destructor will not have been called to tear down the
-          // runtime and context, so we must do it manually.
-          if (threadsWithRuntimes == 1) {
-            v8::SpiderMonkey::SpiderMonkeyData data = v8::SpiderMonkey::GetJSRuntimeAndJSContext();
-            tearDownRuntimeAndContext(&data);
-          }
+        if (!isBeingDestroyed && threadsWithRuntimes > 1) {
+          // Hmm, still some threads running. Let's try again when static destructors run
+          return;
+        } else if (isBeingDestroyed) {
+          V8MONKEY_ASSERT(threadsWithRuntimes <= 1, "Attempting to destroy V8 when other threads still exist");
+        }
+
+        // The code that tears down the JSRuntime and JSContext normally won't run until thread exit, which in the
+        // case of the main thread is too late. We must destroy them manually.
+        if (threadsWithRuntimes == 1) {
+          v8::SpiderMonkey::SpiderMonkeyData data = v8::SpiderMonkey::GetJSRuntimeAndJSContext();
+          tearDownRuntimeAndContext(&data);
         }
 
         JS_ShutDown();

@@ -28,35 +28,35 @@
 
 namespace v8 {
   namespace internal {
-//
-//
+
+
 //    /*
 //     * Container class for Handle information. Although only manipulated by HandleScopes and Persistents, it is
 //     * convenient to have all the traced values in one place, and only one object that needs to participate in
 //     * GC rooting. Hence the HandleData, and the blocks of object pointers they refer to are stored in
 //     * InternalIsolates.
 //     */
-//
+
 //    struct HandleData {
 //      V8MonkeyObject** next;
-//
+
 //      V8MonkeyObject** limit;
-//
+
 //      int level;
-//
+
 //      inline void Initialize() {
 //        next = limit = nullptr;
 //        level = 0;
 //      }
 //    };
-//
-//
+
+
 //    /*
 //     * An internal variant of the public facing Isolate class. A central repository for a large amount of book-keeping
 //     * data. See the comments in isolate.cpp for further information on how this relates to SpiderMonkey structures.
 //     *
 //     */
-//
+
     class EXPORT_FOR_TESTING_ONLY Isolate {
       using HandleElement = std::shared_ptr<Object>;
       using LocalHandles = std::vector<HandleElement>;
@@ -72,12 +72,11 @@ namespace v8 {
 //          handleScopeData.Initialize();
 //          persistentData.Initialize();
 //        }
-//
-//        ~InternalIsolate();
-//
+
+        ~Isolate();
+
         // XXX temp for version bump
         // XXX Make constructor private and friend public Isolate
-        ~Isolate() = default;
         Isolate(const Isolate& other) = default;
         Isolate(Isolate&& other) = default;
         Isolate& operator=(const Isolate& other) = default;
@@ -103,7 +102,7 @@ namespace v8 {
 //        // the current internal isolate if non-null, otherwise enters the default isolate and returns that
 //        // XXX Look for opportunities to use this
 //        static InternalIsolate* EnsureInIsolate();
-//
+
         // Has the current thread entered the given isolate?
         static bool IsEntered(Isolate* i);
 
@@ -134,25 +133,25 @@ namespace v8 {
 
         // Is the current thread the one that locked me?
         bool IsLockedForThisThread() const;
-//
+
 //        // Return a copy of the handle scope data for this isolate. If manipulating this data, the caller must hold the
 //        // GC Mutex
 //        // XXX Check need to hold it in dispose/destructor
 //        HandleData GetLocalHandleData();
-//
+
 //        // Copy the given HandleData into our own. The caller must hold the GC Mutex.
 //        // XXX Check need to hold it in dispose/destructor
 //        void SetLocalHandleData(HandleData& hd);
-//
+
 //        // Return a copy of the persistent data for this isolate. If manipulating this data, the caller must hold the
 //        // GC Mutex.
 //        // XXX Check need to hold it in dispose/destructor
 //        HandleData GetPersistentHandleData();
-//
+
 //        // Copy the given HandleData into our persistent data. The caller must hold the GC Mutex.
 //        // XXX Check need to hold it in dispose/destructor
 //        void SetPersistentHandleData(HandleData& hd);
-//
+
         // Lock the GC Mutex to allow the caller to safely mutate HandleData
         void LockGCMutex() {
           GCMutex.Lock();
@@ -162,10 +161,7 @@ namespace v8 {
         void UnlockGCMutex() {
           GCMutex.Unlock();
         }
-//
-//        // Cease object rooting. Public as a TLS destructor function must be able to call it.
-//        void RemoveGCRooter();
-//
+
         // RAII helper
         class AutoGCMutex {
           public:
@@ -185,12 +181,14 @@ namespace v8 {
          private:
             Isolate* isolate;
         };
-//
-//
+
+        // GC Rooting
+        void Trace(JSTracer* tracer);
+
 //        // Provided for V8 compat
 //        bool IsInitted() const { return isInitted; }
 //        void Init() { isInitted = true; }
-//
+
         static Isolate* FromAPIIsolate(::v8::Isolate* i) {
           return reinterpret_cast<Isolate*>(i);
         }
@@ -199,13 +197,15 @@ namespace v8 {
 //          GCRegistrationHookFn = onNotifier;
 //          GCDeregistrationHookFn = offNotifier;
 //        }
-//
-//        static void ForceGC();
-//
+
+        #ifdef V8MONKEY_INTERNAL_TEST
+          static void ForceGC();
+        #endif
+
 //
 //        // Initialize the default isolate and claim thread id 1
 //        static void EnsureDefaultIsolateForStaticInitializerThread();
-//
+
       private:
         // Embedder data. Must stay in sync with position exposed in v8.h
         void* embedderData[Internals::kNumIsolateDataSlots];
@@ -219,61 +219,48 @@ namespace v8 {
 
         // XXX May or may not be temporary
         LocalHandles localHandleData {};
-
-        /*
-         * Interface to isolate tracing for the SpiderMonkey garbage collector. When a thread enters an isolate, the isolate
-         * will register itself as a GC rooter with that thread's JSRuntime. This is the function that SpiderMonkey will call
-         * when tracing roots.
-         *
-         */
-
-        friend void GCTracingFunction(JSTracer* tracer, void* data) {
-          // All we need to do is cast to the isolate, and invoke Trace
-          Isolate* i = reinterpret_cast<Isolate*>(data);
-          i->Trace(tracer);
-        }
-
-        // GC Rooting
-        void Trace(JSTracer* tracer);
 //        struct ThreadData;
-//
-//        // Tell SpiderMonkey about this isolate
-//        void AddGCRooter();
-//
-//        // Has this isolate been disposed?
-//        bool isDisposed;
-//
-//        // Have we told SpiderMonkey we're a rooter?
-//        bool isRegisteredForGC;
-//
+
+        // Has this isolate been disposed?
+        bool isDisposed;
+
+        // Have we told SpiderMonkey we're a rooter?
+        bool isRegisteredForGC {false};
+
         // Fatal error handler for this isolate
         FatalErrorCallback fatalErrorHandler {nullptr};
-//
+
 //        // Our linked list of data about active threads in this isolate
 //        ThreadData* threadData;
-//
+
 //        // Embedder data
 //        void* embedderData;
-//
+
         // ID of the thread that has "locked" this isolate. For future use.
         int lockingThread {0};
 
         // Thread entry mutex. For future use.
         V8Platform::Mutex lockingMutex {};
-//
+
         // GC Mutex
         V8Platform::Mutex GCMutex {};
-//
+
 //        // In a single threaded application, there is no need to explicitly construct an isolate. V8 constructs a
 //        // "default" isolate automatically, and use it where necessary. Note that this changes in V8 3.29.79
 //        static InternalIsolate* defaultIsolate;
-//
+
 //        // HandleScope data for Locals
 //        HandleData handleScopeData;
-//
+
 //        // HandleScope data for Persistents
 //        HandleData persistentData;
-//
+
+        // Tell SpiderMonkey about this isolate
+        void AddGCRooter();
+
+        // Tell SpiderMonkey we will no longer participate in tracing
+        void RemoveGCRooter();
+
         // XXX Temporary
         // Maintain the previousIsolates vector, and the invariant that the last entry is the previous isolate for the
         // most recently entered thread
@@ -283,10 +270,10 @@ namespace v8 {
 //        ThreadData* FindOrCreateThreadData(int threadID, InternalIsolate* previousIsolate);
 //        ThreadData* FindThreadData(int threadID);
 //        void DeleteAndFreeThreadData(ThreadData* data);
-//
+
 //        // V8 compat
 //        bool isInitted;
-//
+
 //        #ifdef V8MONKEY_INTERNAL_TEST
 //        static void (*GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);
 //        static void (*GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);
