@@ -70,11 +70,11 @@ namespace v8 {
         pthread_mutex_t* platformMutex {mutexPtrFromRaw(privateData)};
         V8MONKEY_ASSERT(platformMutex, "Native mutex is a nullptr");
         // XXX Should we abort on failure?
-        pthread_mutex_unlock(platformMutex);
+        pthread_mutex_lock(platformMutex);
       } else {
         pthread_mutex_t platformMutex = mutexFromRaw(privateData);
         // XXX Should we abort on failure?
-        pthread_mutex_unlock(&platformMutex);
+        pthread_mutex_lock(&platformMutex);
       }
     }
 
