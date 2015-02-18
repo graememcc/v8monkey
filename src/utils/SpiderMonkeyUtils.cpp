@@ -14,6 +14,9 @@
 // SpiderMonkeyUtils definition
 #include "utils/SpiderMonkeyUtils.h"
 
+// EXPORT_FOR_TESTING_ONLY
+#include "test.h"
+
 // V8_UNUSED
 #include "v8config.h"
 

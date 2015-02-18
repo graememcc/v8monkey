@@ -63,7 +63,7 @@ namespace v8 {
      *
      */
 
-    JSRuntime* GetJSRuntimeForThread();
+    EXPORT_FOR_TESTING_ONLY JSRuntime* GetJSRuntimeForThread();
 
 
     /*
@@ -71,7 +71,7 @@ namespace v8 {
      *
      */
 
-    JSContext* GetJSContextForThread();
+    EXPORT_FOR_TESTING_ONLY JSContext* GetJSContextForThread();
   }
 
 
