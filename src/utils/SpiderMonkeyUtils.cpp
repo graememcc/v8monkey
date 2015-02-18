@@ -97,7 +97,7 @@ namespace {
 
     if (!rt) {
       // The game is up, abort
-      v8::V8Monkey::TriggerFatalError("InternalIsolate::Enter", "SpiderMonkey's JS_NewRuntime failed", false);
+      v8::V8Monkey::Abort("InternalIsolate::Enter", "SpiderMonkey's JS_NewRuntime failed", false);
       return;
     }
 
@@ -107,7 +107,7 @@ namespace {
     if (!cx) {
       // The game is up
       JS_DestroyRuntime(rt);
-      v8::V8Monkey::TriggerFatalError("InternalIsolate::Enter", "SpiderMonkey's JS_NewContext failed", false);
+      v8::V8Monkey::Abort("InternalIsolate::Enter", "SpiderMonkey's JS_NewContext failed", false);
       return;
     }
 
@@ -187,8 +187,8 @@ namespace v8{
         bool successful {JS_Init()};
 
         if (!successful) {
-          // I doubt we can do anything useful if we failed to init SpiderMonkey (assumes TriggerFatalError aborts)
-          ::v8::V8Monkey::TriggerFatalError("v8::Initialize", "Failed to init Spidermonkey", false);
+          // I doubt we can do anything useful if we failed to init SpiderMonkey
+          ::v8::V8Monkey::Abort("v8::Initialize", "Failed to init Spidermonkey");
           // Unreached
           return false;
         }

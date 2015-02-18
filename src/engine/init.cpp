@@ -149,21 +149,7 @@ namespace v8 {
 
 
   namespace V8Monkey {
-    void TriggerFatalError(const char* location, const char* message, bool useIsolateHandler, bool isAssert) {
-      if (useIsolateHandler) {
-        v8::FatalErrorCallback fn {nullptr};
-        v8::internal::Isolate* i {v8::internal::Isolate::GetCurrent()};
-        if (i) {
-          fn = i->GetFatalErrorHandler();
-        }
-
-        if (i && fn) {
-          fn(location, message);
-          i->SignalFatalError();
-          return;
-        }
-      }
-
+    void Abort(const char* location, const char* message, bool isAssert) {
       std::string s {"Error at "};
       s += location;
       s += ": ";
@@ -171,7 +157,7 @@ namespace v8 {
       s += "\n";
       V8Platform::Platform::PrintError(s.c_str());
 
-      if (!isAssert) {
+      if (isAssert) {
         std::abort();
       } else {
         const char* envVar {std::getenv("V8MONKEY_NOABORTONASSERT")};
@@ -179,6 +165,23 @@ namespace v8 {
           std::abort();
         }
       }
+    }
+
+
+    void TriggerFatalError(const char* location, const char* message) {
+      v8::FatalErrorCallback fn {nullptr};
+      v8::internal::Isolate* i {v8::internal::Isolate::GetCurrent()};
+      if (i) {
+        fn = i->GetFatalErrorHandler();
+      }
+
+      if (i && fn) {
+        fn(location, message);
+        i->SignalFatalError();
+        return;
+      }
+
+      Abort(location, message);
     }
 
 

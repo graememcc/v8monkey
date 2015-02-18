@@ -20,9 +20,11 @@ namespace v8 {
 //        static void ForceMainThreadRTCXDisposal();
 //
         // Uh-oh. Something's gone awry.
-        void EXPORT_FOR_TESTING_ONLY TriggerFatalError(const char* location, const char* message,
-                                                       bool useIsolateHandler = true, bool isAssert = false);
-//
+        void EXPORT_FOR_TESTING_ONLY TriggerFatalError(const char* location, const char* message);
+
+        // Trigger an error that should not be catchable by a user-supplied handler
+        void Abort(const char* location, const char* message, bool isAssert = false);
+
 //        // Returns true if V8 is dead, but also triggers a fatal error handler call, reporting it
 //        static bool CheckDeath(const char* method);
 //
@@ -39,7 +41,7 @@ namespace v8 {
   #define str(s) #s
   #define V8MONKEY_ASSERT(condition, message) do {\
       if (!(condition)) {\
-        ::v8::V8Monkey::TriggerFatalError(__FILE__ ":" xstr(__LINE__), "Assertion failure: " message, false, true); \
+        ::v8::V8Monkey::Abort(__FILE__ ":" xstr(__LINE__), "Assertion failure: " message, true); \
       }\
     } while (0)
 #else
