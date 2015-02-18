@@ -193,13 +193,13 @@ namespace v8 {
           return reinterpret_cast<Isolate*>(i);
         }
 
-//        static void SetGCRegistrationHooks(void (*onNotifier)(JSRuntime*, JSTraceDataOp, void*), void (*offNotifier)(JSRuntime*, JSTraceDataOp, void*)) {
-//          GCRegistrationHookFn = onNotifier;
-//          GCDeregistrationHookFn = offNotifier;
-//        }
-
         #ifdef V8MONKEY_INTERNAL_TEST
           static void ForceGC();
+
+          static void SetGCRegistrationHooks(void (*onNotifier)(JSRuntime*, JSTraceDataOp, void*), void (*offNotifier)(JSRuntime*, JSTraceDataOp, void*)) {
+            GCRegistrationHookFn = onNotifier;
+            GCDeregistrationHookFn = offNotifier;
+          }
         #endif
 
 //
@@ -274,10 +274,10 @@ namespace v8 {
 //        // V8 compat
 //        bool isInitted;
 
-//        #ifdef V8MONKEY_INTERNAL_TEST
-//        static void (*GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);
-//        static void (*GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);
-//        #endif
+        #ifdef V8MONKEY_INTERNAL_TEST
+          static void (*GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);
+          static void (*GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);
+        #endif
     };
   }
 }

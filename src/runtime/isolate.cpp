@@ -42,6 +42,7 @@
 #include "v8config.h"
 
 
+// XXX Review comment
 /*
  * In V8, an isolate is an object that owns a garbage-collected heap. Once threads explicitly "enter" such an isolate,
  * they can then construct values, and contexts in which scripts can be evaluated. Multiple threads can make use of
@@ -540,11 +541,11 @@ namespace v8 {
       }
 
       #ifdef V8MONKEY_INTERNAL_TEST
-//        if (GCRegistrationHookFn) {
-//          GCRegistrationHookFn(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
-//        } else {
-//          JS_AddExtraGCRootsTracer(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
-//        }
+        if (GCRegistrationHookFn) {
+          GCRegistrationHookFn(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
+        } else {
+          JS_AddExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
+        }
       #else
         JS_AddExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
       #endif
@@ -565,11 +566,11 @@ namespace v8 {
 
       // Deregister this isolate from SpiderMonkey
       #ifdef V8MONKEY_INTERNAL_TEST
-//        if (GCDeregistrationHookFn) {
-//          GCDeregistrationHookFn(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
-//        } else {
-//          JS_RemoveExtraGCRootsTracer(SpiderMonkeyUtils::GetJSRuntimeForThread(), GCTracingFunction, this);
-//        }
+        if (GCDeregistrationHookFn) {
+          GCDeregistrationHookFn(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
+        } else {
+          JS_RemoveExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
+        }
       #else
         JS_RemoveExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
       #endif
@@ -809,16 +810,13 @@ namespace v8 {
       // Trace Persistent handles
       //ObjectBlock<V8MonkeyObject>::Iterate(persistentData.limit, persistentData.next, tracingIterationFunction, &td);
     }
-//
-//
-//
-//
-  #ifdef V8MONKEY_INTERNAL_TEST
-//
-//     void (*InternalIsolate::GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
-//     void (*InternalIsolate::GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
-//
-//
+
+
+#ifdef V8MONKEY_INTERNAL_TEST
+    void (*Isolate::GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
+    void (*Isolate::GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
+
+
     void Isolate::ForceGC() {
       JS_GC(::v8::SpiderMonkey::GetJSRuntimeForThread());
     }
@@ -862,9 +860,8 @@ namespace v8 {
 
       V8::Dispose();
     }
-  }
 
-  #else
+#endif
+
   }
-  #endif
 }
