@@ -819,45 +819,52 @@ namespace v8 {
 //     void (*InternalIsolate::GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
 //
 //
-     void Isolate::ForceGC() {
-       JS_GC(::v8::SpiderMonkeyGetJSRuntimeForThread());
-     }
+    void Isolate::ForceGC() {
+      JS_GC(::v8::SpiderMonkey::GetJSRuntimeForThread());
+    }
   }
-//
-//
-    namespace TestUtils {
-//     // XXX Can we fix these up to watch out for isolate construction?
-//     TestUtils::AutoIsolateCleanup::~AutoIsolateCleanup() {
-//       while (Isolate::GetCurrent() && InternalIsolate::IsEntered(InternalIsolate::GetCurrent())) {
-//         Isolate* i = Isolate::GetCurrent();
-//         InternalIsolate* ii = InternalIsolate::FromAPIIsolate(i);
-//
-//         // Isolates can be entered multiple times
-//         while (InternalIsolate::IsEntered(ii)) {
-//           i->Exit();
-//         }
-//
-//         i->Dispose();
-//       }
-//     }
-//
-//
-      AutoTestCleanup::~AutoTestCleanup() {
-        while (Isolate::GetCurrent()) {
-          // Isolates can be entered multiple times
-          Isolate* i {Isolate::GetCurrent()};
 
-          while (Isolate::GetCurrent() == i) {
-            i->Exit();
-          }
 
-          i->Dispose();
+  namespace TestUtils {
+    // XXX Can we fix these up to watch out for isolate construction?
+
+    AutoIsolateCleanup::~AutoIsolateCleanup() {
+      while (Isolate::GetCurrent()) {
+        // Isolates can be entered multiple times
+        Isolate* i {Isolate::GetCurrent()};
+
+        internal::Isolate* ii {internal::Isolate::FromAPIIsolate(i)};
+        V8MONKEY_ASSERT(!ii->IsLockedForThisThread(), "An isolate was still locked");
+
+        while (Isolate::GetCurrent() == i) {
+          i->Exit();
         }
 
-        V8::Dispose();
+        i->Dispose();
       }
     }
-  #else
+
+
+    AutoTestCleanup::~AutoTestCleanup() {
+      while (Isolate::GetCurrent()) {
+        // Isolates can be entered multiple times
+        Isolate* i {Isolate::GetCurrent()};
+
+        internal::Isolate* ii {internal::Isolate::FromAPIIsolate(i)};
+        V8MONKEY_ASSERT(!ii->IsLockedForThisThread(), "An isolate was still locked");
+
+        while (Isolate::GetCurrent() == i) {
+          i->Exit();
+        }
+
+        i->Dispose();
+      }
+
+      V8::Dispose();
     }
+  }
+
+  #else
+  }
   #endif
 }

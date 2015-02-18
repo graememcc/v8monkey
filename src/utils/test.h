@@ -57,13 +57,13 @@
 //          *
 //          */
 //
-//         class AutoIsolateCleanup {
-//           public:
-//             AutoIsolateCleanup() {}
-//
-//             ~AutoIsolateCleanup();
-//         };
-//
+      class EXPORT_FOR_TESTING_ONLY AutoIsolateCleanup {
+         public:
+           AutoIsolateCleanup() {}
+
+           ~AutoIsolateCleanup();
+      };
+
       class EXPORT_FOR_TESTING_ONLY AutoTestCleanup {
         public:
           AutoTestCleanup() = default;
