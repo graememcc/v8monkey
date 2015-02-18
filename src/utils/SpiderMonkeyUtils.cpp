@@ -61,7 +61,9 @@ namespace {
     JS_DestroyContext(data->cx);
     JS_DestroyRuntime(data->rt);
 
-    // We might be called by the SpiderMonkeyTearDown class, so zero out the pointers
+    delete data;
+
+    // We might be called by the SpiderMonkeyTearDown class, so zero out the TLS pointer
     Platform::StoreTLSData(smDataKey, nullptr);
 
     recordJSRuntimeDestruction();
@@ -157,8 +159,7 @@ namespace {
         // The code that tears down the JSRuntime and JSContext normally won't run until thread exit, which in the
         // case of the main thread is too late. We must destroy them manually.
         if (threadsWithRuntimes == 1) {
-          v8::SpiderMonkey::SpiderMonkeyData data = v8::SpiderMonkey::GetJSRuntimeAndJSContext();
-          tearDownRuntimeAndContext(&data);
+          tearDownRuntimeAndContext(Platform::GetTLSData(smDataKey));
         }
 
         JS_ShutDown();
@@ -197,7 +198,6 @@ namespace v8{
 
 
     void TearDownSpiderMonkey() {
-      // Allow harmless V8::Dispose calls without init
       if (!tearDown.get()) {
         return;
       }
