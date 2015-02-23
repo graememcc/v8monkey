@@ -1,4 +1,8 @@
+// Thread
 #include "platform/platform.h"
+
+// GetJSRuntimeForThread GetJSContextForThread
+#include "utils/SpiderMonkeyUtils.h"
 
 // Isolate, V8::{Initialize, SetFatalErrorHandler}
 #include "v8.h"
@@ -302,7 +306,7 @@ V8MONKEY_TEST(Isolate006, "Isolate::GetCurrent reports correct value after asymm
 }
 
 
-V8MONKEY_TEST(Isolate007, "Isolates stack correctly(main thread)") {
+V8MONKEY_TEST(Isolate007, "Isolates stack correctly (main thread)") {
   V8MONKEY_CHECK(CheckIsolateStacking(), "Isolates stack correctly");
 }
 
