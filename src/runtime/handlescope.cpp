@@ -17,9 +17,9 @@
 /*
  * For managing local rooted values, V8 provides the HandleScope API. The embedder stores pointers received from the V8
  * engine in to a Local<T> handle, which both roots the value and tracks its location in memory (V8, like SpiderMonkey
- * uses a moving garbage collector). To avoid having to manually manage the local handles, they have the semantics that
- * the underlying pointer is stored in the nearest HandleScope. All handles created during the lifetime of the
- * HandleScope are unrooted in one batch when the HandleScope gets destroyed.
+ * uses a moving garbage collector). To avoid having to manually manage the local handles, the underlying pointer is
+ * stored in the nearest HandleScope. All handles created during the lifetime of the HandleScope are unrooted in one
+ * batch when the HandleScope gets destroyed.
  *
  * Our implementation largely follows the V8 approach. We allocate slabs of memory in which we stuff the pointers
  * managed by the handles, and maintain two pointers, one to the next free slot, and one to the end of the block. We
