@@ -327,8 +327,8 @@ valgrind-mem-int: $(testsuites)
 
 
 valgrind: $(testsuites) valgrind-mem-api valgrind-mem-int
-	valgrind --tool=helgrind --log-file=thread_api --trace-children=yes $(outdir)/test/run_v8monkey_tests
-	valgrind --tool=helgrind --log-file=thread_internal --trace-children=yes $(outdir)/test/run_v8monkey_internal_tests
+	valgrind --tool=helgrind --log-file=thread_api --read-var-info=yes --trace-children=yes $(outdir)/test/run_v8monkey_tests
+	valgrind --tool=helgrind --log-file=thread_internal --read-var-info=yes --trace-children=yes $(outdir)/test/run_v8monkey_internal_tests
 
 
 # ---------------------------------------------------------------OLD
@@ -704,7 +704,7 @@ $(depsdir)/Makefile: $(depsdir)/config.status
 # A config.status script is created by running configure
 $(depsdir)/config.status: $(mozillaroot)/js/src/configure | $(depsdir)
 	rm -f $(depsdir)/Makefile
-	cd $(depsdir) && $< --disable-optimize --enable-debug
+	cd $(depsdir) && $<
 
 
 # To run configure we must first invoke autoconf
