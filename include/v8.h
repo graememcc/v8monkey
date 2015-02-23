@@ -314,9 +314,9 @@ template <class T> class Handle {
   }
 
   // XXX
-  //V8_INLINE static Handle<T> New(Isolate* isolate, Handle<T> that) {
-    //return New(isolate, that.val_);
-  //}
+  V8_INLINE static Handle<T> New(Isolate* isolate, Handle<T> that) {
+    return New(isolate, that.val_);
+  }
   //V8_INLINE static Handle<T> New(Isolate* isolate,
                                  //const PersistentBase<T>& that) {
     //return New(isolate, that.val_);
@@ -341,13 +341,13 @@ template <class T> class Handle {
   //friend class Object;
   //friend class Private;
 
-  // XXX
+
   /**
    * Creates a new handle for the specified value.
    */
-  //V8_INLINE explicit Handle(T* val) : val_(val) {}
+  V8_INLINE explicit Handle(T* val) : val_(val) {}
 
-  //V8_INLINE static Handle<T> New(Isolate* isolate, T* that);
+  V8_INLINE static Handle<T> New(Isolate* isolate, T* that);
 
   T* val_;
 };
