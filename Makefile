@@ -158,7 +158,7 @@ warnings = $(addprefix -W, $(warningswitches))
 # XXX Remove suggest
 # XXX Remove conversion
 CXXFLAGS += -MMD -pedantic -Wsuggest-attribute=const -g -DDEBUG=1 $(warnings) $(includeopt) -fPIC \
-            -fvisibility=hidden -fstrict-aliasing -fdiagnostics-color=always -std=c++0x
+            -fvisibility=hidden -fstrict-aliasing -std=c++0x
 
 
 # Define a command that will produce a link command for the given library name
