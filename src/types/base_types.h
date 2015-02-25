@@ -52,10 +52,16 @@ namespace v8 {
 //        bool IsWeak(V8MonkeyObject** slotPtr);
 //        bool IsNearDeath();
 //        void PersistentRelease(V8MonkeyObject** slotPtr);
-        bool ShouldTrace() { return false; }
 
         // Called when the SpiderMonkey garbage collector requests a trace
-        virtual void Trace(JSRuntime* runtime, JSTracer* tracer) {}
+        void Trace(JSRuntime* runtime, JSTracer* tracer) {
+          // XXX Note: we may need some mechanism for custom semantics (i.e. shouldTrace might be false, but the
+          //           value might be an external string that we cannot delete without SpiderMonkey's sayso.
+          //           Also, will depend on how we do iteration. There may be a smartptr keeping us alive.
+          if (ShouldTrace()) {
+            DoTrace(runtime, tracer);
+          }
+        }
 //
 //        #ifdef V8MONKEY_INTERNAL_TEST
 //        int RefCount() { return refCount; }
@@ -84,6 +90,10 @@ namespace v8 {
 //
 //        WeakRefListElem* callbackList;
         void* callbackList;
+
+        bool ShouldTrace() { return false; }
+
+        virtual void DoTrace(JSRuntime*, JSTracer*) = 0;
 //
 //        // Find the callback information for the given slot
 //        WeakRefListElem* FindForSlot(V8MonkeyObject** slotPtr);
@@ -181,8 +191,6 @@ namespace v8 {
     #ifdef V8MONKEY_INTERNAL_TEST
     class EXPORT_FOR_TESTING_ONLY DummyV8MonkeyObject : public Object {
       public:
-        void Trace(JSRuntime*, JSTracer*) override {}
-
         inline bool operator== (const DummyV8MonkeyObject &other) {
           return &other == this;
         }
@@ -193,6 +201,9 @@ namespace v8 {
         DummyV8MonkeyObject(DummyV8MonkeyObject&& other) = default;
         DummyV8MonkeyObject& operator=(const DummyV8MonkeyObject& other) = default;
         DummyV8MonkeyObject& operator=(DummyV8MonkeyObject&& other) = default;
+
+      private:
+        void DoTrace(JSRuntime*, JSTracer*) override {}
     };
 
 
@@ -214,11 +225,6 @@ namespace v8 {
         // XXX What is this used for?!?
         int index;
 
-        void Trace(JSRuntime*, JSTracer*) override {
-          // Some tests require that this object participate in tracing for the deletion semantics
-          ShouldTrace();
-        }
-
         DeletionObject(const DeletionObject& other) = default;
         DeletionObject(DeletionObject&& other) = default;
         DeletionObject& operator=(const DeletionObject& other) = default;
@@ -226,6 +232,8 @@ namespace v8 {
 
       private:
         bool* ptr;
+
+        void DoTrace(JSRuntime*, JSTracer*) override {}
     };
 
 
@@ -235,8 +243,6 @@ namespace v8 {
       public:
         TraceFake(bool* boolPtr) : ptr(boolPtr) {}
 
-        void Trace(JSRuntime*, JSTracer*) override { *ptr = true; }
-
         ~TraceFake() = default;
         TraceFake(const TraceFake& other) = default;
         TraceFake(TraceFake&& other) = default;
@@ -245,6 +251,10 @@ namespace v8 {
 
       private:
         bool* ptr;
+
+        void DoTrace(JSRuntime*, JSTracer*) override {
+          *ptr = true;
+        }
     };
 
     #endif
