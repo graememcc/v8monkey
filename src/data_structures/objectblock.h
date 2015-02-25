@@ -35,12 +35,15 @@ namespace v8 {
 
     template <class T, class LimitType = std::shared_ptr<T>, unsigned int SlabSize = 1024u>
     class ObjectBlock {
-      public:
+      private:
         using SlotContents = std::shared_ptr<T>;
         using Slot = SlotContents*;
         using Slab = std::vector<SlotContents>;
         using SlabPtr = std::unique_ptr<Slab>;
         using Slabs = std::vector<SlabPtr>;
+
+      public:
+        using ValueType = SlotContents;
 
         static const unsigned int slabSize {SlabSize};
 
@@ -117,7 +120,7 @@ namespace v8 {
          *
          */
 
-        V8_INLINE void Iterate(void (*iterationFunction)(std::shared_ptr<T>)) const;
+        V8_INLINE void Iterate(void (*iterationFunction)(ValueType)) const;
 
         /*
          * Calls the given function with a shared pointer to the given raw type and the supplied data for each entry in
@@ -125,7 +128,7 @@ namespace v8 {
          *
          */
 
-        V8_INLINE void Iterate(void (*iterationFunction)(std::shared_ptr<T>, void*), void* data) const;
+        V8_INLINE void Iterate(void (*iterationFunction)(ValueType, void*), void* data) const;
 
         ObjectBlock(const ObjectBlock<T>& other) = delete;
         ObjectBlock<T>& operator=(const ObjectBlock<T>& other) = delete;
@@ -191,7 +194,7 @@ namespace v8 {
 
 
     template <class T, class LimitType, unsigned int SlabSize>
-    void ObjectBlock<T, LimitType, SlabSize>::Iterate(void (*iterationFunction)(std::shared_ptr<T>)) const {
+    void ObjectBlock<T, LimitType, SlabSize>::Iterate(void (*iterationFunction)(ValueType)) const {
       for (auto const& slab : slabs) {
         for (SlotContents value : *(slab.get())) {
           iterationFunction(value);
@@ -201,7 +204,7 @@ namespace v8 {
 
 
     template <class T, class LimitType, unsigned int SlabSize>
-    void ObjectBlock<T, LimitType, SlabSize>::Iterate(void (*iterationFunction)(std::shared_ptr<T>, void*), void* data) const {
+    void ObjectBlock<T, LimitType, SlabSize>::Iterate(void (*iterationFunction)(ValueType, void*), void* data) const {
       for (auto const& slab : slabs) {
         for (SlotContents value : *(slab.get())) {
           iterationFunction(value, data);

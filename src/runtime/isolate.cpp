@@ -11,7 +11,7 @@
 // XXX That needs a better name
 #include "data_structures/destruct_list.h"
 
-// Objectblock
+// ObjectBlock
 #include "data_structures/objectblock.h"
 
 // std::begin, std::end
@@ -31,6 +31,9 @@
 
 // TestUtils EXPORT_FOR_TESTING_ONLY
 #include "utils/test.h"
+
+// ObjectContainer
+#include "types/base_types.h"
 
 // V8MonkeyCommon class definition, TriggerFatalError, V8MONKEY_ASSERT
 #include "utils/V8MonkeyCommon.h"
@@ -137,18 +140,42 @@ namespace {
 //    *
 //    */
 
-    /*
-     * Interface to isolate tracing for the SpiderMonkey garbage collector. When a thread enters an isolate, the isolate
-     * will register itself as a GC rooter with that thread's JSRuntime. This is the function that SpiderMonkey will call
-     * when tracing roots.
-     *
-     */
 
-    void GCTracingFunction(JSTracer* tracer, void* data) {
-      // All we need to do is cast to the isolate, and invoke Trace
-      v8::internal::Isolate* i = reinterpret_cast<v8::internal::Isolate*>(data);
-      i->Trace(tracer);
-    }
+  /*
+   * Interface to isolate tracing for the SpiderMonkey garbage collector. When a thread enters an isolate, the isolate
+   * will register itself as a GC rooter with that thread's JSRuntime. This is the function that SpiderMonkey will call
+   * when tracing roots.
+   *
+   */
+
+  void GCTracingFunction(JSTracer* tracer, void* data) {
+    // All we need to do is cast to the isolate, and invoke Trace
+    v8::internal::Isolate* i = reinterpret_cast<v8::internal::Isolate*>(data);
+    i->Trace(tracer);
+  }
+
+
+  /*
+   * POD type for supplying SpiderMonkey garbage collection parameters to the objects contained in handles
+   *
+   */
+
+  struct GCData {
+    JSRuntime* rt;
+    JSTracer* tracer;
+  };
+
+
+  /*
+   * Interface to isolate tracing for ObjectBlock iteration. This is the function that Isolate::Trace will supply to
+   * the ObjectBlock to iterate over the handles.
+   *
+   */
+
+  void GCIterationFunction(v8::internal::ObjectContainer::ValueType obj, void* data) {
+    GCData* gcData {reinterpret_cast<GCData*>(data)};
+    obj->Trace(gcData->rt, gcData->tracer);
+  }
 
 
   /*
@@ -803,9 +830,8 @@ namespace v8 {
       AutoGCMutex {this};
 
       JSRuntime* rt {::v8::SpiderMonkey::GetJSRuntimeForThread()};
-      std::for_each(std::begin(localHandleData), std::end(localHandleData), [&rt, &tracer](HandleElement& obj) {
-        obj->Trace(rt, tracer);
-      });
+      GCData gcData {rt, tracer};
+      localHandleData.Iterate(GCIterationFunction, &gcData);
 
       // Trace Persistent handles
       //ObjectBlock<V8MonkeyObject>::Iterate(persistentData.limit, persistentData.next, tracingIterationFunction, &td);

@@ -1,6 +1,10 @@
 #ifndef V8MONKEY_ISOLATE_H
 #define V8MONKEY_ISOLATE_H
 
+// ObjectBlock
+#include "data_structures/objectblock.h"
+
+// NEEDED?
 // begin, end
 #include <iterator>
 
@@ -28,7 +32,6 @@
 
 namespace v8 {
   namespace internal {
-
 
 //    /*
 //     * Container class for Handle information. Although only manipulated by HandleScopes and Persistents, it is
@@ -58,14 +61,13 @@ namespace v8 {
 //     */
 
     class EXPORT_FOR_TESTING_ONLY Isolate {
-      using HandleElement = std::shared_ptr<Object>;
-      using LocalHandles = std::vector<HandleElement>;
+      using LocalHandles = ObjectContainer;
 
       public:
         // XXX Put an initializer list here once we have the shape of InternalIsolate nailed down
-        Isolate() {
-          std::fill(std::begin(embedderData), std::end(embedderData), nullptr);
-        }
+        Isolate() : embedderData {nullptr}, hasFatalError {false}, previousIsolates {}, localHandleData {},
+                    isDisposed {false}, isRegisteredForGC {false}, fatalErrorHandler {nullptr}, lockingThread {0},
+                    lockingMutex{}, GCMutex{} {}
 
 //        InternalIsolate() : isDisposed(false), isRegisteredForGC(false), fatalErrorHandler(nullptr), threadData(nullptr),
 //                            embedderData(nullptr), lockingThread(0), isInitted(false) {

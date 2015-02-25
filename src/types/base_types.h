@@ -1,6 +1,9 @@
 #ifndef V8MONKEY_BASETYPES_H
 #define V8MONKEY_BASETYPES_H
 
+// ObjectBlock
+#include "data_structures/objectblock.h"
+
 // is_base_of
 #include <type_traits>
 
@@ -16,6 +19,10 @@
 
 namespace v8 {
   namespace internal {
+
+    class Object;
+
+    using ObjectContainer = ::v8::DataStructures::ObjectBlock<Object, Object*>;
 
     /*
      * The base class of all internal refcounted objects (i.e. anything that can be stored in a Local or Persistent
