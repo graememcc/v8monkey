@@ -279,20 +279,21 @@ namespace v8 {
 
   /*
    * We implement this here as death is on a per-internal isolate basis
-   * NOTE: In 3.30.0, the method moves from V8 to Isolate
+   * NOTE: In 3.30.0, the API method moves from V8 to Isolate
    *
    */
 
   bool V8::IsDead() {
-    // V8 assumes that the caller is in an isolate (although it asserts in debug builds)
     internal::Isolate* i {internal::Isolate::GetCurrent()};
+    // Follow V8 and assert here
+    V8MONKEY_ASSERT(i, "Not in an isolate");
     return i->IsDead();
   }
 
 
   /*
    * We implement this here as error handlers are associated with internal isolates.
-   * NOTE: In 3.30.0, the method moves from V8 to Isolate
+   * NOTE: In 3.30.0, the API method moves from V8 to Isolate
    *
    */
 
@@ -362,23 +363,13 @@ namespace v8 {
 //         entryCount(0), threadID(id), previousIsolate(previous), prev(previousElement), next(nextElement) {}
 //     };
 
-    // XXX Temporary
-    /*
-     * Record the previous isolate for a thread that has succesfully entered us, maintaing the invariant that the
-     * last entry in the container is the isolate for the most recently entered thread.
-     *
-     */
+    // XXX Temporary?
     void Isolate::RecordThreadEntry(Isolate* i) {
       previousIsolates.emplace_back(i);
     }
 
 
-    // XXX Temporary
-    /*
-     * Record a thread exit, and pop it's previous isolate from our container.
-     *
-     */
-
+    // XXX Temporary?
     Isolate* Isolate::RecordThreadExit() {
       // XXX If we keep this, assert not empty
       auto end = std::end(previousIsolates) - 1;
@@ -396,8 +387,8 @@ namespace v8 {
      * rooting. Once in an isolate, a thread is free to start creating objects, and some of those objects may wrap
      * SpiderMonkey objects.
      *
-     * Isolates stack: if a thread enters isolate A, and then creates and enters isolate B from A, then on exiting B,
-     * the thread should be considered in A once more. Some book-keeping here handles this.
+     * Isolates stack: if a thread enters isolate A, and then creates and enters isolate B from A, then, on exiting B,
+     * the thread should "return" to A. Some book-keeping here handles this.
      *
      */
 
@@ -540,25 +531,30 @@ namespace v8 {
 
     Isolate::~Isolate() {
       V8MONKEY_ASSERT(!ContainsThreads(), "Destructing an isolate with threads still active");
-      V8MONKEY_ASSERT(isDisposed, "Isolate not disposed");
 
-      // It's possible the client never called dispose for the isolate, although they should have. We will need to
-      // grudgingly do it for them; we must ensure that we have disengaged from GC Rooting, which must happen
-      // before JSRuntime and JSContext teardown, which is likely about to happen.
+      // It's possible the client never called dispose for the isolate, although V8 API requirements mandate that they
+      // should have. (One scenario: the client stashed the Isolate* in a unique_ptr without a custom deleter.) We wil
+      // need to grudgingly tidy up after them; we must ensure that we have disengaged from GC Rooting, something that
+      // must happen before JSRuntime and JSContext teardown, which is probably imminent.
       if (!isDisposed) {
         Dispose();
       }
+
+      V8MONKEY_ASSERT(!isRegisteredForGC, "Isolate is still rooting?");
     }
 
 
-     /*
-      * An InternalIsolate contains two structures containing pointers to V8MonkeyObjects. Objects created whilst the
-      * thread has entered this isolate will be referenced there. Some of those objects might wrap SpiderMonkey objects,
-      * and need to participate in GC rooting. This function adds a tracing function which will traverse and trace those
-      * structures.
-      *
-      */
+    /*
+     * An internal Isolate contains two structures containing pointers to internal Objects. Objects created whilst the
+     * thread has entered this isolate will be referenced there. Some of those objects might wrap SpiderMonkey objects,
+     * and need to participate in GC rooting. This function adds a tracing function which will traverse and trace those
+     * structures.
+     *
+     */
 
+    // XXX BUG!! We need to register per runtime! (This will need a test)
+    // XXX ANOTHER BUG - Won't tracing be on another thread?
+    // XXX Move the SpiderMonkey bits into SpiderMonkeyUtils?
     void Isolate::AddGCRooter() {
       AutoGCMutex {this};
 

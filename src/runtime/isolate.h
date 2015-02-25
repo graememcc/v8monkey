@@ -84,19 +84,39 @@ namespace v8 {
         Isolate& operator=(const Isolate& other) = default;
         Isolate& operator=(Isolate&& other) = default;
 
-        // Enter the given isolate
+        /*
+         * Enter the given isolate.
+         *
+         */
+
         void Enter();
 
-        // Exit the given isolate
+        /*
+         * Exit the given isolate.
+         *
+         */
+
         void Exit();
 
-        // Dispose of the given isolate
+        /*
+         * Dispose any remaning resources held by this Isolate, and delete the isolate.
+         *
+         */
+
         void Dispose();
 
-        // Find the current InternalIsolate for the calling thread
+        /*
+         * Returns a pointer to the currently entered isolate for the calling thread. May be null.
+         *
+         */
+
         static Isolate* GetCurrent();
 
-        // Reports whether any threads are active in this isolate
+        /*
+         * Reports whether any threads have entered this isolate and not yet exited.
+         *
+         */
+
         bool ContainsThreads() const { return !previousIsolates.empty(); }
         //bool ContainsThreads() const { return threadData != nullptr; }
 
@@ -105,35 +125,82 @@ namespace v8 {
 //        // XXX Look for opportunities to use this
 //        static InternalIsolate* EnsureInIsolate();
 
-        // Has the current thread entered the given isolate?
+        /*
+         * Reports whether the calling thread has entered the given isolate.
+         *
+         */
+
         static bool IsEntered(Isolate* i);
 
-        // Returns true if this isolate is dead
+        // XXX Clarify the death conditions
+        /*
+         * Reports whether this isolate is dead (through a fatal error or other condition).
+         *
+         */
+
         bool IsDead() const { return hasFatalError; }
+
+        /*
+         * Allow various parts of V8Monkey to signal a problem has occurred in this isolate.
+         *
+         */
 
         void SignalFatalError() { hasFatalError = true; }
 
-        // Set the fatal error handler for this isolate
+        // XXX I know SetFatalError... is V8 API but who uses Get? Can this be private with the
+        // relevant friends
+        /*
+         * V8 API: Set the client callback that will be invoked when problems occur in this isolate.
+         *
+         */
+
         void SetFatalErrorHandler(FatalErrorCallback fn) { fatalErrorHandler = fn; }
 
-        // Get the fatal error handler for this isolate
+        /*
+         * Get a function pointer to the client callback for fatal errors in this isolate. Will be null if the
+         * client has not supplied a callback via the relevant API function.
+         *
+         */
+
         FatalErrorCallback GetFatalErrorHandler() const { return fatalErrorHandler; }
 
-        // Lock this isolate for the current thread
+        // XXX Might want to make Lock/Unlock private, and friend Locker/Unlocker
+        /*
+         * API for client API Locker objects. Signals that the calling thread has locked this isolate. Per API
+         * requirements, other threads are not permitted to enter and/or manipulate this isolate without holding
+         * this lock.
+         *
+         */
+
         void Lock();
 
-        // Unlock this isolate
+        /*
+         * API for client API Locker objects. Signals that the calling thread has finished with this isolate, and
+         * other threads are now free to acquire the lock and enter or manipulate it.
+        // XXX Should the caller have exited the isolate? Assert if so.
+         *
+         */
+
         void Unlock();
 
-        // Returns true if a Locker has locked this isolate on behalf of some thread. Largely for future use.
+        /*
+         * Returns true if a Locker has locked this isolate on behalf of some thread. Largely for future use.
         // XXX Does anybody use this?
+         *
+         */
+
         bool IsLocked() const {
-          // This assumes that a thread's ID will never be zero. (Storing thread IDs in TLS would also be broken were
-          // that not the case).
+          // This assumes that a thread's ID can never be zero. (Note: storing thread IDs in TLS would be broken were
+          // this not the case).
           return lockingThread != 0;
         }
 
-        // Is the current thread the one that locked me?
+
+        /*
+         * Reports whether the calling thread has locked this isolate.
+         *
+         */
+
         bool IsLockedForThisThread() const;
 
 //        // Return a copy of the handle scope data for this isolate. If manipulating this data, the caller must hold the
@@ -141,6 +208,7 @@ namespace v8 {
 //        // XXX Check need to hold it in dispose/destructor
 //        HandleData GetLocalHandleData();
 
+//        // XXX Check need to hold GCMutex in dispose/destructor
 //        // Copy the given HandleData into our own. The caller must hold the GC Mutex.
 //        // XXX Check need to hold it in dispose/destructor
 //        void SetLocalHandleData(HandleData& hd);
@@ -154,17 +222,30 @@ namespace v8 {
 //        // XXX Check need to hold it in dispose/destructor
 //        void SetPersistentHandleData(HandleData& hd);
 
-        // Lock the GC Mutex to allow the caller to safely mutate HandleData
+        /*
+         * Lock the GC Mutex to allow the caller to safely mutate or iterate over the handles belonging to this Isolate.
+         *
+         */
+
         void LockGCMutex() {
           GCMutex.Lock();
         }
 
-        // Signal that the caller has ceased manipulating the HandleData and that it is safe to trace objects
+
+        /*
+         * Signal that the caller has finished iterating or mutating the handles stored herein.
+         *
+         */
+
         void UnlockGCMutex() {
           GCMutex.Unlock();
         }
 
-        // RAII helper
+        /*
+         * RAII helper for managing the GC Mutex during handle iteration / mutation.
+         *
+         */
+
         class AutoGCMutex {
           public:
             AutoGCMutex(Isolate* i) : isolate(i) {
@@ -184,12 +265,24 @@ namespace v8 {
             Isolate* isolate;
         };
 
-        // GC Rooting
+        /*
+         * Trace all SpiderMonkey objects contained in handles in this Isolate.
+         *
+         * Note: this function is public, as the callback supplied to SpiderMonkey when participating in rooting is
+         * in an anonymous namespace.
+         *
+         */
+
         void Trace(JSTracer* tracer);
 
 //        // Provided for V8 compat
 //        bool IsInitted() const { return isInitted; }
 //        void Init() { isInitted = true; }
+
+        /*
+         * API Isolates are all air: this function casts to a pointer to the real underlying internal::Isolate.
+         *
+         */
 
         static Isolate* FromAPIIsolate(::v8::Isolate* i) {
           return reinterpret_cast<Isolate*>(i);
@@ -215,11 +308,12 @@ namespace v8 {
         // Denotes whether this isolate is effectively dead
         bool hasFatalError {false};
 
-        // XXX Temporary
-        // Record the isolate that the most-recently entered thread should return to when it exits this isolate
+        // XXX Temporary?
+        // Record the previously entered isolates of all the threads that have entered this isolate.
         std::vector<Isolate*> previousIsolates {};
 
-        // XXX May or may not be temporary
+        // XXX Temporary?
+        // Pointers to objects contained in API Local handles
         LocalHandles localHandleData {};
 //        struct ThreadData;
 
@@ -244,7 +338,7 @@ namespace v8 {
         // Thread entry mutex. For future use.
         V8Platform::Mutex lockingMutex {};
 
-        // GC Mutex
+        // GC Mutex - should be held during handle manipulation / iteration
         V8Platform::Mutex GCMutex {};
 
 //        // In a single threaded application, there is no need to explicitly construct an isolate. V8 constructs a
@@ -257,15 +351,31 @@ namespace v8 {
 //        // HandleScope data for Persistents
 //        HandleData persistentData;
 
-        // Tell SpiderMonkey about this isolate
+        // XXX So, I think we want two bits: I think we need to maintain a vector of JSRuntimes that we root, and
+        //     these functions can manipulate this. They can then use SpiderMonkeyUtils to actually add the rooting.
+        /*
+         * Notify SpiderMonkey that this isolate will participate in GC rooting for a given runtime.
+         *
+         */
+
         void AddGCRooter();
 
-        // Tell SpiderMonkey we will no longer participate in tracing
+        /*
+         * Disengage from SpiderMonkey GC rooting.
+         *
+         */
+
         void RemoveGCRooter();
 
-        // XXX Temporary
-        // Maintain the previousIsolates vector, and the invariant that the last entry is the previous isolate for the
-        // most recently entered thread
+        // XXX Temporary?
+        /*
+         * This pair of functions should be called when a thread enters/exits the Isolate. They maintain the invariant
+         * previousIsolates.back() is the isolate that the most-recently entered thread came from. It seems to be an
+         * (undocumented) V8 API requirement that threads enter and exit isolates in a LIFO fashion.
+         * XXX Check that assertion.
+         *
+         */
+
         void RecordThreadEntry(Isolate* i);
         Isolate* RecordThreadExit();
 //        // ThreadData linked list manipulations
