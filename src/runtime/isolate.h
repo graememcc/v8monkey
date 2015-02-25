@@ -210,7 +210,7 @@ namespace v8 {
 
       private:
         // Embedder data. Must stay in sync with position exposed in v8.h
-        void* embedderData[Internals::kNumIsolateDataSlots];
+        void* embedderData[Internals::kNumIsolateDataSlots] {nullptr};
 
         // Denotes whether this isolate is effectively dead
         bool hasFatalError {false};
@@ -224,7 +224,7 @@ namespace v8 {
 //        struct ThreadData;
 
         // Has this isolate been disposed?
-        bool isDisposed;
+        bool isDisposed {false};
 
         // Have we told SpiderMonkey we're a rooter?
         bool isRegisteredForGC {false};
