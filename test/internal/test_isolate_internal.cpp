@@ -237,18 +237,42 @@ namespace {
 
 
   bool wasRegisteredForGC {false};
+  JSRuntime* runtimeRegisteredForGC {nullptr};
 
 
-  void GCRegistrationHook(JSRuntime*, JSTraceDataOp, void*) {
+  void GCRegistrationHook(JSRuntime* rt, JSTraceDataOp, void*) {
     wasRegisteredForGC = true;
+    runtimeRegisteredForGC = rt;
   }
 
 
   static bool wasDeregisteredFromGC {false};
+  JSRuntime* runtimeDeregisteredFromGC {nullptr};
 
 
-  void GCDeregistrationHook(JSRuntime*, JSTraceDataOp, void*) {
+  void GCDeregistrationHook(JSRuntime* rt, JSTraceDataOp, void*) {
     wasDeregisteredFromGC = true;
+    runtimeDeregisteredFromGC = rt;
+  }
+
+
+  /*
+   * Returns a void*-cast bool denoting whether the spawned thread, had its runtime registered for GC on entering the
+   * isolate pointed to by the given argument.
+   *
+   */
+
+  void* ThreadWasRooted(void* iso) {
+    TestUtils::AutoIsolateCleanup ac {};
+
+    Isolate* i {reinterpret_cast<Isolate*>(iso)};
+    wasRegisteredForGC = false;
+    runtimeRegisteredForGC = nullptr;
+    i->Enter();
+    bool result {wasRegisteredForGC && runtimeRegisteredForGC == SpiderMonkey::GetJSRuntimeForThread()};
+    i->Exit();
+
+    return reinterpret_cast<void*>(result);
   }
 }
 
@@ -641,9 +665,15 @@ V8MONKEY_TEST(IntIsolate035, "Entering an isolate registers for GC rooting") {
   Isolate* i {Isolate::New()};
 
   wasRegisteredForGC = false;
+  runtimeRegisteredForGC = nullptr;
   i->Enter();
 
   V8MONKEY_CHECK(wasRegisteredForGC, "Notified SpiderMonkey about need to root");
+  V8MONKEY_CHECK(runtimeRegisteredForGC == SpiderMonkey::GetJSRuntimeForThread(),
+                 "Notified SpiderMonkey about correct runtime");
+
+  i->Exit();
+  i->Dispose();
   internal::Isolate::SetGCRegistrationHooks(nullptr, nullptr);
 }
 
@@ -656,9 +686,11 @@ V8MONKEY_TEST(IntIsolate036, "Exiting an isolate doesn't deregister an isolate f
   i->Enter();
 
   wasDeregisteredFromGC = false;
+  runtimeRegisteredForGC = nullptr;
   i->Exit();
 
   V8MONKEY_CHECK(!wasDeregisteredFromGC, "Exiting isolate doesn't deregister");
+  V8MONKEY_CHECK(!runtimeRegisteredForGC, "Exiting isolate doesn't deregister runtime");
   i->Dispose();
 
   internal::Isolate::SetGCRegistrationHooks(nullptr, nullptr);
@@ -673,9 +705,83 @@ V8MONKEY_TEST(IntIsolate037, "Disposing an isolate deregisters it from rooting")
   i->Enter();
   i->Exit();
   wasDeregisteredFromGC = false;
+  runtimeDeregisteredFromGC = nullptr;
   i->Dispose();
 
-  V8MONKEY_CHECK(wasDeregisteredFromGC, "Exiting isolate doesn't deregister");
+  V8MONKEY_CHECK(wasDeregisteredFromGC, "Disposing an isolate deregisters");
+  V8MONKEY_CHECK(runtimeDeregisteredFromGC == SpiderMonkey::GetJSRuntimeForThread(),
+                 "Exiting isolate deregistered correct runtime");
+  internal::Isolate::SetGCRegistrationHooks(nullptr, nullptr);
+}
+
+
+V8MONKEY_TEST(IntIsolate038, "Entering an isolate on different threads triggers GC registration for each runtime") {
+  TestUtils::AutoTestCleanup ac {};
+
+  internal::Isolate::SetGCRegistrationHooks(GCRegistrationHook, GCDeregistrationHook);
+  Isolate* i {Isolate::New()};
+
+  wasRegisteredForGC = false;
+  i->Enter();
+  V8MONKEY_CHECK(wasRegisteredForGC, "Sanity check");
+
+  i->Exit();
+  Thread child {ThreadWasRooted};
+  child.Run(i);
+
+  V8MONKEY_CHECK(child.Join(), "Other thread registered seperately");
+
+  i->Dispose();
+  internal::Isolate::SetGCRegistrationHooks(nullptr, nullptr);
+}
+
+
+V8MONKEY_TEST(IntIsolate039, "Multiple entries does not result in multiple calls to SpiderMonkey requesting rooting") {
+  TestUtils::AutoTestCleanup ac {};
+
+  internal::Isolate::SetGCRegistrationHooks(GCRegistrationHook, GCDeregistrationHook);
+  Isolate* i {Isolate::New()};
+
+  wasRegisteredForGC = false;
+  i->Enter();
+  V8MONKEY_CHECK(wasRegisteredForGC, "Sanity check");
+
+  i->Exit();
+  wasRegisteredForGC = false;
+  i->Enter();
+
+  V8MONKEY_CHECK(!wasRegisteredForGC, "No duplicate registration");
+
+  i->Exit();
+  i->Dispose();
+  internal::Isolate::SetGCRegistrationHooks(nullptr, nullptr);
+}
+
+
+V8MONKEY_TEST(IntIsolate040, "Entering different isolates results in separate rooting requests") {
+  TestUtils::AutoTestCleanup ac {};
+
+  internal::Isolate::SetGCRegistrationHooks(GCRegistrationHook, GCDeregistrationHook);
+  Isolate* i {Isolate::New()};
+
+  wasRegisteredForGC = false;
+  i->Enter();
+  V8MONKEY_CHECK(wasRegisteredForGC, "Sanity check");
+  V8MONKEY_CHECK(runtimeRegisteredForGC == SpiderMonkey::GetJSRuntimeForThread(), "Sanity check");
+  i->Exit();
+
+  Isolate* j {Isolate::New()};
+  wasRegisteredForGC = false;
+  runtimeRegisteredForGC = nullptr;
+  j->Enter();
+
+  V8MONKEY_CHECK(wasRegisteredForGC, "Entering a different isolate triggered a separate registration");
+  V8MONKEY_CHECK(runtimeRegisteredForGC == SpiderMonkey::GetJSRuntimeForThread(), "Runtime correct");
+
+  j->Exit();
+  j->Dispose();
+
+  i->Dispose();
   internal::Isolate::SetGCRegistrationHooks(nullptr, nullptr);
 }
 
