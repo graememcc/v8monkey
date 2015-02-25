@@ -20,7 +20,7 @@
 // V8_UNUSED
 #include "v8config.h"
 
-// TriggerFatalError
+// TriggerFatalError, V8MONKEY_ASSERT
 #include "V8MonkeyCommon.h"
 
 
@@ -182,6 +182,7 @@ namespace {
 
 namespace v8{
   namespace SpiderMonkey {
+
     void EnsureSpiderMonkey() {
       static bool V8_UNUSED initialized {[]() {
         bool successful {JS_Init()};
@@ -209,43 +210,52 @@ namespace v8{
     }
 
 
-  void EnsureRuntimeAndContext() {
-    static bool V8_UNUSED initialized {[]() {
-      // It is a SpiderMonkey API requirement that the first thread's runtime and context are stood up in a thread-safe
-      // fashion
+    void EnsureRuntimeAndContext() {
+      static bool V8_UNUSED initialized {[]() {
+        // It is a SpiderMonkey API requirement that the first thread's runtime and context are stood up in a thread-safe
+        // fashion
+        assignRuntimeAndContext();
+        return true;
+      }()};
+
+      // We assume that if the thread has a JSRuntime, then it must also have a JSContext
+      if (GetJSRuntimeForThread()) {
+        return;
+      }
+
       assignRuntimeAndContext();
-      return true;
-    }()};
-
-    // We assume that if the thread has a JSRuntime, then it must also have a JSContext
-    if (GetJSRuntimeForThread()) {
-      return;
     }
 
-    assignRuntimeAndContext();
-  }
 
+    SpiderMonkeyData GetJSRuntimeAndJSContext() {
+      ensureTLSKey();
+      void* raw = ::v8::V8Platform::Platform::GetTLSData(smDataKey);
+      if (raw) {
+        SpiderMonkeyData* data {reinterpret_cast<SpiderMonkeyData*>(raw)};
+        return {data->rt, data->cx};
+      }
 
-  SpiderMonkeyData GetJSRuntimeAndJSContext() {
-    ensureTLSKey();
-    void* raw = ::v8::V8Platform::Platform::GetTLSData(smDataKey);
-    if (raw) {
-      SpiderMonkeyData* data {reinterpret_cast<SpiderMonkeyData*>(raw)};
-      return {data->rt, data->cx};
+      return {nullptr, nullptr};
     }
 
-    return {nullptr, nullptr};
-  }
+
+    JSRuntime* GetJSRuntimeForThread() {
+      return GetJSRuntimeAndJSContext().rt;
+    }
 
 
-  JSRuntime* GetJSRuntimeForThread() {
-    return GetJSRuntimeAndJSContext().rt;
-  }
+    JSContext* GetJSContextForThread() {
+      return GetJSRuntimeAndJSContext().cx;
+    }
 
 
-  JSContext* GetJSContextForThread() {
-    return GetJSRuntimeAndJSContext().cx;
-  }
+    #ifdef V8MONKEY_INTERNAL_TEST
+    void ForceGC() {
+      JSRuntime* rt {GetJSRuntimeForThread()};
+      V8MONKEY_ASSERT(rt, "Cannot force GC: No JSRuntime!");
+      JS_GC(rt);
+    }
+    #endif
 
 
 /*

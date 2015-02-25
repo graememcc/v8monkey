@@ -295,12 +295,10 @@ namespace v8 {
         }
 
         #ifdef V8MONKEY_INTERNAL_TEST
-          static void ForceGC();
-
-          static void SetGCRegistrationHooks(void (*onNotifier)(JSRuntime*, JSTraceDataOp, void*), void (*offNotifier)(JSRuntime*, JSTraceDataOp, void*)) {
-            GCRegistrationHookFn = onNotifier;
-            GCDeregistrationHookFn = offNotifier;
-          }
+        static void SetGCRegistrationHooks(void (*onNotifier)(JSRuntime*, JSTraceDataOp, void*), void (*offNotifier)(JSRuntime*, JSTraceDataOp, void*)) {
+          GCRegistrationHookFn = onNotifier;
+          GCDeregistrationHookFn = offNotifier;
+        }
         #endif
 
 //

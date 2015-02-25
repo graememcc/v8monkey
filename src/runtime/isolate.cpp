@@ -837,11 +837,6 @@ namespace v8 {
 #ifdef V8MONKEY_INTERNAL_TEST
     void (*Isolate::GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
     void (*Isolate::GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
-
-
-    void Isolate::ForceGC() {
-      JS_GC(::v8::SpiderMonkey::GetJSRuntimeForThread());
-    }
   }
 
 

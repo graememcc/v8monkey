@@ -72,6 +72,10 @@ namespace v8 {
      */
 
     EXPORT_FOR_TESTING_ONLY JSContext* GetJSContextForThread();
+
+    #ifdef V8MONKEY_INTERNAL_TEST
+    EXPORT_FOR_TESTING_ONLY void ForceGC();
+    #endif
   }
 
 
