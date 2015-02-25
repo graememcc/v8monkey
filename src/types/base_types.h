@@ -34,7 +34,7 @@ namespace v8 {
       public:
         Object() : weakCount{0}, callbackList(nullptr) {}
 
-        virtual ~Object();
+        virtual ~Object() {}
 
         // Bump the reference count
 //        void AddRef() {
@@ -52,10 +52,10 @@ namespace v8 {
 //        bool IsWeak(V8MonkeyObject** slotPtr);
 //        bool IsNearDeath();
 //        void PersistentRelease(V8MonkeyObject** slotPtr);
-        bool ShouldTrace();
+        bool ShouldTrace() { return false; }
 
         // Called when the SpiderMonkey garbage collector requests a trace
-        virtual void Trace(JSRuntime* runtime, JSTracer* tracer) = 0;
+        virtual void Trace(JSRuntime* runtime, JSTracer* tracer) {}
 //
 //        #ifdef V8MONKEY_INTERNAL_TEST
 //        int RefCount() { return refCount; }
@@ -179,7 +179,7 @@ namespace v8 {
      */
 
     #ifdef V8MONKEY_INTERNAL_TEST
-    class DummyV8MonkeyObject: public Object {
+    class EXPORT_FOR_TESTING_ONLY DummyV8MonkeyObject : public Object {
       public:
         void Trace(JSRuntime*, JSTracer*) override {}
 
@@ -187,6 +187,8 @@ namespace v8 {
           return &other == this;
         }
 
+        DummyV8MonkeyObject() = default;
+        ~DummyV8MonkeyObject() = default;
         DummyV8MonkeyObject(const DummyV8MonkeyObject& other) = default;
         DummyV8MonkeyObject(DummyV8MonkeyObject&& other) = default;
         DummyV8MonkeyObject& operator=(const DummyV8MonkeyObject& other) = default;
@@ -196,7 +198,7 @@ namespace v8 {
 
     // Many tests seek to test when objects are deleted. To this end, we use special fake objects, that set a flag at
     // the given location if they were deleted
-    class DeletionObject: public Object {
+    class EXPORT_FOR_TESTING_ONLY DeletionObject : public Object {
       public:
         DeletionObject() : index {-1}, ptr {nullptr} {}
         DeletionObject(bool* boolPtr) : index(-1), ptr(boolPtr) {}
@@ -229,7 +231,7 @@ namespace v8 {
 
     // Some tests need to check that their objects are traced by the garbage collector. This dummy class can be used
     // for that purpose
-    class TraceFake : public Object {
+    class EXPORT_FOR_TESTING_ONLY TraceFake : public Object {
       public:
         TraceFake(bool* boolPtr) : ptr(boolPtr) {}
 
@@ -240,6 +242,7 @@ namespace v8 {
         TraceFake(TraceFake&& other) = default;
         TraceFake& operator=(const TraceFake& other) = default;
         TraceFake& operator=(TraceFake&& other) = default;
+
       private:
         bool* ptr;
     };

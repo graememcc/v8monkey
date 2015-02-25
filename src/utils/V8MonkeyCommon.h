@@ -23,7 +23,9 @@ namespace v8 {
         void EXPORT_FOR_TESTING_ONLY TriggerFatalError(const char* location, const char* message);
 
         // Trigger an error that should not be catchable by a user-supplied handler
-        void Abort(const char* location, const char* message, bool isAssert = false);
+        // Note: we need to EXPORT_FOR_TESTING_ONLY so that files that tests that only require header files don't fail to link
+        // if the header under test contains asserts
+        void EXPORT_FOR_TESTING_ONLY Abort(const char* location, const char* message, bool isAssert = false);
 
 //        // Returns true if V8 is dead, but also triggers a fatal error handler call, reporting it
 //        static bool CheckDeath(const char* method);

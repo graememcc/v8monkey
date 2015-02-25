@@ -386,6 +386,9 @@ $(v8monkeytarget): $(v8objects) $(v8monkeyheaders) $(smtarget)
 
 # XXX I think the objects should depend on the local h file
 
+src/data_structures/objectblock.h: src/utils/V8MonkeyCommon.h
+
+
 $(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h src/platform/platform.h src/utils/test.h \
                                    src/utils/V8MonkeyCommon.h src/utils/SpiderMonkeyUtils.h $(JSAPIheader)
 
