@@ -126,7 +126,7 @@ namespace {
    * This class is used to ensure we always teardown SpiderMonkey after it has been initialized, regardless of whether
    * the client remembers to call V8::Dispose or not.
    *
-   * The game here is that we have a unique_ptr tearDown with static storage duration. When SpiderMonkey is
+   * The game here is that we have a unique_ptr - tearDown - with static storage duration. When SpiderMonkey is
    * initialized, we heap allocate a new instance of SpiderMonkeyTearDown, and give it to the unique_ptr to manage the
    * lifetime. Then, all we need is for the destructor to check to see if SM has been correctly shutdown, and if not
    * go ahead and invoke the shutdown.
