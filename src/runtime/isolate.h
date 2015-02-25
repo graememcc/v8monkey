@@ -33,25 +33,20 @@
 namespace v8 {
   namespace internal {
 
-//    /*
-//     * Container class for Handle information. Although only manipulated by HandleScopes and Persistents, it is
-//     * convenient to have all the traced values in one place, and only one object that needs to participate in
-//     * GC rooting. Hence the HandleData, and the blocks of object pointers they refer to are stored in
-//     * InternalIsolates.
-//     */
+    /*
+     * Isolates and HandleScopes cooperate in the management of local handles. This struct encapsulates the
+     * information required for HandleScope construction / destruction.
+     *
+     * Note: the limit field is currently unused, but is required for V8 API compatability.
+     *
+     * TODO: I'm not in love with the name.
+     *
+     */
 
-//    struct HandleData {
-//      V8MonkeyObject** next;
-
-//      V8MonkeyObject** limit;
-
-//      int level;
-
-//      inline void Initialize() {
-//        next = limit = nullptr;
-//        level = 0;
-//      }
-//    };
+    struct LocalHandleLimits {
+      Object** next;
+      Object** limit;
+    };
 
 
 //    /*
@@ -66,8 +61,8 @@ namespace v8 {
       public:
         // XXX Put an initializer list here once we have the shape of InternalIsolate nailed down
         Isolate() : embedderData {nullptr}, hasFatalError {false}, previousIsolates {}, localHandleData {},
-                    isDisposed {false}, isRegisteredForGC {false}, fatalErrorHandler {nullptr}, lockingThread {0},
-                    lockingMutex{}, GCMutex{} {}
+                    localHandleLimits {nullptr, nullptr}, isDisposed {false}, isRegisteredForGC {false},
+                    fatalErrorHandler {nullptr}, lockingThread {0}, lockingMutex{}, GCMutex{} {}
 
 //        InternalIsolate() : isDisposed(false), isRegisteredForGC(false), fatalErrorHandler(nullptr), threadData(nullptr),
 //                            embedderData(nullptr), lockingThread(0), isInitted(false) {
@@ -203,10 +198,21 @@ namespace v8 {
 
         bool IsLockedForThisThread() const;
 
-//        // Return a copy of the handle scope data for this isolate. If manipulating this data, the caller must hold the
-//        // GC Mutex
-//        // XXX Check need to hold it in dispose/destructor
-//        HandleData GetLocalHandleData();
+        // XXX
+        //   We might want to make GetLocalHandleLimits and co private, and make HandleScope a friend class
+        //   This would include LockGCMutex etc. Note that it is the HS that must lock: it must record the
+        //   info before it has a chance to change
+
+        // XXX The bit about no need for mutex will only be true if this is private and HandleScope is a friend
+        /*
+         * Return a copy of the local handle limits for this isolate. There is no need to hold the GCMutex during this
+         * call: a GC iteration will not change the values, and the only caller is expected to the HandleScope
+         * XXX...(FIX THIS SENTENCE: CONSTRUCTOR OR INITIALIZER?), and the V8 API requires correct locking in place
+         * HandleScope construction.
+         *
+         */
+
+        LocalHandleLimits GetLocalHandleLimits();
 
 //        // XXX Check need to hold GCMutex in dispose/destructor
 //        // Copy the given HandleData into our own. The caller must hold the GC Mutex.
@@ -315,6 +321,10 @@ namespace v8 {
         // XXX Temporary?
         // Pointers to objects contained in API Local handles
         LocalHandles localHandleData {};
+
+        // Data for HandleScopes to destroy all managed Local handles on destruction
+        LocalHandleLimits localHandleLimits {nullptr, nullptr};
+
 //        struct ThreadData;
 
         // Has this isolate been disposed?
