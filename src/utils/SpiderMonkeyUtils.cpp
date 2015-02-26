@@ -11,7 +11,6 @@
 #include <memory>
 
 // TLSKey, CreateTLSKey, GetTLSData, StoreTLSData
-// XXX Remove me if we don't need this for compartments
 #include "platform/platform.h"
 
 // SpiderMonkeyUtils definition
@@ -23,7 +22,6 @@
 // V8_UNUSED
 #include "v8config.h"
 
-// internal::
 // TriggerFatalError, V8MONKEY_ASSERT
 #include "V8MonkeyCommon.h"
 
