@@ -131,8 +131,13 @@ namespace {
     end = std::partition(begin, end, sameRuntime);
 
     // partition does not invalidate first
-    std::for_each(begin, end, [&rt](const RooterRegistration& r) {
+    std::for_each(begin, end, [&rt](RooterRegistration& r) {
       JS_RemoveExtraGCRootsTracer(rt, r.callback, r.callbackData);
+
+      // We are responsible for the lifetime of the data
+      v8::SpiderMonkey::TracerData* td {reinterpret_cast<v8::SpiderMonkey::TracerData*>(r.callbackData)};
+      delete td;
+      r.callbackData = nullptr;
     });
 
     rooterRegistrations.erase(begin, end);
@@ -474,7 +479,7 @@ namespace v8{
     }
 
 
-    void AddIsolateRooter(::v8::internal::Isolate* isolate, RooterCallback callback, void* data) {
+    void AddIsolateRooter(::v8::internal::Isolate* isolate, RooterCallback callback, TracerData* data) {
       // This function maintains the variant that, while there can be multiple registrations for a particular isolate,
       // there can be at most one for a particular isolate for a specific JSRuntime.
       JSRuntime* rt {GetJSRuntimeForThread()};
@@ -489,9 +494,12 @@ namespace v8{
       if (pos != end) {
         V8MONKEY_ASSERT(pos->callback == callback, "Attempt to add root for same isolate/JSRuntime combination with "
                                                    "different callback");
-        V8MONKEY_ASSERT(pos->callbackData == data, "Attempt to add root for same isolate/JSRuntime combination with different "
-                                                   "client data");
-        // Isolate is already rooting this runtime: nothing to do
+        // Isolate is already rooting this runtime: nothing to do, except free the TracerData (which we took ownership
+        // of). Note though, we must guard against cases where the exact same TraceData was supplied - we cannot free
+        // it in that case.
+        if (pos->callbackData != data) {
+          delete data;
+        }
         return;
       }
 
@@ -529,7 +537,7 @@ namespace v8{
       end = std::partition(begin, end, sameIsolate);
 
       // partition does not invalidate first iterator
-      std::for_each(begin, end, [](const RooterRegistration& r) {
+      std::for_each(begin, end, [](RooterRegistration& r) {
         #ifdef V8MONKEY_INTERNAL_TEST
           if (GCDeregistrationHookFn) {
             GCDeregistrationHookFn(r.runtime, r.callback, r.callbackData);
@@ -539,6 +547,10 @@ namespace v8{
         #else
           JS_RemoveExtraGCRootsTracer(r.runtime, r.callback, r.callbackData);
         #endif
+          // We are responsible for the lifetime of the data
+          TracerData* td {reinterpret_cast<TracerData*>(r.callbackData)};
+          delete td;
+          r.callbackData = nullptr;
       });
 
       rooterRegistrations.erase(begin, end);

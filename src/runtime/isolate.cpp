@@ -153,9 +153,8 @@ namespace {
    */
 
   void GCTracingFunction(JSTracer* tracer, void* data) {
-    // All we need to do is cast to the isolate, and invoke Trace
-    v8::internal::Isolate* i = reinterpret_cast<v8::internal::Isolate*>(data);
-    i->Trace(tracer);
+    v8::SpiderMonkey::TracerData* traceData {reinterpret_cast<v8::SpiderMonkey::TracerData*>(data)};
+    traceData->isolate->Trace(traceData->rt, tracer);
   }
 
 
@@ -403,6 +402,8 @@ namespace v8 {
       static_assert(Internals::kIsolateEmbedderDataOffset == offsetof(Isolate, embedderData),
                     "Isolate definition and v8 header out of sync");
 
+      using namespace ::v8;
+
       // As isolate entries stack, and threads can unlock allowing other threads to enter an isolate, we must note
       // which isolate the entering thread to exit to, and which thread will be considered the most-recently entered
       // once this thread exits.
@@ -412,7 +413,7 @@ namespace v8 {
       int V8_UNUSED threadID {fetchOrAssignThreadID()};
 
       // Likewise, it should have a JSRuntime and JSContext
-      ::v8::SpiderMonkey::EnsureRuntimeAndContext();
+      SpiderMonkey::EnsureRuntimeAndContext();
 
       // Register this isolate with SpiderMonkey for GC
       {
@@ -420,7 +421,8 @@ namespace v8 {
         // XXX Do we even need to lock here? This shouldn't affect the ability of other JSRuntimes to trace us?
         AutoGCMutex {this};
 
-        ::v8::SpiderMonkey::AddIsolateRooter(this, GCTracingFunction, this);
+        SpiderMonkey::TracerData* data {new SpiderMonkey::TracerData {SpiderMonkey::GetJSRuntimeForThread(), this}};
+        SpiderMonkey::AddIsolateRooter(this, GCTracingFunction, data);
         isRegisteredForGC = true;
       }
 
@@ -777,11 +779,10 @@ namespace v8 {
      *
      */
 
-    void Isolate::Trace(JSTracer* tracer) {
+    void Isolate::Trace(JSRuntime* rt, JSTracer* tracer) {
       // Don't allow API mutation of the handle structures during tracing
       AutoGCMutex {this};
 
-      JSRuntime* rt {::v8::SpiderMonkey::GetJSRuntimeForThread()};
       GCData gcData {rt, tracer};
       localHandleData.Iterate(GCIterationFunction, &gcData);
 

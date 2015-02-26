@@ -268,14 +268,15 @@ namespace v8 {
         };
 
         /*
-         * Trace all SpiderMonkey objects contained in handles in this Isolate.
+         * Trace all SpiderMonkey objects contained in handles in this Isolate that were created in the given
+         * JSRuntime.
          *
-         * Note: this function is public, as the callback supplied to SpiderMonkey when participating in rooting is
+         * Note: this function must be public, as the callback supplied to SpiderMonkey when participating in rooting is
          * in an anonymous namespace.
          *
          */
 
-        void Trace(JSTracer* tracer);
+        void Trace(JSRuntime* rt, JSTracer* tracer);
 
 //        // Provided for V8 compat
 //        bool IsInitted() const { return isInitted; }

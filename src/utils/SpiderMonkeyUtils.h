@@ -86,6 +86,17 @@ namespace v8 {
 
 
     /*
+     * A POD type for communicating to a RooterCallback function which isolate and JSRuntime it has been invoked for.
+     *
+     */
+
+    struct TracerData {
+      JSRuntime* rt;
+      ::v8::internal::Isolate* isolate;
+    };
+
+
+    /*
      * Add the given callback function as a GC roots tracer, for the given isolate. The function will be called with
      * the supplied data during SpiderMonkey garbage collection. (Note in particular, that if the function needs to
      * refer to the isolate, then the calling isolate must include a self-pointer in the supplied data; this function
@@ -96,9 +107,12 @@ namespace v8 {
      *
      * This function is a no-op if the isolate has already been added for the given runtime.
      *
+     * This function will take responsibility for the lifetime of the callback data, deleting it when no longer
+     * required.
+     *
      */
 
-    void AddIsolateRooter(::v8::internal::Isolate* isolate, RooterCallback callback, void* data);
+    void AddIsolateRooter(::v8::internal::Isolate* isolate, RooterCallback callback, TracerData* data);
 
 
     /*
