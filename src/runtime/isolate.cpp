@@ -17,13 +17,10 @@
 // std::begin, std::end
 #include <iterator>
 
-// JS_AddExtraGCRootsTracer, JS_GC JS_RemoveExtraGCRootsTracer, JSTracer JSTraceDataOp
-#include "jsapi.h"
-
 // Class definition
 #include "runtime/isolate.h"
 
-// AssignJSRuntimeAndJSContext, GetJS[Runtime|Context]ForThread, InitialiseSpiderMonkeyDataTLSKeys, RTCXData
+// AddIsolateRooter, EnsureRuntimeAndContext, GetJSRuntimeForThread, RemoveRooter, RTCXData
 #include "utils/SpiderMonkeyUtils.h"
 
 // TLSKey, CreateTLSKey
@@ -43,6 +40,9 @@
 
 // V8_UNUSED
 #include "v8config.h"
+
+
+class JSRuntime;
 
 
 // XXX Review comment
