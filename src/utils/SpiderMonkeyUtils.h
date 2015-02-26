@@ -46,7 +46,7 @@ namespace v8 {
      *
      */
 
-    void EnsureRuntimeAndContext();
+    EXPORT_FOR_TESTING_ONLY void EnsureRuntimeAndContext();
 
 
     /*
