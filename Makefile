@@ -429,7 +429,7 @@ src/threads/autolock.h: src/platform/platform.h
 $(call variants, src/threads/locker): $(v8monkeyheader) src/runtime/isolate.h src/utils/V8MonkeyCommon.h
 
 
-src/types/base_types.h: $(v8monkeyheader) $(JSAPIheader) src/utils/test.h
+src/types/base_types.h: $(v8monkeyheader) src/utils/SpiderMonkeyUtils.h src/utils/test.h
 
 
 src/types/value_types.h: $(JSAPIheader) src/utils/test.h

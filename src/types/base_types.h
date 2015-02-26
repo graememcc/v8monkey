@@ -7,14 +7,18 @@
 // is_base_of
 #include <type_traits>
 
-// JSRuntime JSTracer
-#include "jsapi.h"
+// GetJSRuntimeForThread
+#include "utils/SpiderMonkeyUtils.h"
 
 // EXPORT_FOR_TESTING_ONLY
 #include "utils/test.h"
 
 // Value
 #include "v8.h"
+
+
+class JSRuntime;
+class JSTracer;
 
 
 namespace v8 {
@@ -39,7 +43,7 @@ namespace v8 {
 
     class EXPORT_FOR_TESTING_ONLY Object {
       public:
-        Object() : weakCount{0}, callbackList(nullptr) {}
+        Object() : weakCount{0}, owningRuntime {::v8::SpiderMonkey::GetJSRuntimeForThread()}, callbackList {nullptr} {}
 
         virtual ~Object() {}
 
@@ -62,6 +66,11 @@ namespace v8 {
 
         // Called when the SpiderMonkey garbage collector requests a trace
         void Trace(JSRuntime* runtime, JSTracer* tracer) {
+          // Watch out for cases where a different runtime is being traced
+          if (runtime != owningRuntime) {
+            return;
+          }
+
           // XXX Note: we may need some mechanism for custom semantics (i.e. shouldTrace might be false, but the
           //           value might be an external string that we cannot delete without SpiderMonkey's sayso.
           //           Also, will depend on how we do iteration. There may be a smartptr keeping us alive.
@@ -84,7 +93,7 @@ namespace v8 {
 
       private:
 //        int refCount;
-        int weakCount;
+        int weakCount {0};
 //        bool isNearDeath;
 //
 //        struct WeakRefListElem {
@@ -96,7 +105,9 @@ namespace v8 {
 //        };
 //
 //        WeakRefListElem* callbackList;
-        void* callbackList;
+        JSRuntime* owningRuntime {nullptr};
+
+        void* callbackList {nullptr};
 
         bool ShouldTrace() { return false; }
 
