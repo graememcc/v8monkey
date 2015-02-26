@@ -274,6 +274,22 @@ namespace {
 
     return reinterpret_cast<void*>(result);
   }
+
+
+  /*
+   * Utility function that simply has a thread enter/exit a supplied isolate, without disposing it.
+   *
+   */
+
+  void* ThreadEnterExit(void* iso) {
+    // Note: can't construct an AutoIsolateCleanup - we don't want to dispose of the isolate
+
+    Isolate* i {reinterpret_cast<Isolate*>(iso)};
+    i->Enter();
+    i->Exit();
+
+    return nullptr;
+  }
 }
 
 
@@ -785,6 +801,64 @@ V8MONKEY_TEST(IntIsolate040, "Entering different isolates results in separate ro
   internal::Isolate::SetGCRegistrationHooks(nullptr, nullptr);
 }
 
+
+V8MONKEY_TEST(IntIsolate041, "Able to dispose an isolate after it was entered/exited on another thread") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  Thread child {ThreadEnterExit};
+  child.Run(i);
+  child.Join();
+
+  i->Dispose();
+  // If we get here disposing worked as expected
+  V8MONKEY_CHECK(true, "Didn't crash");
+}
+
+// XXX Write the following test when we have the mechanisms to support it
+// (Required mechanisms: Can inject TraceFakes etc into isolates, TraceFakes can count number of traces)
+// Follow-on to test 039 (duplicate rooting registrations)
+// Inject a TraceFake into an isolate we created
+// Exit and re-enter the isolate
+// zero the trace count, and force a GC
+// trace count == 1. Proves that we don't add the same rooting function multiple times
+
+// XXX Write the following test when we have the mechanisms to support it
+// (Required mechanisms: Can inject TraceFakes etc into isolates)
+// We supply the location for a TraceFake to update
+// Call a thread fn that enters/exits the supplied isolate, and somehow creates a TraceFake with the given address
+// On thread join, set the location to false, and force a GC
+// value still false is correct. It shows that we don't trace objects for a runtime after the runtime is destroyed
+
+// XXX Write the following test when we have the mechanisms to support it
+// (Required mechanisms: Can inject shared_ptr wrapped objects into isolates)
+// Enter an isolate, inject a TraceFake THAT WE HOLD IN A SHARED_PTR, exit and dispose
+// Set the TraceFake location to false, and force a GC
+// value still false is correct. It shows that we don't trace objects for an isolate after the isolate is destroyed
+
+// XXX Write the following test once we have the mechanisms to support it:
+// (Required mechanisms: Can inject TraceFakes etc into isolates)
+// Inject a TraceFake into an isolate
+// Call a thread that simply exits. This will still trigger the thread destruction code in SpiderMonkeyUtils
+// After joining, set TraceFake boolean to false, and force a GC
+// If TraceFake boolean is true, we've proved that destruction of threads not associated with isolates doesn't affect
+// rooting of other isolates
+
+// XXX Write the following test once we have the mechanisms to support it:
+// (Required mechanisms: Can inject TraceFakes etc into isolates)
+// Inject a TraceFake into an isolate
+// Call a thread that creates an isolate and enters and exits it.
+// After joining, set TraceFake boolean to false, and force a GC
+// If TraceFake boolean is true, we've proved that destruction of threads associated with another isolate doesn't affect
+// rooting of other isolates
+
+// XXX Write the following test once we have the mechanisms to support it:
+// (Required mechanisms: Can inject TraceFakes etc into isolates)
+// Inject a TraceFake into an isolate
+// Call a thread with our isolate, have the thread enter and exit it
+// After joining, set TraceFake boolean to false, and force a GC
+// If TraceFake boolean is true, we've proved that destruction of threads associated with this isolate doesn't affect
+// this thread's rooting of the isolate
 
 V8MONKEY_TEST(IntScope001, "Scopes exit copes with multiple entries on main thread") {
   TestUtils::AutoTestCleanup ac {};
