@@ -400,6 +400,12 @@ namespace {
     // Place in a unique_ptr with static storage duration
     tearDown.reset(smTearDown);
   }
+
+
+  #ifdef V8MONKEY_INTERNAL_TEST
+    v8::SpiderMonkey::GCRegistrationHook GCRegistrationHookFn {nullptr};
+    v8::SpiderMonkey::GCDeregistrationHook GCDeregistrationHookFn {nullptr};
+  #endif
 }
 
 
@@ -490,7 +496,16 @@ namespace v8{
       }
 
       rooterRegistrations.emplace_back(isolate, rt, callback, data);
-      JS_AddExtraGCRootsTracer(rt, callback, data);
+
+      #ifdef V8MONKEY_INTERNAL_TEST
+        if (GCRegistrationHookFn) {
+          GCRegistrationHookFn(rt, callback, data);
+        } else {
+          JS_AddExtraGCRootsTracer(rt, callback, data);
+        }
+      #else
+        JS_AddExtraGCRootsTracer(rt, callback, data);
+      #endif
     }
 
 
@@ -515,7 +530,15 @@ namespace v8{
 
       // partition does not invalidate first iterator
       std::for_each(begin, end, [](const RooterRegistration& r) {
-        JS_RemoveExtraGCRootsTracer(r.runtime, r.callback, r.callbackData);
+        #ifdef V8MONKEY_INTERNAL_TEST
+          if (GCDeregistrationHookFn) {
+            GCDeregistrationHookFn(r.runtime, r.callback, r.callbackData);
+          } else {
+            JS_RemoveExtraGCRootsTracer(r.runtime, r.callback, r.callbackData);
+          }
+        #else
+          JS_RemoveExtraGCRootsTracer(r.runtime, r.callback, r.callbackData);
+        #endif
       });
 
       rooterRegistrations.erase(begin, end);
@@ -523,11 +546,17 @@ namespace v8{
 
 
     #ifdef V8MONKEY_INTERNAL_TEST
-    void ForceGC() {
-      JSRuntime* rt {GetJSRuntimeForThread()};
-      V8MONKEY_ASSERT(rt, "Cannot force GC: No JSRuntime!");
-      JS_GC(rt);
-    }
+      void ForceGC() {
+        JSRuntime* rt {GetJSRuntimeForThread()};
+        V8MONKEY_ASSERT(rt, "Cannot force GC: No JSRuntime!");
+        JS_GC(rt);
+      }
+
+
+      void SetGCRegistrationHooks(GCRegistrationHook on, GCDeregistrationHook off) {
+        GCRegistrationHookFn = on;
+        GCDeregistrationHookFn = off;
+      }
     #endif
 
 

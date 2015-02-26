@@ -294,13 +294,6 @@ namespace v8 {
           return reinterpret_cast<Isolate*>(i);
         }
 
-        #ifdef V8MONKEY_INTERNAL_TEST
-        static void SetGCRegistrationHooks(void (*onNotifier)(JSRuntime*, JSTraceDataOp, void*), void (*offNotifier)(JSRuntime*, JSTraceDataOp, void*)) {
-          GCRegistrationHookFn = onNotifier;
-          GCDeregistrationHookFn = offNotifier;
-        }
-        #endif
-
 //
 //        // Initialize the default isolate and claim thread id 1
 //        static void EnsureDefaultIsolateForStaticInitializerThread();
@@ -393,11 +386,6 @@ namespace v8 {
 
 //        // V8 compat
 //        bool isInitted;
-
-        #ifdef V8MONKEY_INTERNAL_TEST
-          static void (*GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);
-          static void (*GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*);
-        #endif
     };
   }
 }

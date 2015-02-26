@@ -113,7 +113,12 @@ namespace v8 {
 
 
     #ifdef V8MONKEY_INTERNAL_TEST
-    EXPORT_FOR_TESTING_ONLY void ForceGC();
+      EXPORT_FOR_TESTING_ONLY void ForceGC();
+
+      using GCRegistrationHook = void (*)(JSRuntime*, RooterCallback, void*);
+      using GCDeregistrationHook = GCRegistrationHook;
+
+      EXPORT_FOR_TESTING_ONLY void SetGCRegistrationHooks(GCRegistrationHook on, GCDeregistrationHook off);
     #endif
   }
 

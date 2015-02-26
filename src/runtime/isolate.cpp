@@ -563,16 +563,7 @@ namespace v8 {
         return;
       }
 
-      #ifdef V8MONKEY_INTERNAL_TEST
-        if (GCRegistrationHookFn) {
-          GCRegistrationHookFn(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
-        } else {
-          JS_AddExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
-        }
-      #else
-        JS_AddExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
-      #endif
-
+      JS_AddExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
       isRegisteredForGC = true;
     }
 
@@ -588,16 +579,7 @@ namespace v8 {
       AutoGCMutex {this};
 
       // Deregister this isolate from SpiderMonkey
-      #ifdef V8MONKEY_INTERNAL_TEST
-        if (GCDeregistrationHookFn) {
-          GCDeregistrationHookFn(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
-        } else {
-          JS_RemoveExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
-        }
-      #else
-        JS_RemoveExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
-      #endif
-
+      JS_RemoveExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
       isRegisteredForGC = false;
     }
 //
@@ -835,8 +817,6 @@ namespace v8 {
 
 
 #ifdef V8MONKEY_INTERNAL_TEST
-    void (*Isolate::GCRegistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
-    void (*Isolate::GCDeregistrationHookFn)(JSRuntime*, JSTraceDataOp, void*) = nullptr;
   }
 
 
