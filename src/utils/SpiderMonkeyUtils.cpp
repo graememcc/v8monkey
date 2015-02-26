@@ -183,6 +183,14 @@ namespace {
 
 
   /*
+   * Track whether SpiderMonkey has been torn down
+   *
+   */
+
+  bool spiderMonkeyDestroyed {false};
+
+
+  /*
    * Machinery for tracking the number of extant runtimes; these must be tracked to decide whether it is safe to tear
    * down SpiderMonkey when the client requests V8 teardown.
    *
@@ -280,6 +288,8 @@ namespace {
   void assignRuntimeAndContext() {
     using SpiderMonkeyData = v8::SpiderMonkey::SpiderMonkeyData;
 
+    V8MONKEY_ASSERT(!spiderMonkeyDestroyed, "Attempting to assign JSRuntime after SpiderMonkey destroyed");
+
     ensureTLSKey();
     v8::SpiderMonkey::EnsureSpiderMonkey();
 
@@ -330,17 +340,17 @@ namespace {
 
   class SpiderMonkeyTearDown {
     public:
-      SpiderMonkeyTearDown() : isDisposed {false} {}
+      SpiderMonkeyTearDown() {}
 
       ~SpiderMonkeyTearDown() {
         // V8::Dispose may have already successfully destroyed SpiderMonkey
-        if (!isDisposed) {
+        if (!spiderMonkeyDestroyed) {
           AttemptDispose(true);
         }
       }
 
       void AttemptDispose(bool staticDestructorsRunning = false) {
-        V8MONKEY_ASSERT(!isDisposed || staticDestructorsRunning, "V8::Dispose called more than once?");
+        V8MONKEY_ASSERT(!spiderMonkeyDestroyed, "V8::Dispose called more than once?");
 
         int threadsWithRuntimes {std::atomic_load(&runtimeCount)};
 
@@ -367,7 +377,7 @@ namespace {
         V8MONKEY_ASSERT(rooterRegistrations.empty(), "Some isolates/threads are still rooted!");
 
         JS_ShutDown();
-        isDisposed = true;
+        spiderMonkeyDestroyed = true;
 
         // We no longer need the TLS key. All JSRuntimes and JSContexts have been destroyed.
         Platform::DeleteTLSKey(smDataKey);
@@ -379,9 +389,6 @@ namespace {
       SpiderMonkeyTearDown(SpiderMonkeyTearDown&& other) = default;
       SpiderMonkeyTearDown& operator=(const SpiderMonkeyTearDown& other) = delete;
       SpiderMonkeyTearDown& operator=(SpiderMonkeyTearDown&& other) = default;
-
-    private:
-      bool isDisposed {false};
   };
 
 
