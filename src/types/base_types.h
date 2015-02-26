@@ -259,7 +259,7 @@ namespace v8 {
     // for that purpose
     class EXPORT_FOR_TESTING_ONLY TraceFake : public Object {
       public:
-        TraceFake(bool* boolPtr) : ptr(boolPtr) {}
+        TraceFake(bool* boolPtr, int* traceCount = nullptr) : ptr(boolPtr), traceCountPtr {traceCount} {}
 
         ~TraceFake() = default;
         TraceFake(const TraceFake& other) = default;
@@ -268,10 +268,15 @@ namespace v8 {
         TraceFake& operator=(TraceFake&& other) = default;
 
       private:
-        bool* ptr;
+        bool* ptr {nullptr};
+        int* traceCountPtr {nullptr};
 
         void DoTrace(JSRuntime*, JSTracer*) override {
           *ptr = true;
+
+          if (traceCountPtr) {
+            (*traceCountPtr)++;
+          }
         }
     };
 
