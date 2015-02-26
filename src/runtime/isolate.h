@@ -8,9 +8,6 @@
 // begin, end
 #include <iterator>
 
-// JSRuntime, JSTracer, JSTraceDataOp
-#include "jsapi.h"
-
 // shared_ptr
 #include "memory"
 
@@ -28,6 +25,9 @@
 
 // vector
 #include <vector>
+
+
+class JSTracer;
 
 
 namespace v8 {

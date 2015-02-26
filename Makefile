@@ -420,7 +420,7 @@ $(call variants, src/runtime/persistent): $(v8monkeyheader) src/data_structures/
                                            src/runtime/isolate.h src/types/base_types.h src/utils/V8MonkeyCommon.h
 
 
-src/runtime/isolate.h: $(v8monkeyheader) $(JSAPIheader) src/platform/platform.h src/utils/test.h src/types/base_types.h
+src/runtime/isolate.h: $(v8monkeyheader) src/platform/platform.h src/utils/test.h src/types/base_types.h
 
 
 src/threads/autolock.h: src/platform/platform.h
