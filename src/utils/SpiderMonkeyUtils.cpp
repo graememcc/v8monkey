@@ -38,10 +38,10 @@ namespace v8 {
 }
 
 
+using namespace v8::V8Platform;
+
+
 namespace {
-  using namespace v8::V8Platform;
-
-
   // XXX Actually: do they even need to have entered the isolate now?
   /*
    * As V8 clients may start creating primitive values as soon as they enter a particular isolate, we are forced to
@@ -141,10 +141,49 @@ namespace {
   }
 
 
+  /*
+   * We want to be good citizens, and ensure that we call JS_Shutdown; although it is not mandatory, it might be in the
+   * future. Ideally, the client will remember to call V8::Dispose, and we can tear it down then.
+   *
+   * There is, of course, a complication. In order to tear down SpiderMonkey, all JSContexts and JSRuntimes must have
+   * previously been torn down. Each thread is assigned a JSRuntime/JSContext on isolate entry, so the problem becomes
+   * an ordering problem; how then can we tell that all threads (except possibly the main thread) have exited?
+   *
+   * Clearly, the first issue is tracking JSRuntime etc. construction. The machinery immediately following atomically
+   * counts whenever a new JSRuntime is created. We assume that this will only be invoked when both the JSRuntime and
+   * JSContext were successfully constructed, and that the JSRuntime was immediately disposed of if JSContext
+   * construction failed.
+   *
+   * Next, we store the JSRuntime/JSContext in thread-local storage. By doing this, we can supply a destructor function
+   * that will run on thread exit, destroying the runtime and context, and atomically decrementing the JSRuntime count.
+   *
+   * With this in place, we can ensure that when the client calls V8::Dispose, we don't attempt teardown if multiple
+   * threads with JSRuntimes still exist. Of course, our problem now is that we still want to schedule a later teardown
+   * of SpiderMonkey, were destruction at client request time not possible, or if the client never bothered calling
+   * V8::Dispose.
+   *
+   * To that end, we heap allocate a SpiderMonkeyTearDown class, whose sole purpose is to ensure graceful shutdown of
+   * SpiderMonkey. By placing the pointer in a unique_ptr with static storage duration, we can schedule an attempt to
+   * destroy SpiderMonkey when static destructors for this translation unit run.
+   *
+   * By this point the class's destructor runs, there should be at most one surviving thread - the thread running the
+   * destructors. If the client has detached threads, there's not much we can do, so we simply assert (I don't believe
+   * that V8 would cope well with detached threads either). For that last thread, we cannot wait until thread
+   * destruction for JSRuntime / JSContext teardown: the whole point of the exercise is that we're destroying
+   * SpiderMonkey now, it'll be gone by then. so the SpiderMonkeyTearDown destructor manually forces teardown of the
+   * surviving thread's JSRuntime and JSContext. We are then safe to destroy SpiderMonkey.
+   *
+   * Of course, before embarking on this, the SpiderMonkeyTearDown destructor first checks that SpiderMonkey has not
+   * already been destroyed (or indeed never created). It returns immediately in that case.
+   *
+   */
 
-  class SpiderMonkeyTearDown;
-  std::unique_ptr<SpiderMonkeyTearDown> tearDown {nullptr};
 
+  /*
+   * Machinery for tracking the number of extant runtimes; these must be tracked to decide whether it is safe to tear
+   * down SpiderMonkey when the client requests V8 teardown.
+   *
+   */
 
   std::atomic<int> runtimeCount {0};
 
@@ -159,9 +198,19 @@ namespace {
   }
 
 
-  // Stores pointer to RTCX data for each thread
+  /*
+   * Key for retrieving a JSRuntime/JSContext pair from thread-local storage
+   *
+   */
+
   TLSKey* smDataKey {nullptr};
 
+
+  /*
+   * Destroy the JSRuntime and JSContext associated with a thread. This can be called when a thread exits, or when
+   * static destructors are running (to destroy the JSRuntime / JSContext for the static destructor thread)
+   *
+   */
 
   void tearDownRuntimeAndContext(void* raw) {
     using SpiderMonkeyData = v8::SpiderMonkey::SpiderMonkeyData;
@@ -186,23 +235,41 @@ namespace {
 
     delete data;
 
-    // We might be called by the SpiderMonkeyTearDown class, so zero out the TLS pointer
+    // We might be called by the SpiderMonkeyTearDown class; zero out the TLS values to ensure that this call is a
+    // no-op when the thread exits
     Platform::StoreTLSData(smDataKey, nullptr);
 
     recordJSRuntimeDestruction();
   }
 
 
+  /*
+   * ensureTLSKey performs one-time initialization of the thread-local storage key for JSRuntime and JSContext
+   * information, and registers a teardown function to ensure those objects get destroyed on thread exit.
+   *
+   * createTLSKey is an auxillary helper to ensure the above is performed in a thread-safe manner.
+   *
+   */
+
+  void createTLSKey() {
+    smDataKey = Platform::CreateTLSKey(tearDownRuntimeAndContext);
+  }
+
+
   void ensureTLSKey() {
-    static bool V8_UNUSED initialized {[]() {
-      smDataKey = Platform::CreateTLSKey(tearDownRuntimeAndContext);
-      return true;
-    }()};
+    // Whilst I guess we could create a key in a thread-safe manner by assiging to a local static (thread-safe in
+    // C++11) the subsequent nullptr test and write of the global is theoretically susceptible to TOCTTOU, although
+    // in reality its likely to be harmless, as I believe word-sized writes are atomic on most machines.
+    //
+    // Instead, I'm going to be conservative and create it using a OneShot.
+    static OneShot keyCreator {createTLSKey};
+
+    keyCreator.Run();
   }
 
 
   /*
-   * Assign this thread a JSRuntime and JSContext. The caller should have checked that the thread doesn't already have
+   * Assign this thread a JSRuntime and JSContext. The caller must have checked that the thread doesn't already have
    * one assigned.
    *
    */
@@ -242,14 +309,19 @@ namespace {
   }
 
 
+  class SpiderMonkeyTearDown;
+  std::unique_ptr<SpiderMonkeyTearDown> tearDown {nullptr};
+
+
   /*
    * This class is used to ensure we always teardown SpiderMonkey after it has been initialized, regardless of whether
-   * the client remembers to call V8::Dispose or not.
+   * the client remembers to call V8::Dispose or not. When the client requests V8 init, an instance of this class will
+   * be heap allocated, and it's pointer stored in the unique_ptr above. Then, when V8::Dispose invokes our external
+   * TearDownSpiderMonkey function, or static destructors run, the class's AttemptDispose method will be invoked.
    *
-   * The game here is that we have a unique_ptr - tearDown - with static storage duration. When SpiderMonkey is
-   * initialized, we heap allocate a new instance of SpiderMonkeyTearDown, and give it to the unique_ptr to manage the
-   * lifetime. Then, all we need is for the destructor to check to see if SM has been correctly shutdown, and if not
-   * go ahead and invoke the shutdown.
+   * It is possible that AttemptDispose may return without destroying SpiderMonkey; this might be necessary due to the
+   * existence of other threads with runtimes. In that case, another attempt will be scheduled during static destructor
+   * execution. During static destruction, it is expected that there are no remaining obstacles to safe destruction.
    *
    */
 
@@ -258,24 +330,21 @@ namespace {
       SpiderMonkeyTearDown() : isDisposed {false} {}
 
       ~SpiderMonkeyTearDown() {
+        // V8::Dispose may have already successfully destroyed SpiderMonkey
         if (!isDisposed) {
           AttemptDispose(true);
         }
       }
 
-      void AttemptDispose(bool isBeingDestroyed = false) {
-        V8MONKEY_ASSERT(!isDisposed || isBeingDestroyed, "V8::Dispose called more than once?");
-
-        if (isDisposed) {
-          return;
-        }
+      void AttemptDispose(bool staticDestructorsRunning = false) {
+        V8MONKEY_ASSERT(!isDisposed || staticDestructorsRunning, "V8::Dispose called more than once?");
 
         int threadsWithRuntimes {std::atomic_load(&runtimeCount)};
 
-        if (!isBeingDestroyed && threadsWithRuntimes > 1) {
-          // Hmm, still some threads running. Let's try again when static destructors run
+        if (!staticDestructorsRunning && threadsWithRuntimes > 1) {
+          // Hmm, still some threads running. Nil desperandum. We'll try again later.
           return;
-        } else if (isBeingDestroyed) {
+        } else if (staticDestructorsRunning) {
           V8MONKEY_ASSERT(threadsWithRuntimes <= 1, "Attempting to destroy V8 when other threads still exist");
         }
 
@@ -296,16 +365,43 @@ namespace {
 
         JS_ShutDown();
         isDisposed = true;
+
+        // We no longer need the TLS key. All JSRuntimes and JSContexts have been destroyed.
+        Platform::DeleteTLSKey(smDataKey);
+        smDataKey = nullptr;
       }
 
+      // Note: we're storing this class in a unique_ptr, so must be MoveConstructible
       SpiderMonkeyTearDown(const SpiderMonkeyTearDown& other) = delete;
-      SpiderMonkeyTearDown(SpiderMonkeyTearDown&& other) = delete;
+      SpiderMonkeyTearDown(SpiderMonkeyTearDown&& other) = default;
       SpiderMonkeyTearDown& operator=(const SpiderMonkeyTearDown& other) = delete;
-      SpiderMonkeyTearDown& operator=(SpiderMonkeyTearDown&& other) = delete;
+      SpiderMonkeyTearDown& operator=(SpiderMonkeyTearDown&& other) = default;
 
     private:
       bool isDisposed {false};
   };
+
+
+  /*
+   * Attempts to init SpiderMonkey, aborting if unsuccesful. Also heap-allocates a SpiderMonkeyTearDown instance
+   * to ensure graceful shutdown of SpiderMonkey.
+   *
+   */
+
+  void initSpiderMonkey() {
+    bool successful {JS_Init()};
+
+    if (!successful) {
+      // I doubt we can do anything useful if we failed to init SpiderMonkey
+      ::v8::V8Monkey::Abort("v8::Initialize", "Failed to init Spidermonkey");
+    }
+
+    // SpiderMonkey has been successfully stood up. We must now ensure it's torn down come what may. Constructing
+    // a SpiderMonkeyTearDown will ensure this.
+    SpiderMonkeyTearDown* smTearDown {new SpiderMonkeyTearDown};
+    // Place in a unique_ptr with static storage duration
+    tearDown.reset(smTearDown);
+  }
 }
 
 
@@ -313,24 +409,15 @@ namespace v8{
   namespace SpiderMonkey {
 
     void EnsureSpiderMonkey() {
-      static bool V8_UNUSED initialized {[]() {
-        bool successful {JS_Init()};
+      // We ensure we only attempt to init SpiderMonkey once by wrapping the real logic in a one-shot
+      static OneShot spiderMonkeyInit {initSpiderMonkey};
 
-        if (!successful) {
-          // I doubt we can do anything useful if we failed to init SpiderMonkey
-          ::v8::V8Monkey::Abort("v8::Initialize", "Failed to init Spidermonkey");
-          // Unreached
-          return false;
-        }
-
-        SpiderMonkeyTearDown* smTearDown {new SpiderMonkeyTearDown};
-        tearDown.reset(smTearDown);
-        return true;
-      }()};
+      spiderMonkeyInit.Run();
     }
 
 
     void TearDownSpiderMonkey() {
+      // No need to teardown SpiderMonkey if we never initted it
       if (!tearDown.get()) {
         return;
       }
@@ -340,14 +427,16 @@ namespace v8{
 
 
     void EnsureRuntimeAndContext() {
-      static bool V8_UNUSED initialized {[]() {
-        // It is a SpiderMonkey API requirement that the first thread's runtime and context are stood up in a thread-safe
-        // fashion
-        assignRuntimeAndContext();
-        return true;
-      }()};
+      // It is a SpiderMonkey API requirement that the first thread's runtime and context are stood up in a thread-safe
+      // fashion. To that end, we create a OneShot function to be run by the first thread to get here.
+      static OneShot firstThreadInit {assignRuntimeAndContext};
 
-      // We assume that if the thread has a JSRuntime, then it must also have a JSContext
+      // Note we don't need to check if the thread has a runtime and context yet: if this is the first execution, then
+      // by definition it cannot have one, and later threads won't make the call anyway.
+      firstThreadInit.Run();
+
+      // If the thread already has the requisite objects, (including if the first thread just acquired them above), we
+      // can quit. We assume that if the thread has a JSRuntime, then it must also have a JSContext.
       if (GetJSRuntimeForThread()) {
         return;
       }
@@ -357,7 +446,10 @@ namespace v8{
 
 
     SpiderMonkeyData GetJSRuntimeAndJSContext() {
+      // We can't be certain that any thread has had a JSRuntime or JSContext assigned, so we have no way of knowing
+      // if the key has been created.
       ensureTLSKey();
+
       void* raw = ::v8::V8Platform::Platform::GetTLSData(smDataKey);
       if (raw) {
         SpiderMonkeyData* data {reinterpret_cast<SpiderMonkeyData*>(raw)};
