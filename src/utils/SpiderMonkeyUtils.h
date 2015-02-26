@@ -1,18 +1,28 @@
 #ifndef V8MONKEY_SMUTILS_H
 #define V8MONKEY_SMUTILS_H
 
+// JSTraceDataOp
+#include "jsapi.h"
 
 // EXPORT_FOR_TESTING_ONLY
 #include "utils/test.h"
 
 
-struct JSRuntime;
-struct JSContext;
-struct JSCompartment;
-
-
 namespace v8 {
+
+  namespace internal {
+    class Isolate;
+  }
+
+
   namespace SpiderMonkey {
+
+    /*
+     * In this namespace, we wrap some common JSAPI calls, particularly where there is a need to perform additional
+     * internal book-keeping in relation to the particular operation.
+     *
+     */
+
     struct SpiderMonkeyData {
       JSRuntime* rt;
       JSContext* cx;
@@ -72,6 +82,34 @@ namespace v8 {
      */
 
     EXPORT_FOR_TESTING_ONLY JSContext* GetJSContextForThread();
+
+
+    /*
+     * Add the given callback function as a GC roots tracer, for the given isolate. The function will be called with
+     * the supplied data during SpiderMonkey garbage collection. (Note in particular, that if the function needs to
+     * refer to the isolate, then the calling isolate must include a self-pointer in the supplied data; this function
+     * will not add it).
+     *
+     * It is assumed that the calling thread has been allocated a JSRuntime, and it is this JSRuntime that the isolate
+     * should be added as a rooter of.
+     *
+     * This function is a no-op if the isolate has already been added for the given runtime.
+     *
+     */
+
+    void AddIsolateRooter(::v8::internal::Isolate* isolate, JSTraceDataOp callback, void* data);
+
+
+    /*
+     * Remove the given isolate as a rooter of any JSRuntimes it has previously registered to. It is intended that this
+     * function should only be called on client-initiated teardown, or isolate destruction.
+     *
+     * This is a no-op if the given isolate was not associated with any JSRuntimes.
+     *
+     */
+
+    void RemoveRooter(::v8::internal::Isolate*);
+
 
     #ifdef V8MONKEY_INTERNAL_TEST
     EXPORT_FOR_TESTING_ONLY void ForceGC();

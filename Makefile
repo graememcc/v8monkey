@@ -456,7 +456,7 @@ $(call variants, src/utils/SpiderMonkeyUtils): $(JSAPIheader) src/platform/platf
 											   src/utils/V8MonkeyCommon.h
 
 
-src/utils/SpiderMonkeyUtils.h: src/utils/test.h
+src/utils/SpiderMonkeyUtils.h: $(JSAPIheader) src/utils/test.h
 
 
 #**********************************************************************************************************************#

@@ -1,7 +1,10 @@
+// partition
+#include <algorithm>
+
 // atomic_int
 #include <atomic>
 
-// JS_Init, JS_NewContext, JS_NewRuntime, JS::RuntimeOptionsRef, JS_ShutDown
+// JS_(Add|Remove)ExtraGCRootsTracer, JS_Init, JS_NewContext, JS_NewRuntime, JS::RuntimeOptionsRef, JS_ShutDown
 #include "jsapi.h"
 
 // unique_ptr
@@ -20,12 +23,123 @@
 // V8_UNUSED
 #include "v8config.h"
 
+// internal::
 // TriggerFatalError, V8MONKEY_ASSERT
 #include "V8MonkeyCommon.h"
+
+// vector, begin, end
+#include <vector>
+
+
+namespace v8 {
+  namespace internal {
+    class Isolate;
+  }
+}
 
 
 namespace {
   using namespace v8::V8Platform;
+
+
+  // XXX Actually: do they even need to have entered the isolate now?
+  /*
+   * As V8 clients may start creating primitive values as soon as they enter a particular isolate, we are forced to
+   * allocate a JSRuntime and JSContext at that time. Further, the isolate must then participate in GC rooting to
+   * guarantee that the wrapped SpiderMonkey values are not destroyed. There are, however, a number of subtleties:
+   *   - We don't want to register the isolate as a rooter for a particular JSRuntime more than once
+   *   - At different times, different threads - each with their own JSRuntime - can enter the isolate, so the
+   *     isolate must be a rooter for each of them
+   *   - We cannot control what event will happen first: the client initiates isolate teardown, the isolate goes
+   *     out of scope, or the thread exits
+   *
+   * Clearly we must deregister the isolate on its disposal / destruction; otherwise, when SpiderMonkey next performs a
+   * garbage collection and invokes the callback function, the callback function's data could contain a dangling
+   * pointer to an isolate that no longer exists. Of course, the isolate doesn't have visibility in to which threads
+   * are still alive, so the attempt to deregister has the potential to dereference the pointer to a JSRuntime that
+   * no longer exists (because it's owning thread exited).
+   *
+   * We encapsulate the requisite book-keeping here. We maintain a vector of RooterRegistration structs, which contain
+   * the pertinent information for a isolate/JSRuntime pair. The AddIsolateRooter function maintains the invariant that
+   * there is only one such entry for the isolate/JSRuntime pair. RemoveRooter functions are supplied for both isolates
+   * and runtimes. In particular, once a thread requests a JSRuntime, the thread-local storage destructor ensures that
+   * it will disengage from GC rooting on death.
+   *
+   */
+
+
+  /*
+   * We create one of these structs every time an Isolate asks to be rooted for GC, in order to avoid duplicate
+   * registrations, and ensure that isolates are registered for each JSRuntime that they encounter.
+   *
+   */
+
+  struct RooterRegistration {
+    v8::internal::Isolate* isolate;
+    JSRuntime* runtime;
+    JSTraceDataOp callback;
+    void* callbackData;
+
+    RooterRegistration(v8::internal::Isolate* iso, JSRuntime* rt, JSTraceDataOp cb, void* data) :
+      isolate {iso}, runtime {rt}, callback {cb}, callbackData {data} {}
+
+    RooterRegistration(const RooterRegistration& other) = default;
+    RooterRegistration(RooterRegistration&& other) = default;
+    RooterRegistration& operator=(const RooterRegistration& other) = default;
+    RooterRegistration& operator=(RooterRegistration&& other) = default;
+    ~RooterRegistration() = default;
+  };
+
+
+  /*
+   * Every time an isolate is registered as a rooter for a particular JSRuntime, a RooterRegistration should be
+   * created, and inserted here. Similarly, it should be removed when either the Isolate or the thread owning the
+   * JSRuntime is torn down. We don't anticipate large numbers of isolates or threads being spawned, so I think we
+   * can get away with only sorting this on the fly where required for removals.
+   *
+   * Note: order is important here, this must be defined before the tearDown smart_ptr, as this cannot be destroyed
+   * before the SpiderMonkeyTearDown class held by the smart pointer; the destruction of that object will need to
+   * inspect rooter registrations.
+   *
+   */
+
+  std::vector<RooterRegistration> rooterRegistrations {};
+
+
+  /*
+   * Bulk deregisters all isolates rooting the given JSRuntime. Called on thread destruction to ensure that isolates do
+   * not attempt to remove themselves as rooters from JSRuntimes that no longer exist.
+   *
+   * This is a no-op if the given JSRuntime did not have any associated rooting isolates.
+   *
+   * rt is assumed to be a valid dereferencable pointer.
+   *
+   */
+
+  void RemoveRooter(JSRuntime* rt) {
+    V8MONKEY_ASSERT(rt, "RemoveRooter called with nullptr");
+
+    if (rooterRegistrations.empty()) {
+      return;
+    }
+
+    // We want to identify and group together the RooterRegistrations for the given JSRuntime, as we can then iterate
+    // over them to remove them as rooters and delete them from our container
+    auto begin = std::begin(rooterRegistrations);
+    auto end = std::end(rooterRegistrations);
+    auto sameRuntime = [&rt](const RooterRegistration& r) {
+      return r.runtime == rt;
+    };
+    end = std::partition(begin, end, sameRuntime);
+
+    // partition does not invalidate first
+    std::for_each(begin, end, [&rt](const RooterRegistration& r) {
+      JS_RemoveExtraGCRootsTracer(rt, r.callback, r.callbackData);
+    });
+
+    rooterRegistrations.erase(begin, end);
+  }
+
 
 
   class SpiderMonkeyTearDown;
@@ -57,12 +171,18 @@ namespace {
     }
 
     SpiderMonkeyData* data {reinterpret_cast<SpiderMonkeyData*>(raw)};
+    JSRuntime* rt {data->rt};
 
-    V8MONKEY_ASSERT(data->rt, "JSRuntime* was null");
+    V8MONKEY_ASSERT(rt, "JSRuntime* was null");
     V8MONKEY_ASSERT(data->cx, "JSContext* was null");
 
+    // Although (as far as I can tell) the SpiderMonkey API doesn't require us to deregister any additional rooters at
+    // JSRuntime destruction, we must still do so, to ensure we don't dereference dangling JSRuntime pointers when the
+    // isolate is torn down
+    RemoveRooter(rt);
+
     JS_DestroyContext(data->cx);
-    JS_DestroyRuntime(data->rt);
+    JS_DestroyRuntime(rt);
 
     delete data;
 
@@ -162,8 +282,17 @@ namespace {
         // The code that tears down the JSRuntime and JSContext normally won't run until thread exit, which in the
         // case of the main thread is too late. We must destroy them manually.
         if (threadsWithRuntimes == 1) {
+          #ifdef DEBUG
+          JSRuntime* rt {v8::SpiderMonkey::GetJSRuntimeForThread()};
+          auto correctRuntime = [&rt](RooterRegistration& r) { return r.runtime == rt; };
+          V8MONKEY_ASSERT(std::all_of(std::begin(rooterRegistrations), std::end(rooterRegistrations), correctRuntime),
+                          "Other JSRuntimes still rooted!");
+          #endif
+
           tearDownRuntimeAndContext(Platform::GetTLSData(smDataKey));
         }
+
+        V8MONKEY_ASSERT(rooterRegistrations.empty(), "Some isolates/threads are still rooted!");
 
         JS_ShutDown();
         isDisposed = true;
@@ -246,6 +375,60 @@ namespace v8{
 
     JSContext* GetJSContextForThread() {
       return GetJSRuntimeAndJSContext().cx;
+    }
+
+
+    void AddIsolateRooter(::v8::internal::Isolate* isolate, JSTraceDataOp callback, void* data) {
+      // This function maintains the variant that, while there can be multiple registrations for a particular isolate,
+      // there can be at most one for a particular isolate for a specific JSRuntime.
+      JSRuntime* rt {GetJSRuntimeForThread()};
+      V8MONKEY_ASSERT(rt, "Cannot add rooter: No JSRuntime!");
+
+      auto end = std::end(rooterRegistrations);
+      auto sameIsoAndRT = [&isolate, &rt](const RooterRegistration& r) {
+        return r.isolate == isolate && r.runtime == rt;
+      };
+      auto pos = std::find_if(std::begin(rooterRegistrations), std::end(rooterRegistrations), sameIsoAndRT);
+
+      if (pos != end) {
+        V8MONKEY_ASSERT(pos->callback == callback, "Attempt to add root for same isolate/JSRuntime combination with "
+                                                   "different callback");
+        V8MONKEY_ASSERT(pos->callbackData == data, "Attempt to add root for same isolate/JSRuntime combination with different "
+                                                   "client data");
+        // Isolate is already rooting this runtime: nothing to do
+        return;
+      }
+
+      rooterRegistrations.emplace_back(isolate, rt, callback, data);
+      JS_AddExtraGCRootsTracer(rt, callback, data);
+    }
+
+
+    void RemoveRooter(::v8::internal::Isolate* isolate) {
+      // Note: in contrast with AddIsolateRooter above, we do not require the thread destroying the isolate to have
+      // an associated JSRuntime. However, we expect that the JSAPI call to remove rooters for a runtime does not
+      // require the calling thread to be the owner of said runtime; were this ever to change, we'd be completely
+      // screwed.
+
+      if (rooterRegistrations.empty()) {
+        return;
+      }
+
+      // We want to identify and group together the RooterRegistrations for the given isolate, as we can then iterate
+      // over them to remove them as rooters and delete them from our container
+      auto begin = std::begin(rooterRegistrations);
+      auto end = std::end(rooterRegistrations);
+      auto sameIsolate = [&isolate](const RooterRegistration& r) {
+        return r.isolate == isolate;
+      };
+      end = std::partition(begin, end, sameIsolate);
+
+      // partition does not invalidate first iterator
+      std::for_each(begin, end, [](const RooterRegistration& r) {
+        JS_RemoveExtraGCRootsTracer(r.runtime, r.callback, r.callbackData);
+      });
+
+      rooterRegistrations.erase(begin, end);
     }
 
 
