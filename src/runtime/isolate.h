@@ -98,7 +98,7 @@ namespace v8 {
          *
          */
 
-        void Dispose();
+        void Dispose(bool fromDestructor = false);
 
         /*
          * Returns a pointer to the currently entered isolate for the calling thread. May be null.
@@ -351,22 +351,6 @@ namespace v8 {
 
 //        // HandleScope data for Persistents
 //        HandleData persistentData;
-
-        // XXX So, I think we want two bits: I think we need to maintain a vector of JSRuntimes that we root, and
-        //     these functions can manipulate this. They can then use SpiderMonkeyUtils to actually add the rooting.
-        /*
-         * Notify SpiderMonkey that this isolate will participate in GC rooting for a given runtime.
-         *
-         */
-
-        void AddGCRooter();
-
-        /*
-         * Disengage from SpiderMonkey GC rooting.
-         *
-         */
-
-        void RemoveGCRooter();
 
         // XXX Temporary?
         /*

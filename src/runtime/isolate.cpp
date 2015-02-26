@@ -58,6 +58,9 @@
  * was removed in bug 650411. Don't believe the documentation for JS_NewRuntime either, which states that JSRuntimes
  * can be moved from one thread to another with an API call. This too was removed, in bug 901934).
  *
+ * XXX Fix the paragraph below. We do now handle isolate entries exits correctly, but I'm still worried about cross-
+ *     thread attempts to access values (although this might not be permitted anyway - check)
+ *     Also, the bit about TLS is way off. We need it regardless.
  * Clearly then, when fully emulating the V8 API, we cannot have a 1-1 correspondence from V8 Isolates to JSAPI
  * JSRuntimes. Now, although I've pulled multithreading support for the moment-I wasn't satisfied I would be able to
  * satisfactorily clean up threads leaving isolates, particularly once it became necessary to hook up isolates to
@@ -65,10 +68,11 @@
  * proves possible to reinstate multithreading, hence the otherwise unneccessary use of Thread-Local Storage.
  *
  * Essentially, we look out for the first time a thread enters any isolate, and assign a JSRuntime and JSContext then.
- * A destructor is attached to the TLS key to teardown those objects on thread exit, and there is some separate
- * machinery to teardown the main thread's JSRuntime and JSContext: thread destruction in that case would imply that
- * OneTrueStaticInitializer's destructor has ran, and that destructor tears down SpiderMonkey, so we're too late.
+ * We can then register as a GC rooter for that isolate, though we must take care to ensure we deregister (ideally when
+ * the client makes the Isolate::Dispose API call, however we must ensure this happens regardless). Additional
+ * machinery exists elsewhere that deregistration also happens when any thread owning a JSRuntime exits.
  *
+ * XXX Is the below still really true?
  * TODO: If the differences in the threading models prove insurmountable, then there are a lot of opportunities here
  *       and elsewhere for simplificication and possibly optimization.
  *
@@ -379,13 +383,15 @@ namespace v8 {
     }
 
     /*
-     * When an InternalIsolate is entered, we will assign that thread a JSRuntime and a JSContext if the thread has
-     * not yet had one assigned. Likewise, and in common with V8, at this point we will assign the thread a unique
+     * When an Isolate is entered, we will assign that thread a JSRuntime and a JSContext if the thread does not
+     * already have them. Likewise, and in common with V8, at this point we will assign the thread a unique
      * numeric ID.
      *
      * When any thread enters an isolate, we must notify SpiderMonkey that the isolate will be participating in GC
      * rooting. Once in an isolate, a thread is free to start creating objects, and some of those objects may wrap
-     * SpiderMonkey objects.
+     * SpiderMonkey objects. Note: the reverse is not true. The objects may still be in scope when the thread exits,
+     * so we must continue rooting until the thread exits or the isolate is disposed.
+     * // XXX Prove and illustrate such a scenario could occur.
      *
      * Isolates stack: if a thread enters isolate A, and then creates and enters isolate B from A, then, on exiting B,
      * the thread should "return" to A. Some book-keeping here handles this.
@@ -409,7 +415,14 @@ namespace v8 {
       ::v8::SpiderMonkey::EnsureRuntimeAndContext();
 
       // Register this isolate with SpiderMonkey for GC
-      AddGCRooter();
+      {
+        // XXX Why does AutoGCMutex need the isolate? I thought nested classes could access members of the parent?
+        // XXX Do we even need to lock here? This shouldn't affect the ability of other JSRuntimes to trace us?
+        AutoGCMutex {this};
+
+        ::v8::SpiderMonkey::AddIsolateRooter(this, GCTracingFunction, this);
+        isRegisteredForGC = true;
+      }
 
       // What isolate was the thread in previously?
       Isolate* previousIsolate {GetCurrentIsolateFromTLS()};
@@ -471,11 +484,11 @@ namespace v8 {
      * SpiderMonkey GC rooting. At this point, we also delete the contents of our ObjectBlock structure for Persistent
      * handles (the similar structure for HandleScope/Locals should have already been emptied when HandleScopes were
      * exited; if there is still an extant HandleScope, this represents an API misuse error on the part of the client,
-     * so he/she can jolly well live with the consequences).
+     * so they can jolly well live with the consequences).
      *
      */
 
-    void Isolate::Dispose() {
+    void Isolate::Dispose(bool fromDestructor) {
       if (ContainsThreads()) {
         V8Monkey::TriggerFatalError("v8::Isolate::Dispose", "Attempt to dispose isolate in which threads are active");
         return;
@@ -483,7 +496,10 @@ namespace v8 {
 
       // Unhook this isolate from SpiderMonkey GC rooting
       if (isRegisteredForGC) {
-        RemoveGCRooter();
+        AutoGCMutex {this};
+
+        ::v8::SpiderMonkey::RemoveRooter(this);
+        isRegisteredForGC = false;
       }
 
       // TODO Should we worry about the possibility of an already-queued GC being beaten to the lock by the
@@ -512,7 +528,9 @@ namespace v8 {
 //
 //       // The default isolate gets deleted by OneTrueStaticInitializer. This is consistent with V8 behaviour.
 //       if (this != defaultIsolate) {
-     delete this;
+     if (!fromDestructor) {
+       delete this;
+     }
 //       } else {
 //         // Clear out TLS so the destructor doesn't run again (unless on main thread)
 //         int threadID = fetchOrAssignThreadID();
@@ -523,12 +541,6 @@ namespace v8 {
   }
 
 
-    /*
-     * The destructor must check to see if the isolate is the default isolate, and if so dispose it to force
-     * GC unrooting in case the client never called Dispose. For all other isolates, this should be a no-op.
-     *
-     */
-
     Isolate::~Isolate() {
       V8MONKEY_ASSERT(!ContainsThreads(), "Destructing an isolate with threads still active");
 
@@ -537,51 +549,13 @@ namespace v8 {
       // need to grudgingly tidy up after them; we must ensure that we have disengaged from GC Rooting, something that
       // must happen before JSRuntime and JSContext teardown, which is probably imminent.
       if (!isDisposed) {
-        Dispose();
+        Dispose(true);
       }
 
       V8MONKEY_ASSERT(!isRegisteredForGC, "Isolate is still rooting?");
     }
 
-
-    /*
-     * An internal Isolate contains two structures containing pointers to internal Objects. Objects created whilst the
-     * thread has entered this isolate will be referenced there. Some of those objects might wrap SpiderMonkey objects,
-     * and need to participate in GC rooting. This function adds a tracing function which will traverse and trace those
-     * structures.
-     *
-     */
-
-    // XXX BUG!! We need to register per runtime! (This will need a test)
     // XXX ANOTHER BUG - Won't tracing be on another thread?
-    // XXX Move the SpiderMonkey bits into SpiderMonkeyUtils?
-    void Isolate::AddGCRooter() {
-      AutoGCMutex {this};
-
-      // Protect against isolate re-entry
-      if (isRegisteredForGC) {
-        return;
-      }
-
-      JS_AddExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
-      isRegisteredForGC = true;
-    }
-
-
-    /*
-     * Called on isolate disposal to unhook the isolate from GC Rooting. Objects created whilst in this isolate are
-     * now effectively dead, so the SpiderMonkey objects they wrapped no longer need to be rooted, and can be reaped
-     * by the SpiderMonkey garbage collector.
-     *
-     */
-
-    void Isolate::RemoveGCRooter() {
-      AutoGCMutex {this};
-
-      // Deregister this isolate from SpiderMonkey
-      JS_RemoveExtraGCRootsTracer(::v8::SpiderMonkey::GetJSRuntimeForThread(), GCTracingFunction, this);
-      isRegisteredForGC = false;
-    }
 //
 //
 //     /*
