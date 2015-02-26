@@ -16,6 +16,7 @@ namespace v8 {
 
 
   namespace SpiderMonkey {
+    using RooterCallback = JSTraceDataOp;
 
     /*
      * In this namespace, we wrap some common JSAPI calls, particularly where there is a need to perform additional
@@ -97,7 +98,7 @@ namespace v8 {
      *
      */
 
-    void AddIsolateRooter(::v8::internal::Isolate* isolate, JSTraceDataOp callback, void* data);
+    void AddIsolateRooter(::v8::internal::Isolate* isolate, RooterCallback callback, void* data);
 
 
     /*

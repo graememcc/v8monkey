@@ -77,10 +77,10 @@ namespace {
   struct RooterRegistration {
     v8::internal::Isolate* isolate;
     JSRuntime* runtime;
-    JSTraceDataOp callback;
+    v8::SpiderMonkey::RooterCallback callback;
     void* callbackData;
 
-    RooterRegistration(v8::internal::Isolate* iso, JSRuntime* rt, JSTraceDataOp cb, void* data) :
+    RooterRegistration(v8::internal::Isolate* iso, JSRuntime* rt, v8::SpiderMonkey::RooterCallback cb, void* data) :
       isolate {iso}, runtime {rt}, callback {cb}, callbackData {data} {}
 
     RooterRegistration(const RooterRegistration& other) = default;
@@ -470,7 +470,7 @@ namespace v8{
     }
 
 
-    void AddIsolateRooter(::v8::internal::Isolate* isolate, JSTraceDataOp callback, void* data) {
+    void AddIsolateRooter(::v8::internal::Isolate* isolate, RooterCallback callback, void* data) {
       // This function maintains the variant that, while there can be multiple registrations for a particular isolate,
       // there can be at most one for a particular isolate for a specific JSRuntime.
       JSRuntime* rt {GetJSRuntimeForThread()};
