@@ -321,7 +321,7 @@ namespace {
   /*
    * A thread function that should simply exit.
    *
-   * TODO: Explore mechanisms for ensuring the compiler doesn't elide calling this function.
+   * This function will be called through a function pointer, so the call shouldn't be optimized out
    *
    */
 
@@ -767,19 +767,17 @@ V8MONKEY_TEST(IntIsolate035, "Entering an isolate registers for GC rooting") {
 V8MONKEY_TEST(IntIsolate036, "Exiting an isolate doesn't deregister an isolate from rooting") {
   TestUtils::AutoTestCleanup ac {};
 
-  SpiderMonkey::SetGCRegistrationHooks(GCRegistrationHook, GCDeregistrationHook);
   Isolate* i {Isolate::New()};
   i->Enter();
-
-  wasDeregisteredFromGC = false;
-  runtimeRegisteredForGC = nullptr;
+  bool wasTraced {false};
+  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
   i->Exit();
 
-  V8MONKEY_CHECK(!wasDeregisteredFromGC, "Exiting isolate doesn't deregister");
-  V8MONKEY_CHECK(!runtimeRegisteredForGC, "Exiting isolate doesn't deregister runtime");
-  i->Dispose();
+  SpiderMonkey::ForceGC();
+  V8MONKEY_CHECK(wasTraced, "Object traced after exiting isolate");
 
-  SpiderMonkey::SetGCRegistrationHooks(nullptr, nullptr);
+  i->Dispose();
 }
 
 
