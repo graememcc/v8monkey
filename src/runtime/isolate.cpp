@@ -17,16 +17,13 @@
 // std::begin, std::end
 #include <iterator>
 
-// unique_ptr
-#include <memory>
-
 // Class definition
 #include "runtime/isolate.h"
 
 // AddIsolateRooter, EnsureRuntimeAndContext, GetJSRuntimeForThread, RemoveRooter, RTCXData
 #include "utils/SpiderMonkeyUtils.h"
 
-// TLSKey, CreateTLSKey
+// TLSKey
 #include "platform/platform.h"
 
 // TestUtils EXPORT_FOR_TESTING_ONLY
@@ -92,19 +89,9 @@ namespace {
    */
 
   // The thread's unique ID
-  std::unique_ptr<TLSKey, TLSKeyDeleter> threadIDKey {nullptr};
+  TLSKey threadIDKey {};
   // The internal isolate that the thread has entered
-  std::unique_ptr<TLSKey, TLSKeyDeleter> currentIsolateKey {nullptr};
-
-
-  void ensureTLSKeys() {
-    static bool V8_UNUSED initialized {[]() noexcept {
-      threadIDKey.reset(Platform::CreateTLSKey());
-      currentIsolateKey.reset(Platform::CreateTLSKey());
-
-      return true;
-    }()};
-  }
+  TLSKey currentIsolateKey {};
 
 
   /*
@@ -113,8 +100,7 @@ namespace {
    */
 
   v8::internal::Isolate* GetCurrentIsolateFromTLS() {
-    ensureTLSKeys();
-    void* raw_id {Platform::GetTLSData(currentIsolateKey)};
+    void* raw_id {currentIsolateKey.Get()};
     return reinterpret_cast<v8::internal::Isolate*>(raw_id);
   }
 
@@ -126,8 +112,7 @@ namespace {
    */
 
   void SetCurrentIsolateInTLS(v8::internal::Isolate* i) {
-    ensureTLSKeys();
-    Platform::StoreTLSData(currentIsolateKey, i);
+    currentIsolateKey.Put(i);
   }
 
 
@@ -190,22 +175,21 @@ namespace {
     static std::atomic_int idCount {1};
 
     int threadID {std::atomic_fetch_add(&idCount, 1)};
-
-    // Note: we assume the caller has called ensureTLSKeys()
-    Platform::StoreTLSData(threadIDKey, reinterpret_cast<void*>(threadID));
+    void* asVoid {nullptr};
+    std::memcpy(reinterpret_cast<char*>(&asVoid), reinterpret_cast<char*>(&threadID), sizeof(int));
+    threadIDKey.Put(asVoid);
 
     return threadID;
   }
 
 
   /*
-   * Returns the thread ID stored in TLS, creating one if there is no such ID in TLS
+   * Returns the thread ID stored in TLS, creating one if it doesn't exist.
    *
    */
 
   int fetchOrAssignThreadID() {
-    ensureTLSKeys();
-    void* raw_id {Platform::GetTLSData(threadIDKey)};
+    void* raw_id {threadIDKey.Get()};
     int existing_id;
     static_assert(sizeof(int) <= sizeof(void*), "Int size prevents type-punning");
     std::memcpy(reinterpret_cast<char*>(&existing_id), reinterpret_cast<char*>(&raw_id), sizeof(int));

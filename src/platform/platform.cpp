@@ -164,46 +164,64 @@ namespace v8 {
     }
 
 
-    TLSKey* Platform::CreateTLSKey(void (*destructorFn)(void*)) {
-      static_assert(sizeof(pthread_key_t) <= sizeof(TLSKey*), "pthread_key_t won't fit in a pointer; cannot type-pun");
-
-      // We don't actually create an object, we just pretend whatever pthread_key_create gives us is a pointer.
-      // A test in test_platform checks that pthread_key_t fits, however, as noted there, I'd like to check this earlier,
-      // e.g. perhaps at the configure stage if we go down the configure/make route
-      pthread_key_t key;
-
-      // XXX Should we abort on non-zero return code?
-      pthread_key_create(&key, destructorFn);
-      TLSKey* result {nullptr};
-      std::memcpy(reinterpret_cast<char*>(&result), reinterpret_cast<char*>(&key), sizeof(pthread_key_t));
-
-      return result;
+    TLSKey::TLSKey(void (*destructorFn)(void*)) {
+      if (sizeof(pthread_key_t) > sizeof(void*)) {
+        pthread_key_t* platformTLSKey {new pthread_key_t};
+        // XXX Need to error check the result
+        pthread_key_create(platformTLSKey, destructorFn);
+        privateData = reinterpret_cast<void*>(platformTLSKey);
+      } else {
+        pthread_key_t platformTLSKey {};
+        // XXX Need to error check the result
+        pthread_key_create(&platformTLSKey, destructorFn);
+        std::memcpy(reinterpret_cast<char*>(&privateData), reinterpret_cast<char*>(&platformTLSKey),
+                    sizeof(pthread_key_t));
+      }
     }
 
 
-    void Platform::DeleteTLSKey(TLSKey* k) {
-      pthread_key_t key;
-      std::memcpy(reinterpret_cast<char*>(&key), reinterpret_cast<char*>(&k), sizeof(pthread_key_t));
-
-      // XXX Should we abort on non-zero return code?
-      pthread_key_delete(key);
+    TLSKey::~TLSKey() {
+      if (sizeof(pthread_key_t) > sizeof(void*)) {
+        pthread_key_t* platformTLSKey {reinterpret_cast<pthread_key_t*>(privateData)};
+        // XXX Need to error check the result
+        pthread_key_delete(*platformTLSKey);
+        delete platformTLSKey;
+      } else {
+        pthread_key_t platformTLSKey {};
+        std::memcpy(reinterpret_cast<char*>(&platformTLSKey), reinterpret_cast<char*>(&privateData),
+                    sizeof(pthread_key_t));
+        // XXX Need to error check the result
+        pthread_key_delete(platformTLSKey);
+      }
     }
 
 
-    void Platform::PutTLSData(TLSKey* k, void* value) {
-      pthread_key_t key;
-      std::memcpy(reinterpret_cast<char*>(&key), reinterpret_cast<char*>(&k), sizeof(pthread_key_t));
 
-      // XXX Should we abort on non-zero return code?
-      pthread_setspecific(key, value);
+    void TLSKey::Put(void* value) {
+      if (sizeof(pthread_key_t) > sizeof(void*)) {
+        pthread_key_t* platformTLSKey {reinterpret_cast<pthread_key_t*>(privateData)};
+        // XXX Need to error check the result
+        pthread_setspecific(*platformTLSKey, value);
+      } else {
+        pthread_key_t platformTLSKey {};
+        std::memcpy(reinterpret_cast<char*>(&platformTLSKey), reinterpret_cast<char*>(&privateData),
+                    sizeof(pthread_key_t));
+        // XXX Need to error check the result
+        pthread_setspecific(platformTLSKey, value);
+      }
     }
 
 
-    void* Platform::FetchTLSData(TLSKey* k) {
-      pthread_key_t key;
-      std::memcpy(reinterpret_cast<char*>(&key), reinterpret_cast<char*>(&k), sizeof(pthread_key_t));
-
-      return pthread_getspecific(key);
+    void* TLSKey::Get() {
+      if (sizeof(pthread_key_t) > sizeof(void*)) {
+        pthread_key_t* platformTLSKey {reinterpret_cast<pthread_key_t*>(privateData)};
+        return pthread_getspecific(*platformTLSKey);
+      } else {
+        pthread_key_t platformTLSKey {};
+        std::memcpy(reinterpret_cast<char*>(&platformTLSKey), reinterpret_cast<char*>(&privateData),
+                    sizeof(pthread_key_t));
+        return pthread_getspecific(platformTLSKey);
+      }
     }
 
 

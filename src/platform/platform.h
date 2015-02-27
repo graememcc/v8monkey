@@ -4,8 +4,14 @@
 // size_t
 #include <cstddef>
 
+// memcpy
+#include <cstring>
+
 // conditional, decay, is_same, remove_reference, remove_cv
 #include <type_traits>
+
+// EXPORT_FOR_TESTING_ONLY
+#include "utils/test.h"
 
 // V8MONKEY_ASSERT
 #include "utils/V8MonkeyCommon.h"
@@ -31,96 +37,38 @@ namespace v8 {
     using ThreadFunction = void* (*)(void*);
 
 
-    // Platform-agnostic wrapper around a TLS key
-    class TLSKey {
+    /*
+     * Platform-agnostic wrapper around the platform's thread-local storage mechanism
+     *
+     */
+
+    class EXPORT_FOR_TESTING_ONLY TLSKey {
       public:
-        TLSKey() = delete;
+        TLSKey(void (*destructorFn)(void*) = nullptr);
+
+        ~TLSKey();
+
+        void Put(void* data);
+
+        void* Get();
+
         TLSKey(TLSKey& other) = delete;
-        TLSKey(TLSKey&& other) = delete;
+        TLSKey(TLSKey&& other) = default;
         TLSKey& operator=(TLSKey& other) = delete;
-        TLSKey& operator=(TLSKey&& other) = delete;
-        ~TLSKey() = delete;
+        TLSKey& operator=(TLSKey&& other) = default;
+
+      private:
+        void* privateData {nullptr};
     };
 
 
     class APIEXPORT Platform {
       public:
-        // Create a thread-local storage key with the optional destructor
-        static TLSKey* CreateTLSKey(void (*destructorFn)(void*) = nullptr);
-
-        // Delete a thread-local storage key
-        static void DeleteTLSKey(TLSKey* k);
-
-        /*
-         * TLSKeys generally need to be in static storage in the files that use them, making resource-management tricky:
-         * one option is to place them in a smart pointer. To that end, the namespace exports a custom deleter. To aid
-         * callers who use that option, we template the Get/Set methods for arbitrary pointer types.
-         *
-         */
-
-        // Store a value in thread-local storage
-        template <typename T>
-        static void StoreTLSData(T& key, void* value) {
-          typename DeReffable<T>::type deref;
-          PutTLSData(deref(key), value);
-        }
-
-        // Retrieve a value from TLS
-        template <typename T>
-        static void* GetTLSData(T& key) {
-          typename DeReffable<T>::type deref;
-          return FetchTLSData(deref(key));
-        }
-
         // Print to stderr
         static void PrintError(const char* message);
 
         // Exit with error
         static void ExitWithError(const char* message);
-
-      private:
-        static void* FetchTLSData(TLSKey* k);
-        static void PutTLSData(TLSKey* k, void* value);
-
-        /*
-         * Helpers for metaprogramming StoreTLSKey / GetTLSKey. To avoid over-engineering this thing any further, we
-         * assume no cv-qualifier's on the smart pointer's pointer type
-         *
-         */
-
-        template <typename T>
-        struct DeReffable {
-          template <typename U>
-          struct DeRefSmartPtr {
-            TLSKey* operator()(U& key) {
-              using Element = typename std::decay<U>::type::pointer;
-              static_assert(std::is_same<TLSKey*, Element>::value, "Called with incorrect type of smart pointer");
-              return key.get();
-            }
-          };
-
-          template <typename U>
-          struct DeRefNormalPtr {
-            TLSKey* operator()(U& key) { return key; }
-          };
-
-          using NoRef = std::remove_reference<T>;
-          using NoCV = std::remove_cv<typename NoRef::type>;
-          static const bool isNormalPtr {std::is_same<TLSKey*, typename NoCV::type>::value};
-          using type = typename std::conditional<isNormalPtr, DeRefNormalPtr<T>, DeRefSmartPtr<T>>::type;
-        };
-    };
-
-
-    /*
-     * Custom deleter that can be supplied to smart pointers like unique_ptr.
-     *
-     */
-
-    struct TLSKeyDeleter {
-      void operator()(TLSKey* key) {
-        Platform::DeleteTLSKey(key);
-      }
     };
 
 

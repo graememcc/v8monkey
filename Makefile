@@ -396,7 +396,7 @@ $(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h src/p
 $(call variants, src/engine/version): $(v8monkeyheader)
 
 
-src/platform/platform.h: src/utils/V8MonkeyCommon.h
+src/platform/platform.h: src/utils/test.h src/utils/V8MonkeyCommon.h
 
 
 $(call variants, src/platform/platform): src/platform/platform.h src/utils/V8MonkeyCommon.h

@@ -36,7 +36,7 @@ namespace {
     static_assert(sizeof(intptr_t) <= sizeof(void*), "Somebody hasn't read their standard");
     std::memcpy(reinterpret_cast<char*>(&p), reinterpret_cast<char*>(&testData), sizeof(intptr_t));
 
-    v8::V8Platform::Platform::StoreTLSData(key, p);
+    key->Put(p);
     return nullptr;
   }
 
@@ -83,27 +83,25 @@ using namespace v8::V8Platform;
 
 
 V8MONKEY_TEST(Plat001, "TLS Key get initially returns null") {
-  TLSKey* key {Platform::CreateTLSKey()};
-  V8MONKEY_CHECK(Platform::GetTLSData(key) == nullptr, "Key value is initially null");
-  Platform::DeleteTLSKey(key);
+  TLSKey key {};
+  V8MONKEY_CHECK(key.Get() == nullptr, "Key value is initially null");
 }
 
 
 V8MONKEY_TEST(Plat002, "TLS Key get returns correct value") {
-  TLSKey* key {Platform::CreateTLSKey()};
+  TLSKey key {};
   intptr_t value {42};
-  Platform::StoreTLSData(key, reinterpret_cast<void*>(value));
-  V8MONKEY_CHECK(reinterpret_cast<intptr_t>(Platform::GetTLSData(key)) == value, "Retrieved key is correct");
-  Platform::DeleteTLSKey(key);
+  key.Put(reinterpret_cast<void*>(value));
+  V8MONKEY_CHECK(reinterpret_cast<intptr_t>(key.Get()) == value, "Retrieved key is correct");
 }
 
 
 V8MONKEY_TEST(Plat003, "Key creation with destructor works correctly") {
-  TLSKey* key {Platform::CreateTLSKey(tlsDestructor)};
+  TLSKey key {tlsDestructor};
 
   destructorCalled = false;
   Thread t {thread_tls_destruct};
-  t.Run(key);
+  t.Run(&key);
   t.Join();
   V8MONKEY_CHECK(destructorCalled, "Destructor for TLS key was called");
 }

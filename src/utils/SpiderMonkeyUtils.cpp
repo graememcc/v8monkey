@@ -10,7 +10,7 @@
 // unique_ptr
 #include <memory>
 
-// TLSKey, CreateTLSKey, GetTLSData, StoreTLSData
+// TLSKey
 #include "platform/platform.h"
 
 // SpiderMonkeyUtils definition
@@ -214,7 +214,8 @@ namespace {
    *
    */
 
-  std::unique_ptr<TLSKey, TLSKeyDeleter> smDataKey {nullptr};
+  extern "C" void tearDownRuntimeAndContext(void* raw);
+  TLSKey smDataKey{&tearDownRuntimeAndContext};
 
 
   /*
@@ -223,6 +224,7 @@ namespace {
    *
    */
 
+  extern "C"
   void tearDownRuntimeAndContext(void* raw) {
     using SpiderMonkeyData = v8::SpiderMonkey::SpiderMonkeyData;
 
@@ -248,34 +250,9 @@ namespace {
 
     // We might be called by the SpiderMonkeyTearDown class; zero out the TLS values to ensure that this call is a
     // no-op when the thread exits
-    Platform::StoreTLSData(smDataKey, nullptr);
+    smDataKey.Put(nullptr);
 
     recordJSRuntimeDestruction();
-  }
-
-
-  /*
-   * ensureTLSKey performs one-time initialization of the thread-local storage key for JSRuntime and JSContext
-   * information, and registers a teardown function to ensure those objects get destroyed on thread exit.
-   *
-   * createTLSKey is an auxillary helper to ensure the above is performed in a thread-safe manner.
-   *
-   */
-
-  void createTLSKey() {
-    smDataKey.reset(Platform::CreateTLSKey(tearDownRuntimeAndContext));
-  }
-
-
-  void ensureTLSKey() {
-    // Whilst I guess we could create a key in a thread-safe manner by assiging to a local static (thread-safe in
-    // C++11) the subsequent nullptr test and write of the global is theoretically susceptible to TOCTTOU, although
-    // in reality its likely to be harmless, as I believe word-sized writes are atomic on most machines.
-    //
-    // Instead, I'm going to be conservative and create it using a OneShot.
-    static OneShot keyCreator {createTLSKey};
-
-    keyCreator.Run();
   }
 
 
@@ -290,7 +267,6 @@ namespace {
 
     V8MONKEY_ASSERT(!spiderMonkeyDestroyed, "Attempting to assign JSRuntime after SpiderMonkey destroyed");
 
-    ensureTLSKey();
     v8::SpiderMonkey::EnsureSpiderMonkey();
 
     JSRuntime* rt {JS_NewRuntime(JS::DefaultHeapMaxBytes)};
@@ -316,7 +292,7 @@ namespace {
     JS::RuntimeOptionsRef(rt).setVarObjFix(true);
 
     SpiderMonkeyData* data {new SpiderMonkeyData {rt, cx}};
-    Platform::StoreTLSData(smDataKey, data);
+    smDataKey.Put(data);
 
     recordJSRuntimeConstruction();
   }
@@ -371,7 +347,7 @@ namespace {
                           "Other JSRuntimes still rooted!");
           #endif
 
-          tearDownRuntimeAndContext(Platform::GetTLSData(smDataKey));
+          tearDownRuntimeAndContext(smDataKey.Get());
         }
 
         V8MONKEY_ASSERT(rooterRegistrations.empty(), "Some isolates/threads are still rooted!");
@@ -458,11 +434,7 @@ namespace v8{
 
 
     SpiderMonkeyData GetJSRuntimeAndJSContext() {
-      // We can't be certain that any thread has had a JSRuntime or JSContext assigned, so we have no way of knowing
-      // if the key has been created.
-      ensureTLSKey();
-
-      void* raw = ::v8::V8Platform::Platform::GetTLSData(smDataKey);
+      void* raw = smDataKey.Get();
       if (raw) {
         SpiderMonkeyData* data {reinterpret_cast<SpiderMonkeyData*>(raw)};
         return {data->rt, data->cx};
