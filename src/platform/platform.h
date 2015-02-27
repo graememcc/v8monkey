@@ -73,7 +73,7 @@ namespace v8 {
 
 
     // RAII class for handling OSOnce pointers
-    class APIEXPORT OneShot {
+    class EXPORT_FOR_TESTING_ONLY OneShot {
       public:
         OneShot(OneTimeFunction f);
 
@@ -106,7 +106,7 @@ namespace v8 {
 
 
     // RAII class for handling OSMutex pointers
-    class APIEXPORT Mutex {
+    class EXPORT_FOR_TESTING_ONLY Mutex {
       public:
         Mutex();
 
