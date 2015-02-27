@@ -44,6 +44,7 @@ namespace v8 {
 
       public:
         using ValueType = SlotContents;
+        using AddressType = ValueType*;
 
         static const unsigned int slabSize {SlabSize};
 
@@ -85,9 +86,11 @@ namespace v8 {
          */
 
         struct Limits {
+          LimitType* objectAddress;
           LimitType* next;
           LimitType* limit;
         };
+
 
         /*
          * Adds a new element to the ObjectBlock, allocating a new block of slab storage if necessary. Returns a Limits
@@ -154,8 +157,9 @@ namespace v8 {
       slab->emplace_back(data);
       Slot slabStart {slab->data()};
 
-      return {reinterpret_cast<LimitType*>(slabStart + slab->size()),
-              reinterpret_cast<LimitType*>(slabStart + slabSize)};
+      return Limits {reinterpret_cast<LimitType*>(slabStart + slab->size() - 1),
+                     reinterpret_cast<LimitType*>(slabStart + slab->size()),
+                     reinterpret_cast<LimitType*>(slabStart + slabSize)};
     }
 
 
