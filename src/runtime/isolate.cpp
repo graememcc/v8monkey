@@ -39,7 +39,7 @@
 #include "v8config.h"
 
 
-class JSRuntime;
+struct JSRuntime;
 
 
 // XXX Review comment

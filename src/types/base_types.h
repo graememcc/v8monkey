@@ -17,7 +17,7 @@
 #include "v8.h"
 
 
-class JSRuntime;
+struct JSRuntime;
 class JSTracer;
 
 
