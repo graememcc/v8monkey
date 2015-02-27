@@ -214,7 +214,7 @@ namespace {
    *
    */
 
-  TLSKey* smDataKey {nullptr};
+  std::unique_ptr<TLSKey, TLSKeyDeleter> smDataKey {nullptr};
 
 
   /*
@@ -263,7 +263,7 @@ namespace {
    */
 
   void createTLSKey() {
-    smDataKey = Platform::CreateTLSKey(tearDownRuntimeAndContext);
+    smDataKey.reset(Platform::CreateTLSKey(tearDownRuntimeAndContext));
   }
 
 
@@ -378,10 +378,6 @@ namespace {
 
         JS_ShutDown();
         spiderMonkeyDestroyed = true;
-
-        // We no longer need the TLS key. All JSRuntimes and JSContexts have been destroyed.
-        Platform::DeleteTLSKey(smDataKey);
-        smDataKey = nullptr;
       }
 
       // Note: we're storing this class in a unique_ptr, so must be MoveConstructible

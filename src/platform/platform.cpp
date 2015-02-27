@@ -190,7 +190,7 @@ namespace v8 {
     }
 
 
-    void Platform::StoreTLSData(TLSKey* k, void* value) {
+    void Platform::PutTLSData(TLSKey* k, void* value) {
       pthread_key_t key;
       std::memcpy(reinterpret_cast<char*>(&key), reinterpret_cast<char*>(&k), sizeof(pthread_key_t));
 
@@ -199,7 +199,7 @@ namespace v8 {
     }
 
 
-    void* Platform::GetTLSData(TLSKey* k) {
+    void* Platform::FetchTLSData(TLSKey* k) {
       pthread_key_t key;
       std::memcpy(reinterpret_cast<char*>(&key), reinterpret_cast<char*>(&k), sizeof(pthread_key_t));
 

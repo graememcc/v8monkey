@@ -17,6 +17,9 @@
 // std::begin, std::end
 #include <iterator>
 
+// unique_ptr
+#include <memory>
+
 // Class definition
 #include "runtime/isolate.h"
 
@@ -81,26 +84,23 @@ class JSRuntime;
 
 namespace {
   using namespace v8::V8Platform;
-//   using namespace v8::V8Monkey;
-//
-//
+
+
   /*
    * Thread-local storage keys for isolate related thread data
    *
    */
 
   // The thread's unique ID
-  TLSKey* threadIDKey {nullptr};
+  std::unique_ptr<TLSKey, TLSKeyDeleter> threadIDKey {nullptr};
   // The internal isolate that the thread has entered
-  TLSKey* currentIsolateKey {nullptr};
-//
-//
+  std::unique_ptr<TLSKey, TLSKeyDeleter> currentIsolateKey {nullptr};
 
 
   void ensureTLSKeys() {
     static bool V8_UNUSED initialized {[]() noexcept {
-      threadIDKey = Platform::CreateTLSKey();
-      currentIsolateKey = Platform::CreateTLSKey();
+      threadIDKey.reset(Platform::CreateTLSKey());
+      currentIsolateKey.reset(Platform::CreateTLSKey());
 
       return true;
     }()};
