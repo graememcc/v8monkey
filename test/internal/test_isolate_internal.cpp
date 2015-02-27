@@ -290,6 +290,76 @@ namespace {
 
     return nullptr;
   }
+
+
+  struct IsolateAndAddr {
+    Isolate* isolate;
+    bool* updateAddress;
+  };
+
+  /*
+   * Function that creates a TraceFake in the supplied isolate that updates the given address.
+   * The point of the function is to prove that the TraceFake is no longer traced after this
+   * thread with it's own JSRuntime exits.
+   *
+   */
+
+   void* MakeTraceFake(void* info) {
+     // Note: can't construct an AutoIsolateCleanup - we don't want to dispose of the isolate
+
+     IsolateAndAddr* isolateAndAddr {reinterpret_cast<IsolateAndAddr*>(info)};
+     Isolate* apiIsolate {isolateAndAddr->isolate};
+     apiIsolate->Enter();
+     internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+     internal::TraceFake* dummy {new internal::TraceFake {isolateAndAddr->updateAddress}};
+     i->AddLocalHandle(dummy);
+     apiIsolate->Exit();
+     return nullptr;
+  }
+
+  /*
+   * A thread function that should simply exit.
+   *
+   * TODO: Explore mechanisms for ensuring the compiler doesn't elide calling this function.
+   *
+   */
+
+  void* SimplyExit(void*) {
+    return nullptr;
+  }
+
+
+  /*
+   * Utility function that simply has a thread create an isolate, and enter/exit it.
+   *
+   */
+
+  void* CreateEnterExit(void*) {
+    Isolate* i {Isolate::New()};
+    i->Enter();
+    i->Exit();
+    i->Dispose();
+
+    return nullptr;
+  }
+
+
+  /*
+   * Utility function that simply has a thread enter the supplied isolate, create an object, and exit it.
+   *
+   */
+
+  void* ThreadEnterCreateExit(void* iso) {
+    // Note: cannot create an AutoIsolateCleanup. We don't want to destroy the isolate yet.
+    Isolate* i {reinterpret_cast<Isolate*>(iso)};
+    i->Enter();
+    internal::DummyV8MonkeyObject* dummy {new internal::DummyV8MonkeyObject {}};
+    internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+    i->Exit();
+
+    return nullptr;
+  }
 }
 
 
@@ -752,7 +822,7 @@ V8MONKEY_TEST(IntIsolate038, "Entering an isolate on different threads triggers 
 }
 
 
-V8MONKEY_TEST(IntIsolate039, "Multiple entries does not result in multiple calls to SpiderMonkey requesting rooting") {
+V8MONKEY_TEST(IntIsolate039, "Multiple entries does not result in multiple calls to SpiderMonkey requesting rooting (1)") {
   TestUtils::AutoTestCleanup ac {};
 
   SpiderMonkey::SetGCRegistrationHooks(GCRegistrationHook, GCDeregistrationHook);
@@ -817,25 +887,22 @@ V8MONKEY_TEST(IntIsolate041, "Able to dispose an isolate after it was entered/ex
 
 
 V8MONKEY_TEST(IntIsolate042, "GetLocalHandleLimits initially returns a struct with nullptrs") {
-  Isolate* apiIsolate {Isolate::New()};
-  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
-
-  internal::LocalHandleLimits limits = i->GetLocalHandleLimits();
+  Isolate* i {Isolate::New()};
+  internal::LocalHandleLimits limits = internal::Isolate::FromAPIIsolate(i)->GetLocalHandleLimits();
 
   V8MONKEY_CHECK(!limits.next, "next field was a nullptr");
   V8MONKEY_CHECK(!limits.limit, "next field was a nullptr");
 
-  apiIsolate->Dispose();
+  i->Dispose();
 }
 
 
 V8MONKEY_TEST(IntIsolate043, "LocalHandleCount initially zero") {
-  Isolate* apiIsolate {Isolate::New()};
-  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+  Isolate* i {Isolate::New()};
 
-  V8MONKEY_CHECK(i->LocalHandleCount() == 0u, "No handles");
+  V8MONKEY_CHECK(internal::Isolate::FromAPIIsolate(i)->LocalHandleCount() == 0u, "No handles");
 
-  apiIsolate->Dispose();
+  i->Dispose();
 }
 
 
@@ -857,7 +924,6 @@ V8MONKEY_TEST(IntIsolate044, "GetLocalHandleLimits no longer null after adding a
 V8MONKEY_TEST(IntIsolate045, "LocalHandleCount non-zero after handle added") {
   Isolate* apiIsolate {Isolate::New()};
   internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
-
   internal::DummyV8MonkeyObject* dummy {new internal::DummyV8MonkeyObject {}};
   i->AddLocalHandle(dummy);
 
@@ -868,77 +934,176 @@ V8MONKEY_TEST(IntIsolate045, "LocalHandleCount non-zero after handle added") {
 
 
 V8MONKEY_TEST(IntIsolate046, "AddLocalHandle does not return nullptr") {
-  Isolate* apiIsolate {Isolate::New()};
-  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
-
+  Isolate* i {Isolate::New()};
   internal::DummyV8MonkeyObject* dummy {new internal::DummyV8MonkeyObject {}};
 
-  V8MONKEY_CHECK(i->AddLocalHandle(dummy), "Address non-null");
+  V8MONKEY_CHECK(internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy), "Address non-null");
 
-  apiIsolate->Dispose();
+  i->Dispose();
 }
 
 
 V8MONKEY_TEST(IntIsolate047, "Objects are traced after added as a local handle") {
   TestUtils::AutoTestCleanup ac {};
 
-  Isolate* apiIsolate {Isolate::New()};
-  apiIsolate->Enter();
-  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
-
+  Isolate* i {Isolate::New()};
+  i->Enter();
   bool wasTraced {false};
   internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
-  i->AddLocalHandle(dummy);
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
 
   SpiderMonkey::ForceGC();
   V8MONKEY_CHECK(wasTraced, "Value was traced");
 }
 
 
-// XXX Write the following test when we have the mechanisms to support it
-// (Required mechanisms: Can inject TraceFakes etc into isolates, TraceFakes can count number of traces)
-// Follow-on to test 039 (duplicate rooting registrations)
-// Inject a TraceFake into an isolate we created
-// Exit and re-enter the isolate
-// zero the trace count, and force a GC
-// trace count == 1. Proves that we don't add the same rooting function multiple times
+V8MONKEY_TEST(IntIsolate048, "Multiple entries does not result in multiple calls to SpiderMonkey requesting rooting (2)") {
+  TestUtils::AutoTestCleanup ac {};
 
-// XXX Write the following test when we have the mechanisms to support it
-// (Required mechanisms: Can inject TraceFakes etc into isolates)
-// We supply the location for a TraceFake to update
-// Call a thread fn that enters/exits the supplied isolate, and somehow creates a TraceFake with the given address
-// On thread join, set the location to false, and force a GC
-// value still false is correct. It shows that we don't trace objects for a runtime after the runtime is destroyed
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  bool wasTraced {false};
+  int traceCount {0};
+  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced, &traceCount}};
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+  i->Exit();
+  i->Enter();
+
+  SpiderMonkey::ForceGC();
+  V8MONKEY_CHECK(traceCount == 1, "Value was only traced once");
+}
+
+
+V8MONKEY_TEST(IntIsolate049, "Values not traced after runtime destroyed") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  bool wasTraced {false};
+  IsolateAndAddr* threadInfo {new IsolateAndAddr {i, &wasTraced}};
+
+  Thread child {MakeTraceFake};
+  child.Run(threadInfo);
+  child.Join();
+
+  delete threadInfo;
+
+  i->Enter();
+  // Child thread destruction may have initiated a trace
+  wasTraced = false;
+  SpiderMonkey::ForceGC();
+  V8MONKEY_CHECK(!wasTraced, "Value not traced after JSRuntime destroyed");
+}
+
+
+V8MONKEY_TEST(IntIsolate050, "Destruction of threads not associated with isolates doesn't affect an isolate tracing") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  bool wasTraced {false};
+  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+
+  Thread child {SimplyExit};
+  child.Run();
+  child.Join();
+
+  // Child thread destruction may have initiated a trace
+  wasTraced = false;
+  SpiderMonkey::ForceGC();
+  V8MONKEY_CHECK(wasTraced, "Tracing unaffected by thread destruction");
+}
+
+
+V8MONKEY_TEST(IntIsolate051,
+              "Destruction of threads that entered other isolates doesn't affect different isolate's tracing") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  bool wasTraced {false};
+  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+
+  Thread child {CreateEnterExit};
+  child.Run();
+  child.Join();
+
+  // Child thread destruction may have initiated a trace
+  wasTraced = false;
+  SpiderMonkey::ForceGC();
+  V8MONKEY_CHECK(wasTraced, "Tracing unaffected by thread destruction");
+}
+
+
+V8MONKEY_TEST(IntIsolate052,
+              "Destruction of thread that entered our isolates doesn't affect our isolate's tracing (1)") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  bool wasTraced {false};
+  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+
+  Thread child {ThreadEnterExit};
+  child.Run(i);
+  child.Join();
+
+  // Child thread destruction may have initiated a trace
+  wasTraced = false;
+  SpiderMonkey::ForceGC();
+  V8MONKEY_CHECK(wasTraced, "Tracing unaffected by thread destruction");
+}
+
+
+V8MONKEY_TEST(IntIsolate053,
+              "Destruction of thread that entered our isolates doesn't affect our isolate's tracing (2)") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  bool wasTraced {false};
+  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+
+  Thread child {ThreadEnterCreateExit};
+  child.Run(i);
+  child.Join();
+
+  // Child thread destruction may have initiated a trace
+  wasTraced = false;
+  SpiderMonkey::ForceGC();
+  V8MONKEY_CHECK(wasTraced, "Tracing unaffected by thread destruction");
+}
+
+
+V8MONKEY_TEST(IntIsolate054,
+              "Destruction of previously entered isolates doesn't affect tracing of other isolates for same runtime") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  bool wasTraced {false};
+  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+
+  Isolate* j {Isolate::New()};
+  j->Enter();
+  j->Exit();
+  j->Dispose();
+
+  // Isolate destruction may have initiated a trace
+  wasTraced = false;
+  SpiderMonkey::ForceGC();
+  V8MONKEY_CHECK(wasTraced, "Tracing unaffected by thread destruction");
+}
 
 // XXX Write the following test when we have the mechanisms to support it
 // (Required mechanisms: Can inject shared_ptr wrapped objects into isolates)
 // Enter an isolate, inject a TraceFake THAT WE HOLD IN A SHARED_PTR, exit and dispose
 // Set the TraceFake location to false, and force a GC
 // value still false is correct. It shows that we don't trace objects for an isolate after the isolate is destroyed
-
-// XXX Write the following test once we have the mechanisms to support it:
-// (Required mechanisms: Can inject TraceFakes etc into isolates)
-// Inject a TraceFake into an isolate
-// Call a thread that simply exits. This will still trigger the thread destruction code in SpiderMonkeyUtils
-// After joining, set TraceFake boolean to false, and force a GC
-// If TraceFake boolean is true, we've proved that destruction of threads not associated with isolates doesn't affect
-// rooting of other isolates
-
-// XXX Write the following test once we have the mechanisms to support it:
-// (Required mechanisms: Can inject TraceFakes etc into isolates)
-// Inject a TraceFake into an isolate
-// Call a thread that creates an isolate and enters and exits it.
-// After joining, set TraceFake boolean to false, and force a GC
-// If TraceFake boolean is true, we've proved that destruction of threads associated with another isolate doesn't affect
-// rooting of other isolates
-
-// XXX Write the following test once we have the mechanisms to support it:
-// (Required mechanisms: Can inject TraceFakes etc into isolates)
-// Inject a TraceFake into an isolate
-// Call a thread with our isolate, have the thread enter and exit it
-// After joining, set TraceFake boolean to false, and force a GC
-// If TraceFake boolean is true, we've proved that destruction of threads associated with this isolate doesn't affect
-// this thread's rooting of the isolate
 
 V8MONKEY_TEST(IntScope001, "Scopes exit copes with multiple entries on main thread") {
   TestUtils::AutoTestCleanup ac {};
