@@ -541,7 +541,6 @@ namespace v8 {
       V8MONKEY_ASSERT(!isRegisteredForGC, "Isolate is still rooting?");
     }
 
-    // XXX ANOTHER BUG - Won't tracing be on another thread?
 //
 //
 //     /*
