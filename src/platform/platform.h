@@ -42,23 +42,48 @@ namespace v8 {
      *
      */
 
-    class EXPORT_FOR_TESTING_ONLY TLSKey {
+    class EXPORT_FOR_TESTING_ONLY PlatformTLSKey {
+      protected:
+        void* privateData {nullptr};
+
+        void InternalSet(void* data);
+        void* InternalGet();
+
+        PlatformTLSKey(void (*destructorFn)(void*) = nullptr);
+
+        ~PlatformTLSKey();
+
+        PlatformTLSKey(PlatformTLSKey& other) = delete;
+        PlatformTLSKey(PlatformTLSKey&& other) = default;
+        PlatformTLSKey& operator=(PlatformTLSKey& other) = delete;
+        PlatformTLSKey& operator=(PlatformTLSKey&& other) = default;
+    };
+
+
+    template <typename T>
+    class EXPORT_FOR_TESTING_ONLY TLSKey : private PlatformTLSKey {
+      static_assert(sizeof(T) <= sizeof(void*), "Data too big to store in thread-local storage");
       public:
-        TLSKey(void (*destructorFn)(void*) = nullptr);
+        TLSKey(void (*destructorFn)(void*) = nullptr) : PlatformTLSKey(destructorFn) {}
 
-        ~TLSKey();
+        void Set(T data) {
+          void* asVoid {nullptr};
+          std::memcpy(reinterpret_cast<char*>(&asVoid), reinterpret_cast<char*>(&data), sizeof(T));
+          InternalSet(asVoid);
+        }
 
-        void Put(void* data);
+        T Get() {
+          void* asVoid {InternalGet()};
+          T data {};
+          std::memcpy(reinterpret_cast<char*>(&data), reinterpret_cast<char*>(&asVoid), sizeof(T));
+          return data;
+        }
 
-        void* Get();
-
+        ~TLSKey() = default;
         TLSKey(TLSKey& other) = delete;
         TLSKey(TLSKey&& other) = default;
         TLSKey& operator=(TLSKey& other) = delete;
         TLSKey& operator=(TLSKey&& other) = default;
-
-      private:
-        void* privateData {nullptr};
     };
 
 

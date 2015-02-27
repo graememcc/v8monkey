@@ -215,7 +215,7 @@ namespace {
    */
 
   extern "C" void tearDownRuntimeAndContext(void* raw);
-  TLSKey smDataKey{&tearDownRuntimeAndContext};
+  TLSKey<v8::SpiderMonkey::SpiderMonkeyData*> smDataKey{&tearDownRuntimeAndContext};
 
 
   /*
@@ -250,7 +250,7 @@ namespace {
 
     // We might be called by the SpiderMonkeyTearDown class; zero out the TLS values to ensure that this call is a
     // no-op when the thread exits
-    smDataKey.Put(nullptr);
+    smDataKey.Set(nullptr);
 
     recordJSRuntimeDestruction();
   }
@@ -292,7 +292,7 @@ namespace {
     JS::RuntimeOptionsRef(rt).setVarObjFix(true);
 
     SpiderMonkeyData* data {new SpiderMonkeyData {rt, cx}};
-    smDataKey.Put(data);
+    smDataKey.Set(data);
 
     recordJSRuntimeConstruction();
   }
@@ -434,9 +434,8 @@ namespace v8{
 
 
     SpiderMonkeyData GetJSRuntimeAndJSContext() {
-      void* raw = smDataKey.Get();
-      if (raw) {
-        SpiderMonkeyData* data {reinterpret_cast<SpiderMonkeyData*>(raw)};
+      SpiderMonkeyData* data {smDataKey.Get()};
+      if (data) {
         return {data->rt, data->cx};
       }
 

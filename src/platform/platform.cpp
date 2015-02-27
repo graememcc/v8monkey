@@ -164,7 +164,7 @@ namespace v8 {
     }
 
 
-    TLSKey::TLSKey(void (*destructorFn)(void*)) {
+    PlatformTLSKey::PlatformTLSKey(void (*destructorFn)(void*)) {
       if (sizeof(pthread_key_t) > sizeof(void*)) {
         pthread_key_t* platformTLSKey {new pthread_key_t};
         // XXX Need to error check the result
@@ -180,7 +180,7 @@ namespace v8 {
     }
 
 
-    TLSKey::~TLSKey() {
+    PlatformTLSKey::~PlatformTLSKey() {
       if (sizeof(pthread_key_t) > sizeof(void*)) {
         pthread_key_t* platformTLSKey {reinterpret_cast<pthread_key_t*>(privateData)};
         // XXX Need to error check the result
@@ -197,7 +197,7 @@ namespace v8 {
 
 
 
-    void TLSKey::Put(void* value) {
+    void PlatformTLSKey::InternalSet(void* value) {
       if (sizeof(pthread_key_t) > sizeof(void*)) {
         pthread_key_t* platformTLSKey {reinterpret_cast<pthread_key_t*>(privateData)};
         // XXX Need to error check the result
@@ -212,7 +212,7 @@ namespace v8 {
     }
 
 
-    void* TLSKey::Get() {
+    void* PlatformTLSKey::InternalGet() {
       if (sizeof(pthread_key_t) > sizeof(void*)) {
         pthread_key_t* platformTLSKey {reinterpret_cast<pthread_key_t*>(privateData)};
         return pthread_getspecific(*platformTLSKey);

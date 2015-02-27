@@ -4,9 +4,6 @@
 // atomic_int, atomic_fetch_add
 #include <atomic>
 
-// memcpy
-#include <cstring>
-
 // DestructList
 // XXX That needs a better name
 #include "data_structures/destruct_list.h"
@@ -89,31 +86,9 @@ namespace {
    */
 
   // The thread's unique ID
-  TLSKey threadIDKey {};
+  TLSKey<int> threadIDKey {};
   // The internal isolate that the thread has entered
-  TLSKey currentIsolateKey {};
-
-
-  /*
-   * Returns the currently entered isolate for this thread. May be null.
-   *
-   */
-
-  v8::internal::Isolate* GetCurrentIsolateFromTLS() {
-    void* raw_id {currentIsolateKey.Get()};
-    return reinterpret_cast<v8::internal::Isolate*>(raw_id);
-  }
-
-
-  /*
-   * Store the currently entered isolate for this thread. It is an invariant that each thread has its most recently
-   * entered isolate stored in TLS.
-   *
-   */
-
-  void SetCurrentIsolateInTLS(v8::internal::Isolate* i) {
-    currentIsolateKey.Put(i);
-  }
+  TLSKey<v8::internal::Isolate*> currentIsolateKey {};
 
 
 // XXX Keep this comment, move it and repurpose it for wherever we do the rooted isolate tracking
@@ -167,38 +142,23 @@ namespace {
 
 
   /*
-   * Returns a new thread ID for the thread, after having first stored it in TLS
-   *
-   */
-
-  int createAndAssignThreadID() {
-    static std::atomic_int idCount {1};
-
-    int threadID {std::atomic_fetch_add(&idCount, 1)};
-    void* asVoid {nullptr};
-    std::memcpy(reinterpret_cast<char*>(&asVoid), reinterpret_cast<char*>(&threadID), sizeof(int));
-    threadIDKey.Put(asVoid);
-
-    return threadID;
-  }
-
-
-  /*
    * Returns the thread ID stored in TLS, creating one if it doesn't exist.
    *
    */
 
   int fetchOrAssignThreadID() {
-    void* raw_id {threadIDKey.Get()};
-    int existing_id;
-    static_assert(sizeof(int) <= sizeof(void*), "Int size prevents type-punning");
-    std::memcpy(reinterpret_cast<char*>(&existing_id), reinterpret_cast<char*>(&raw_id), sizeof(int));
+    static std::atomic_int idCount {1};
 
-    if (existing_id > 0) {
-      return existing_id;
+    int id {threadIDKey.Get()};
+
+    if (id > 0) {
+      return id;
     }
 
-    return createAndAssignThreadID();
+    id = std::atomic_fetch_add(&idCount, 1);
+    threadIDKey.Set(id);
+
+    return id;
   }
 //
 //
@@ -411,7 +371,7 @@ namespace v8 {
       }
 
       // What isolate was the thread in previously?
-      Isolate* previousIsolate {GetCurrentIsolateFromTLS()};
+      Isolate* previousIsolate {currentIsolateKey.Get()};
 
       // XXX Temporary
       // Note the thread entry
@@ -422,7 +382,7 @@ namespace v8 {
 //       data->entryCount++;
 //
       // Invariant: a thread's most recently entered isolate should be stored in TLS
-      SetCurrentIsolateInTLS(this);
+      currentIsolateKey.Set(this);
     }
 
 
@@ -455,7 +415,7 @@ namespace v8 {
       // Time for this thread to say goodbye. We need to pop this thread's previous isolate from the container.
       // XXX Temporary
       Isolate* i {RecordThreadExit()};
-      SetCurrentIsolateInTLS(i);
+      currentIsolateKey.Set(i);
 
         //SetCurrentIsolateInTLS(data->previousIsolate);
 //
@@ -638,7 +598,7 @@ namespace v8 {
      */
 
     Isolate* Isolate::GetCurrent() {
-      return GetCurrentIsolateFromTLS();
+      return currentIsolateKey.Get();
     }
 
 
@@ -648,7 +608,7 @@ namespace v8 {
       */
 
     bool Isolate::IsEntered(Isolate* i) {
-      return GetCurrentIsolateFromTLS() == i;
+      return currentIsolateKey.Get() == i;
     }
 
 
