@@ -109,7 +109,7 @@ namespace v8 {
 
         void* callbackList {nullptr};
 
-        bool ShouldTrace() { return false; }
+        bool ShouldTrace() { return true; }
 
         virtual void DoTrace(JSRuntime*, JSTracer*) = 0;
 //

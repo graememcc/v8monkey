@@ -208,7 +208,34 @@ namespace v8 {
          *
          */
 
-        LocalHandleLimits GetLocalHandleLimits();
+        LocalHandleLimits GetLocalHandleLimits() const {
+          return localHandleLimits;
+        }
+
+        /*
+         * Returns the number of local handles managed by this isolate.
+         *
+         */
+
+        unsigned long LocalHandleCount() const {
+          return localHandleData.NumberOfItems();
+        }
+
+        /*
+         * Adds the given object to the set of local handles managed by this isolate. Returns a Object** pointer that is
+         * not dereferencable representing the slot where the handle was stored.
+         *
+         * Note, this call takes ownership of the lifetime of the supplied object.
+         *
+         */
+
+        Object** AddLocalHandle(Object* obj) {
+          AutoGCMutex {this};
+          auto result = localHandleData.Add(obj);
+          localHandleLimits.next = result.next;
+          localHandleLimits.limit = result.limit;
+          return result.objectAddress;
+        }
 
 //        // XXX Check need to hold GCMutex in dispose/destructor
 //        // Copy the given HandleData into our own. The caller must hold the GC Mutex.

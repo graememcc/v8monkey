@@ -815,6 +815,86 @@ V8MONKEY_TEST(IntIsolate041, "Able to dispose an isolate after it was entered/ex
   V8MONKEY_CHECK(true, "Didn't crash");
 }
 
+
+V8MONKEY_TEST(IntIsolate042, "GetLocalHandleLimits initially returns a struct with nullptrs") {
+  Isolate* apiIsolate {Isolate::New()};
+  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+  internal::LocalHandleLimits limits = i->GetLocalHandleLimits();
+
+  V8MONKEY_CHECK(!limits.next, "next field was a nullptr");
+  V8MONKEY_CHECK(!limits.limit, "next field was a nullptr");
+
+  apiIsolate->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate043, "LocalHandleCount initially zero") {
+  Isolate* apiIsolate {Isolate::New()};
+  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+  V8MONKEY_CHECK(i->LocalHandleCount() == 0u, "No handles");
+
+  apiIsolate->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate044, "GetLocalHandleLimits no longer null after adding an object") {
+  Isolate* apiIsolate {Isolate::New()};
+  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+  internal::DummyV8MonkeyObject* dummy {new internal::DummyV8MonkeyObject {}};
+  i->AddLocalHandle(dummy);
+
+  internal::LocalHandleLimits limits = i->GetLocalHandleLimits();
+  V8MONKEY_CHECK(limits.next, "next field was not nullptr");
+  V8MONKEY_CHECK(limits.limit, "next field was not nullptr");
+
+  apiIsolate->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate045, "LocalHandleCount non-zero after handle added") {
+  Isolate* apiIsolate {Isolate::New()};
+  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+  internal::DummyV8MonkeyObject* dummy {new internal::DummyV8MonkeyObject {}};
+  i->AddLocalHandle(dummy);
+
+  V8MONKEY_CHECK(i->LocalHandleCount() != 0u, "No handles");
+
+  apiIsolate->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate046, "AddLocalHandle does not return nullptr") {
+  Isolate* apiIsolate {Isolate::New()};
+  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+  internal::DummyV8MonkeyObject* dummy {new internal::DummyV8MonkeyObject {}};
+
+  V8MONKEY_CHECK(i->AddLocalHandle(dummy), "Address non-null");
+
+  apiIsolate->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate047, "Objects are traced after added as a local handle") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* apiIsolate {Isolate::New()};
+  apiIsolate->Enter();
+  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+  bool wasTraced {false};
+  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
+  i->AddLocalHandle(dummy);
+
+  SpiderMonkey::ForceGC();
+  V8MONKEY_CHECK(wasTraced, "Value was traced");
+}
+
+
 // XXX Write the following test when we have the mechanisms to support it
 // (Required mechanisms: Can inject TraceFakes etc into isolates, TraceFakes can count number of traces)
 // Follow-on to test 039 (duplicate rooting registrations)
