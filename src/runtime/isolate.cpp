@@ -272,7 +272,7 @@ namespace v8 {
 //
 //
   namespace internal {
-//
+
 //     /*
 //      * Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
 //      * "unlock" themselves to yield the isolate, we can't even be sure that threads will enter and exit in a LIFO
@@ -342,10 +342,6 @@ namespace v8 {
      */
 
     void Isolate::Enter() {
-      // XXX Move to a better spot?
-      static_assert(Internals::kIsolateEmbedderDataOffset == offsetof(Isolate, embedderData),
-                    "Isolate definition and v8 header out of sync");
-
       using namespace ::v8;
 
       // As isolate entries stack, and threads can unlock allowing other threads to enter an isolate, we must note

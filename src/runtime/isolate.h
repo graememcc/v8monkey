@@ -1,6 +1,9 @@
 #ifndef V8MONKEY_ISOLATE_H
 #define V8MONKEY_ISOLATE_H
 
+// int64_t
+#include <cinttypes>
+
 // ObjectBlock
 #include "data_structures/objectblock.h"
 
@@ -323,8 +326,30 @@ namespace v8 {
 //        static void EnsureDefaultIsolateForStaticInitializerThread();
 
       private:
-        // Embedder data. Must stay in sync with position exposed in v8.h
+        /*
+         *                 ** V8 Binary compatability **
+         *
+         * The values below are positioned in order to maintain binary compatability with the V8 header. Ideally, I
+         * would static assert that they are in the correct position, however, we're not a POD type, so we cannot
+         * safely use offsetof.
+         *
+         */
+
         void* embedderData[Internals::kNumIsolateDataSlots] {nullptr};
+
+        // Padding for layout compatability
+        int64_t dummyValues[2] {0, 0};
+        void* dummyPointer {nullptr};
+
+        // Array of slots for booleans, undefined and null. Must be at this position for V8 compatability
+        Object* primitiveValues[10] {nullptr};
+
+        /*
+         *                ** End of V8 Binary compatability **
+         *
+         * Members from this point on have no restriction on their layout
+         *
+         */
 
         // Denotes whether this isolate is effectively dead
         bool hasFatalError {false};
