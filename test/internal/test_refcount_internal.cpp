@@ -6,8 +6,8 @@
 
 // Unit-testing support
 #include "V8MonkeyTest.h"
-//
-//
+
+
 //namespace {
 //  void* cb1Params = nullptr;
 //  bool cb1Called = false;
@@ -37,47 +37,47 @@
 //    object.Dispose();
 //  }
 //}
-//
-//
-//using namespace v8::V8Monkey;
-//
-//
-//V8MONKEY_TEST(RefCount001, "Objects initially born with refcount 0") {
-//   DummyV8MonkeyObject refCounted;
-//
-//  V8MONKEY_CHECK(refCounted.RefCount() == 0, "Initial refcount correct");
-//}
-//
-//
-//V8MONKEY_TEST(RefCount002, "AddRef increases refcount") {
-//  DummyV8MonkeyObject refCounted;
-//
-//  refCounted.AddRef();
-//  V8MONKEY_CHECK(refCounted.RefCount() == 1, "Refcount correct");
-//}
-//
-//
-//V8MONKEY_TEST(RefCount003, "Release decreases refcount") {
-//  DummyV8MonkeyObject refCounted;
-//
-//  refCounted.AddRef();
-//  refCounted.AddRef();
-//  refCounted.Release();
-//
-//  V8MONKEY_CHECK(refCounted.RefCount() == 1, "Refcount correct");
-//}
-//
-//
-//V8MONKEY_TEST(RefCount004, "Refcount falling to zero deletes object") {
-//  bool deleted = false;
-//  DeletionObject* refCounted = new DeletionObject(&deleted);
-//
-//  refCounted->AddRef();
-//  refCounted->Release();
-//  V8MONKEY_CHECK(deleted, "Refcounted object destroyed");
-//}
-//
-//
+
+
+using namespace v8::internal;
+
+
+V8MONKEY_TEST(RefCount001, "Objects initially born with refcount 0") {
+   DummyV8MonkeyObject refCounted {};
+
+  V8MONKEY_CHECK(refCounted.RefCount() == 0, "Initial refcount correct");
+}
+
+
+V8MONKEY_TEST(RefCount002, "AddRef increases refcount") {
+  DummyV8MonkeyObject refCounted {};
+
+  refCounted.AddRef();
+  V8MONKEY_CHECK(refCounted.RefCount() == 1, "Refcount correct");
+}
+
+
+V8MONKEY_TEST(RefCount003, "Release decreases refcount") {
+  Object* refCounted {new DummyV8MonkeyObject()};
+
+  refCounted->AddRef();
+  refCounted->AddRef();
+  refCounted->Release(&refCounted);
+
+  V8MONKEY_CHECK(refCounted->RefCount() == 1, "Refcount correct");
+}
+
+
+V8MONKEY_TEST(RefCount004, "Refcount falling to zero deletes object") {
+  bool deleted = false;
+  Object* refCounted = new DeletionObject(&deleted);
+
+  refCounted->AddRef();
+  refCounted->Release(&refCounted);
+  V8MONKEY_CHECK(deleted, "Refcounted object destroyed");
+}
+
+
 //V8MONKEY_TEST(RefCount005, "Weak count initially zero") {
 //  DummyV8MonkeyObject refCounted;
 //

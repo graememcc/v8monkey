@@ -1,6 +1,9 @@
 #ifndef V8MONKEY_BASETYPES_H
 #define V8MONKEY_BASETYPES_H
 
+// atomic_uint, atomic_fetch_{add,subtract}
+#include <atomic>
+
 // ObjectBlock
 #include "data_structures/objectblock.h"
 
@@ -43,20 +46,35 @@ namespace v8 {
 
     class EXPORT_FOR_TESTING_ONLY Object {
       public:
-        Object() : weakCount{0}, owningRuntime {::v8::SpiderMonkey::GetJSRuntimeForThread()}, callbackList {nullptr} {}
+        Object() : refCount {0}, weakCount{0}, owningRuntime {::v8::SpiderMonkey::GetJSRuntimeForThread()},
+                   callbackList {nullptr} {}
 
         virtual ~Object() {}
 
-        // Bump the reference count
-//        void AddRef() {
-//          refCount++;
-//        }
-//
-//        // Decrement the strong reference count. If both refcounts are zero, delete this object
-//        void Release() {
-//          RemoveRef(nullptr, &refCount);
-//        }
-//
+        /*
+         * Bumps this object's strong reference count.
+         *
+         */
+
+        void AddRef() {
+          std::atomic_fetch_add(&refCount, 1u);
+        }
+
+        /*
+         * Decrements this object's strong reference count. Deletes the object if the decremented refcount is zero.
+         *
+         * The parameter anticipates the future reestablishment of Persistent support.
+         *
+         */
+
+        void Release(Object**) {
+          std::atomic_fetch_sub(&refCount, 1u);
+
+          if (refCount == 0) {
+            delete this;
+          }
+        }
+
         // Support for weak Persistent handles. See persistent.cpp/v8monkeyobject.cpp for details
 //        void MakeWeak(V8MonkeyObject** slotPtr, void* parameters, WeakReferenceCallback callback);
 //        void ClearWeakness(V8MonkeyObject** slotPtr);
@@ -78,13 +96,12 @@ namespace v8 {
             DoTrace(runtime, tracer);
           }
         }
-//
-//        #ifdef V8MONKEY_INTERNAL_TEST
-//        int RefCount() { return refCount; }
-//
-//        int WeakCount() { return weakCount; }
-//        #endif
-//
+
+        #ifdef V8MONKEY_INTERNAL_TEST
+        unsigned int RefCount() { return refCount; }
+
+        int WeakCount() { return weakCount; }
+        #endif
 
         Object(const Object& other) = delete;
         Object(Object&& other) = delete;
@@ -92,7 +109,7 @@ namespace v8 {
         Object& operator=(Object&& other) = delete;
 
       private:
-//        int refCount;
+        std::atomic_uint refCount {0};
         int weakCount {0};
 //        bool isNearDeath;
 //
