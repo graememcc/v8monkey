@@ -1,16 +1,22 @@
 #ifndef V8MONKEY_OBJECTBLOCK_H
 #define V8MONKEY_OBJECTBLOCK_H
 
-// find_if
+// find_if, for_each
 #include <algorithm>
 
-// iterator
-#include <iterator>
+// greater_equal, less_equal
+#include <functional>
 
 // memory
 #include <memory>
 
-// vector
+// is_pointer is_same
+#include <type_traits>
+
+// Object
+#include <types/base_types.h>
+
+// begin end vector
 #include <vector>
 
 // V8MONKEY_ASSERT
@@ -18,7 +24,7 @@
 
 
 /*
- * V8 HandleScopes and HandleScopeImplementers cooperate to manage a linked list of slabs of continuous memory
+ * In V8, HandleScopes and HandleScopeImplementers cooperate to manage a linked list of slabs of continuous memory
  * containing internal object double pointers. We adopt a similar approach, with minor differences.
  *
  * XXX Check the comment about V8 Persistent handles once implemented.
@@ -33,28 +39,33 @@
 namespace v8 {
   namespace DataStructures {
 
-    template <class T, class LimitType = std::shared_ptr<T>, unsigned int SlabSize = 1024u>
+    using ::v8::internal::Object;
+
+
+    template <unsigned int SlabSize>
     class ObjectBlock {
       private:
-        using SlotContents = std::shared_ptr<T>;
+        using SlotContents = Object*;
         using Slot = SlotContents*;
         using Slab = std::vector<SlotContents>;
         using SlabPtr = std::unique_ptr<Slab>;
         using Slabs = std::vector<SlabPtr>;
 
       public:
-        using ValueType = SlotContents;
-        using AddressType = ValueType*;
-
         static const unsigned int slabSize {SlabSize};
 
-        ObjectBlock() : slabs() {}
+        ObjectBlock() : slabs{} {}
 
-        ~ObjectBlock() {}
+        ~ObjectBlock() {
+          if (!slabs.empty() && !slabs[0]->empty()) {
+             Slabs::iterator begin {slabs.begin()};
+            DeleteIterate(begin, (*begin)->data());
+          }
+        }
 
-        ObjectBlock(ObjectBlock<T, LimitType*, SlabSize>&& other) : slabs(std::move(other.slabs)) {}
+        ObjectBlock(ObjectBlock<SlabSize>&& other) : slabs(std::move(other.slabs)) {}
 
-        ObjectBlock<T, LimitType*, SlabSize>& operator=(ObjectBlock<T>&& other) {
+        ObjectBlock<SlabSize>& operator=(ObjectBlock<SlabSize>&& other) {
           // XXX Review this assert
           V8MONKEY_ASSERT(other != *this, "Do you really mean to assign to self?");
 
@@ -86,9 +97,9 @@ namespace v8 {
          */
 
         struct Limits {
-          LimitType* objectAddress;
-          LimitType* next;
-          LimitType* limit;
+          Object** objectAddress;
+          Object** next;
+          Object** limit;
         };
 
 
@@ -99,7 +110,7 @@ namespace v8 {
          *
          */
 
-        V8_INLINE Limits Add(T* data);
+        V8_INLINE Limits Add(Object* data);
 
         /*
          * Takes a pointer to the slot that should be the first empty slot after this deletion operation completes.
@@ -112,7 +123,7 @@ namespace v8 {
          *
          */
 
-        V8_INLINE void Delete(LimitType* desiredEnd);
+        V8_INLINE void Delete(Slot desiredEnd);
 
         // Note: we expect iteration to be performed in a tight loop, so provide a custom iteration function rather
         // than defining custom iterators and begin/end methods. This avoids potential problems with invalidating
@@ -123,7 +134,7 @@ namespace v8 {
          *
          */
 
-        V8_INLINE void Iterate(void (*iterationFunction)(ValueType)) const;
+        V8_INLINE void Iterate(void (*fn)(Object*)) const;
 
         /*
          * Calls the given function with a shared pointer to the given raw type and the supplied data for each entry in
@@ -131,18 +142,20 @@ namespace v8 {
          *
          */
 
-        V8_INLINE void Iterate(void (*iterationFunction)(ValueType, void*), void* data) const;
+        V8_INLINE void Iterate(void (*fn)(Object*, void*), void* data) const;
 
-        ObjectBlock(const ObjectBlock<T>& other) = delete;
-        ObjectBlock<T>& operator=(const ObjectBlock<T>& other) = delete;
+        ObjectBlock(const ObjectBlock<SlabSize>& other) = delete;
+        ObjectBlock<SlabSize>& operator=(const ObjectBlock<SlabSize>& other) = delete;
 
       private:
         Slabs slabs {};
+
+        void DeleteIterate(typename Slabs::iterator firstSlab, Slot firstSlot);
     };
 
 
-    template <class T, class LimitType, unsigned int SlabSize>
-    typename ObjectBlock<T, LimitType, SlabSize>::Limits ObjectBlock<T, LimitType, SlabSize>::Add(T* data) {
+    template <unsigned int SlabSize>
+    typename ObjectBlock<SlabSize>::Limits ObjectBlock<SlabSize>::Add(Object* data) {
       if (slabs.empty() || slabs.back()->size() == slabSize) {
         // Allocate a new block
         // XXX Can new return nullptr?
@@ -157,21 +170,41 @@ namespace v8 {
       slab->emplace_back(data);
       Slot slabStart {slab->data()};
 
-      return Limits {reinterpret_cast<LimitType*>(slabStart + slab->size() - 1),
-                     reinterpret_cast<LimitType*>(slabStart + slab->size()),
-                     reinterpret_cast<LimitType*>(slabStart + slabSize)};
+      data->AddRef();
+
+      return Limits {slabStart + slab->size() - 1, slabStart + slab->size(), slabStart + slabSize};
     }
 
 
-    template <class T, class LimitType, unsigned int SlabSize>
-    void ObjectBlock<T, LimitType, SlabSize>::Delete(LimitType* desiredPtr) {
+    template <unsigned int SlabSize>
+    void ObjectBlock<SlabSize>::DeleteIterate(typename Slabs::iterator containingSlab, Slot firstSlot) {
+      std::for_each(containingSlab, slabs.end(), [this, &firstSlot](SlabPtr& slab) {
+        Slot slabData = slab->data();
+
+        // Note, we will be comparing pointers from different containers, so need to use std::less
+        std::greater_equal<Slot> afterOrAtBeginning {};
+        std::less_equal<Slot> beforeEnd  {};
+        bool isFirstSlab = afterOrAtBeginning(firstSlot, slabData) && beforeEnd(firstSlot, slabData + slab->size());
+
+        for (auto slot = (isFirstSlab ? firstSlot : slabData); slot < slabData + slab->size(); slot++) {
+          (*slot)->Release(slot);
+        }
+      });
+    }
+
+
+    template <unsigned int SlabSize>
+    void ObjectBlock<SlabSize>::Delete(Slot desiredEnd) {
       // Fast path
-      if (!desiredPtr) {
+      if (!desiredEnd) {
+        if (!slabs.empty() && ! slabs[0]->empty()) {
+          Slabs::iterator begin {slabs.begin()};
+          DeleteIterate(begin, (*begin)->data());
+        }
+
         slabs.clear();
         return;
       }
-
-      Slot desiredEnd {reinterpret_cast<Slot>(desiredPtr)};
 
       V8MONKEY_ASSERT(!slabs.empty(), "Attempting to delete from an empty ObjectBlock");
 
@@ -183,35 +216,37 @@ namespace v8 {
       });
 
       V8MONKEY_ASSERT(slabIter != iterEnd, "Desired slot doesn't exist");
+
+      DeleteIterate(slabIter.base() - 1, desiredEnd);
       slabs.erase(slabIter.base(), slabs.end());
 
       // All that remains is to delete within the slab. The slab iterator shouldn't be invalidated by erase, as it
       // lies before the deletion range
       Slab* slots {(*slabIter).get()};
-      V8MONKEY_ASSERT(static_cast<typename Slab::size_type>(desiredEnd - slots->data()) <= slots->size(),
+      V8MONKEY_ASSERT(static_cast<Slab::size_type>(desiredEnd - slots->data()) <= slots->size(),
                       "desiredEnd should be in the current bounds of the slab");
 
       // erase would be semantically clearer, but then we have the (minor) hassle of converting the reverse iterator
       // to a standard iterator. The assert above confirms this call won't increase the size or capacity.
-      slots->resize(static_cast<typename Slab::size_type>(desiredEnd - slots->data()));
+      slots->resize(static_cast<Slab::size_type>(desiredEnd - slots->data()));
     }
 
 
-    template <class T, class LimitType, unsigned int SlabSize>
-    void ObjectBlock<T, LimitType, SlabSize>::Iterate(void (*iterationFunction)(ValueType)) const {
+    template <unsigned int SlabSize>
+    void ObjectBlock<SlabSize>::Iterate(void (*fn)(Object*)) const {
       for (auto const& slab : slabs) {
         for (SlotContents value : *(slab.get())) {
-          iterationFunction(value);
+          fn(value);
         }
       }
     }
 
 
-    template <class T, class LimitType, unsigned int SlabSize>
-    void ObjectBlock<T, LimitType, SlabSize>::Iterate(void (*iterationFunction)(ValueType, void*), void* data) const {
+    template <unsigned int SlabSize>
+    void ObjectBlock<SlabSize>::Iterate(void (*fn)(Object*, void*), void* data) const {
       for (auto const& slab : slabs) {
         for (SlotContents value : *(slab.get())) {
-          iterationFunction(value, data);
+          fn(value, data);
         }
       }
     }

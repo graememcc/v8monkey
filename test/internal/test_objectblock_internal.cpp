@@ -2,7 +2,7 @@
 #include <algorithm>
 
 // Class under test
-#include "data_structures/objectblock.h"
+#include "types/objectblock.h"
 
 // begin, end
 #include <iterator>
@@ -10,7 +10,7 @@
 // shared_ptr
 #include <memory>
 
-// DeletionObject
+// DeletionObject, DummyV8MonkeyObject
 #include "types/base_types.h"
 
 // Unit-testing support
@@ -24,7 +24,7 @@ namespace {
   class IterateObject;
 
 
-  const int iterationObjectBlockSize {v8::DataStructures::ObjectBlock<IterateObject>::slabSize};
+  const int iterationObjectBlockSize {v8::DataStructures::ObjectBlock<>::slabSize};
   const int iterationObjectMax {iterationObjectBlockSize + 20};
   bool objectVisited[iterationObjectMax];
   void* objectVisitData[iterationObjectMax];
@@ -41,20 +41,23 @@ namespace {
   // The following tests sometimes need to note if objects are iterated over. To that end, we define a class that when
   // constructed takes an index, and define iteration functions that flip the values in the arrays above for each
   // value they are called with. resetForIteration should be called before iterating over the ObjectBlock.
-  class IterateObject {
+  class IterateObject : public Object {
     public:
       IterateObject(int n) { index = n; }
       ~IterateObject() {}
       int index;
+      void DoTrace(JSRuntime*, JSTracer*) {}
   };
 
 
-  void objectVisitor(std::shared_ptr<IterateObject> i) {
+  void objectVisitor(Object* o) {
+    IterateObject* i {dynamic_cast<IterateObject*>(o)};
     objectVisited[i->index] = true;
   }
 
 
-  void objectDataVisitor(std::shared_ptr<IterateObject> i, void* data) {
+  void objectDataVisitor(Object* o, void* data) {
+    IterateObject* i {dynamic_cast<IterateObject*>(o)};
     objectVisited[i->index] = true;
     objectVisitData[i->index] = data;
   }
@@ -65,7 +68,7 @@ using namespace v8::DataStructures;
 
 
 // Convenience
-using TestingBlock = ObjectBlock<unsigned int>;
+using TestingBlock = ObjectBlock<>;
 
 
 V8MONKEY_TEST(ObjectBlock001, "Number of objects initially zero") {
@@ -77,9 +80,9 @@ V8MONKEY_TEST(ObjectBlock001, "Number of objects initially zero") {
 V8MONKEY_TEST(ObjectBlock002, "Number of objects correct up to slab size") {
   TestingBlock tb {};
 
-  for (auto i = 1u; i <= TestingBlock::slabSize; i++) {
-    tb.Add(new unsigned int {});
-    V8MONKEY_CHECK(tb.NumberOfItems() == i, "Correct value returned");
+  for (auto i = 0u; i < TestingBlock::slabSize; i++) {
+    tb.Add(new DummyV8MonkeyObject {});
+    V8MONKEY_CHECK(tb.NumberOfItems() == i + 1, "Correct value returned");
   }
 }
 
@@ -88,51 +91,58 @@ V8MONKEY_TEST(ObjectBlock003, "Number of objects correct adding when adding more
   TestingBlock tb {};
 
   for (auto i = 1u; i <= TestingBlock::slabSize + 1; i++) {
-    tb.Add(new unsigned int {});
+    tb.Add(new DummyV8MonkeyObject {});
   }
 
   V8MONKEY_CHECK(tb.NumberOfItems() == TestingBlock::slabSize + 1, "Correct value returned");
 }
 
 
-V8MONKEY_TEST(ObjectBlock004, "Returned free slots not null") {
-  TestingBlock tb{};
+V8MONKEY_TEST(ObjectBlock004, "Objects are AddRefed on addition") {
+  TestingBlock tb {};
+  Object* obj {new DummyV8MonkeyObject {}};
+  auto refCount  = obj->RefCount();
 
-  TestingBlock::Limits limits = tb.Add(new unsigned int {});
-  V8MONKEY_CHECK(limits.next != nullptr, "Next not null");
+  tb.Add(obj);
+  V8MONKEY_CHECK(obj->RefCount() == refCount + 1, "Object was AddRefed");
 }
 
 
 V8MONKEY_TEST(ObjectBlock005, "Returned free slots not null") {
   TestingBlock tb{};
 
-  TestingBlock::Limits limits = tb.Add(new unsigned int {});
+  TestingBlock::Limits limits = tb.Add(new DummyV8MonkeyObject {});
+  V8MONKEY_CHECK(limits.next != nullptr, "Next not null");
+}
+
+
+V8MONKEY_TEST(ObjectBlock006, "Returned free slots not null") {
+  TestingBlock tb{};
+
+  TestingBlock::Limits limits = tb.Add(new DummyV8MonkeyObject {});
   V8MONKEY_CHECK(limits.limit != nullptr, "Next not null");
 }
 
 
-V8MONKEY_TEST(ObjectBlock006, "Adding values moves next pointer") {
+V8MONKEY_TEST(ObjectBlock007, "Adding values moves next pointer") {
   TestingBlock tb {};
 
-  TestingBlock::Limits oldLimits = tb.Add(new unsigned int {});
+  TestingBlock::Limits oldLimits = tb.Add(new DummyV8MonkeyObject {});
   for (auto i = 1u; i <= TestingBlock::slabSize + 1; i++) {
-    TestingBlock::Limits limits = tb.Add(new unsigned int {});
+    TestingBlock::Limits limits = tb.Add(new DummyV8MonkeyObject {});
     V8MONKEY_CHECK(limits.next != oldLimits.next, "Next pointer moved");
   }
 }
 
 
-V8MONKEY_TEST(ObjectBlock007, "Up to slab size, values are allocated contiguously (1)") {
+V8MONKEY_TEST(ObjectBlock008, "Up to slab size, values are allocated contiguously (1)") {
   TestingBlock tb {};
 
-  TestingBlock::Limits oldLimits = tb.Add(new unsigned int {});
-  TestingBlock::AddressType prevAddr {nullptr};
-  prevAddr = reinterpret_cast<TestingBlock::AddressType>(oldLimits.next);
+  Object** prevAddr {tb.Add(new DummyV8MonkeyObject {}).next};
 
   // Note: don't want to fill a block in this test
   for (auto i = 1u; i < TestingBlock::slabSize; i++) {
-    TestingBlock::Limits limits = tb.Add(new unsigned int {});
-    TestingBlock::AddressType addr {reinterpret_cast<TestingBlock::AddressType>(limits.next)};
+    Object** addr {tb.Add(new DummyV8MonkeyObject {}).next};
 
     V8MONKEY_CHECK(addr == (prevAddr + 1), "Next pointer moved correctly");
 
@@ -141,95 +151,92 @@ V8MONKEY_TEST(ObjectBlock007, "Up to slab size, values are allocated contiguousl
 }
 
 
-V8MONKEY_TEST(ObjectBlock008, "Up to slab size, values are allocated contiguously (2)") {
+V8MONKEY_TEST(ObjectBlock009, "Up to slab size, values are allocated contiguously (2)") {
   TestingBlock tb {};
 
-  TestingBlock::Limits oldLimits = tb.Add(new unsigned int {});
-  TestingBlock::AddressType prevAddr {nullptr};
-  prevAddr = reinterpret_cast<TestingBlock::AddressType>(oldLimits.next);
+  Object** prevAddr {tb.Add(new DummyV8MonkeyObject {}).next};
 
   // Note: don't want to fill a block in this test
   for (auto i = 1u; i < TestingBlock::slabSize; i++) {
-    TestingBlock::Limits limits = tb.Add(new unsigned int {});
-    TestingBlock::AddressType addr {reinterpret_cast<TestingBlock::AddressType>(limits.objectAddress)};
+    TestingBlock::Limits limits  = tb.Add(new DummyV8MonkeyObject {});
+    Object** addr {limits.objectAddress};
 
     V8MONKEY_CHECK(addr == prevAddr, "Object was placed at previous 'next' slot");
 
-    prevAddr = reinterpret_cast<TestingBlock::AddressType>(limits.next);
+    prevAddr = limits.next;
   }
 }
 
 
-V8MONKEY_TEST(ObjectBlock009, "Up to slab size, values are allocated contiguously (3)") {
+V8MONKEY_TEST(ObjectBlock010, "Up to slab size, values are allocated contiguously (3)") {
   TestingBlock tb {};
 
-  TestingBlock::Limits oldLimits = tb.Add(new unsigned int {});
+  TestingBlock::Limits oldLimits = tb.Add(new DummyV8MonkeyObject {});
 
   // Note: don't want to fill a block in this test
   for (auto i = 1u; i < TestingBlock::slabSize; i++) {
-    TestingBlock::Limits limits = tb.Add(new unsigned int {});
+    TestingBlock::Limits limits = tb.Add(new DummyV8MonkeyObject {});
     V8MONKEY_CHECK(limits.limit == oldLimits.limit, "Remained in same block");
   }
 }
 
 
-V8MONKEY_TEST(ObjectBlock010, "More than <slabSize> values triggers fresh block allocation when required (1)") {
+V8MONKEY_TEST(ObjectBlock011, "More than <slabSize> values triggers fresh block allocation when required (1)") {
   TestingBlock tb {};
   TestingBlock::Limits oldLimits {nullptr, nullptr, nullptr};
 
   for (auto i = 0u; i < TestingBlock::slabSize; i++) {
-    oldLimits = tb.Add(new unsigned int {});
+    oldLimits = tb.Add(new DummyV8MonkeyObject {});
   }
 
   V8MONKEY_CHECK(oldLimits.next == oldLimits.limit, "Limit reached");
-  TestingBlock::Limits limits = tb.Add(new unsigned int {});
+  TestingBlock::Limits limits = tb.Add(new DummyV8MonkeyObject {});
   V8MONKEY_CHECK(limits.limit != oldLimits.limit, "Moved to new block");
 }
 
 
-V8MONKEY_TEST(ObjectBlock011, "More than <slabSize> values triggers fresh block allocation when required (2)") {
+V8MONKEY_TEST(ObjectBlock012, "More than <slabSize> values triggers fresh block allocation when required (2)") {
   TestingBlock tb {};
   TestingBlock::Limits oldLimits {nullptr, nullptr, nullptr};
 
   for (auto i = 0u; i < TestingBlock::slabSize; i++) {
-    oldLimits = tb.Add(new unsigned int {});
+    oldLimits = tb.Add(new DummyV8MonkeyObject {});
   }
 
-  TestingBlock::Limits limits = tb.Add(new unsigned int {});
-  auto realPrevLimit = reinterpret_cast<TestingBlock::AddressType>(oldLimits.limit);
-  auto realLimit = reinterpret_cast<TestingBlock::AddressType>(limits.limit);
+  TestingBlock::Limits limits = tb.Add(new DummyV8MonkeyObject {});
+  Object** realPrevLimit {oldLimits.limit};
+  Object** realLimit {limits.limit};
   // Note: Although unlikely, slabs themselves could be allocated contiguously
   V8MONKEY_CHECK((realLimit == realPrevLimit + TestingBlock::slabSize && limits.objectAddress == oldLimits.next) ||
                  (realLimit != realPrevLimit && limits.objectAddress != oldLimits.next), "Moved to new block");
 }
 
 
-V8MONKEY_TEST(ObjectBlock012, "Full deletion works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock013, "Full deletion works as expected (1)") {
   TestingBlock tb {};
-  tb.Add(new unsigned int {});
+  tb.Add(new DummyV8MonkeyObject {});
   tb.Delete(nullptr);
   V8MONKEY_CHECK(tb.NumberOfItems() == 0, "Slot count correct");
 }
 
 
-V8MONKEY_TEST(ObjectBlock013, "Full deletion works as expected (2)") {
-  using Block = ObjectBlock<DeletionObject>;
-  Block block {};
+V8MONKEY_TEST(ObjectBlock014, "Full deletion works as expected (2)") {
+  TestingBlock tb {};
   bool wasDeleted {false};
 
-  block.Add(new DeletionObject {&wasDeleted});
-  block.Delete(nullptr);
+  tb.Add(new DeletionObject {&wasDeleted});
+  tb.Delete(nullptr);
   V8MONKEY_CHECK(wasDeleted, "Value was deleted");
 }
 
 
-V8MONKEY_TEST(ObjectBlock014, "Intra-block deletion works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock015, "Intra-block deletion works as expected (1)") {
   TestingBlock tb {};
-  TestingBlock::Limits deletionPoint = tb.Add(new unsigned int {});
+  TestingBlock::Limits deletionPoint = tb.Add(new DummyV8MonkeyObject {});
 
   static_assert(TestingBlock::slabSize >= 11, "This test makes bad assumptions about the slab size");
   for (auto i = 0u; i < 10u; i++) {
-    tb.Add(new unsigned int {});
+    tb.Add(new DummyV8MonkeyObject {});
   }
 
   tb.Delete(deletionPoint.next);
@@ -237,23 +244,22 @@ V8MONKEY_TEST(ObjectBlock014, "Intra-block deletion works as expected (1)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock015, "Intra-block deletion works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock016, "Intra-block deletion works as expected (2)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
-  using Block = ObjectBlock<DeletionObject>;
-  Block block {};
+  TestingBlock tb {};
   bool firstObjectDeleted {false};
   bool wasDeleted[SLOTS];
 
 
-  Block::Limits deletionPoint = block.Add(new DeletionObject {&firstObjectDeleted});
+  TestingBlock::Limits deletionPoint = tb.Add(new DeletionObject {&firstObjectDeleted});
   for (auto i = 0; i < SLOTS; i++) {
-    block.Add(new DeletionObject {&wasDeleted[i]});
+    tb.Add(new DeletionObject {&wasDeleted[i]});
     wasDeleted[i] = false;
   }
 
-  block.Delete(deletionPoint.next);
+  tb.Delete(deletionPoint.next);
   V8MONKEY_CHECK(std::all_of(std::begin(wasDeleted), std::end(wasDeleted), [](bool& b) { return b; }),
                  "All objects that should have been deleted were");
   V8MONKEY_CHECK(!firstObjectDeleted, "Correct objects left untouched");
@@ -261,12 +267,12 @@ V8MONKEY_TEST(ObjectBlock015, "Intra-block deletion works as expected (2)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock016, "Inter-block deletion works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock017, "Inter-block deletion works as expected (1)") {
   TestingBlock tb {};
-  TestingBlock::Limits deletionPoint = tb.Add(new unsigned int {});
+  TestingBlock::Limits deletionPoint = tb.Add(new DummyV8MonkeyObject {});
 
   for (auto i = 0u; i < TestingBlock::slabSize; i++) {
-    tb.Add(new unsigned int {});
+    tb.Add(new DummyV8MonkeyObject {});
   }
 
   tb.Delete(deletionPoint.next);
@@ -274,33 +280,32 @@ V8MONKEY_TEST(ObjectBlock016, "Inter-block deletion works as expected (1)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock017, "Inter-block deletion works as expected (2)") {
-  using Block = ObjectBlock<DeletionObject>;
-  Block block {};
+V8MONKEY_TEST(ObjectBlock018, "Inter-block deletion works as expected (2)") {
+  TestingBlock tb {};
   bool firstObjectDeleted {false};
-  bool wasDeleted[Block::slabSize];
+  bool wasDeleted[TestingBlock::slabSize];
 
 
-  Block::Limits deletionPoint = block.Add(new DeletionObject {&firstObjectDeleted});
-  for (auto i = 0u; i < Block::slabSize; i++) {
-    block.Add(new DeletionObject {&wasDeleted[i]});
+  TestingBlock::Limits deletionPoint = tb.Add(new DeletionObject {&firstObjectDeleted});
+  for (auto i = 0u; i < TestingBlock::slabSize; i++) {
+    tb.Add(new DeletionObject {&wasDeleted[i]});
     wasDeleted[i] = false;
   }
 
-  block.Delete(deletionPoint.next);
+  tb.Delete(deletionPoint.next);
   V8MONKEY_CHECK(std::all_of(std::begin(wasDeleted), std::end(wasDeleted), [](bool& b) { return b; }),
                  "All objects that should have been deleted were");
   V8MONKEY_CHECK(!firstObjectDeleted, "Correct objects left untouched");
 }
 
 
-V8MONKEY_TEST(ObjectBlock018, "Deleting to most-recent end is a no-op") {
+V8MONKEY_TEST(ObjectBlock019, "Deleting to most-recent end is a no-op") {
   TestingBlock tb {};
   TestingBlock::Limits deletionPoint {nullptr, nullptr, nullptr};
 
   static_assert(TestingBlock::slabSize >= 10, "This test makes bad assumptions about the slab size");
   for (auto i = 0u; i < 10u; i++) {
-    deletionPoint = tb.Add(new unsigned int {});
+    deletionPoint = tb.Add(new DummyV8MonkeyObject {});
   }
 
   auto originalSlotCount = tb.NumberOfItems();
@@ -309,46 +314,58 @@ V8MONKEY_TEST(ObjectBlock018, "Deleting to most-recent end is a no-op") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock019, "Templated slabSize works as expected") {
-  // VS2013 doesn't support constexpr
-  #define SLOTS 10
-  using Block = ObjectBlock<unsigned int, std::shared_ptr<unsigned int>*, SLOTS>;
-  Block block {};
-  Block::Limits oldLimits {nullptr, nullptr, nullptr};
+V8MONKEY_TEST(ObjectBlock020, "Objects are released on destruction (1)") {
+  bool wasDeleted {false};
 
-  for (auto i = 0u; i < SLOTS; i++) {
-    oldLimits = block.Add(new unsigned int {});
+  {
+    TestingBlock tb {};
+    tb.Add(new DeletionObject {&wasDeleted});
   }
 
-  Block::Limits limits = block.Add(new unsigned int {});
-  V8MONKEY_CHECK(limits.limit != oldLimits.limit, "Moved to new block");
-  #undef SLOTS
+  V8MONKEY_CHECK(wasDeleted, "Object was deleted");
 }
 
 
-V8MONKEY_TEST(ObjectBlock020, "Iterating over an empty object block works") {
-  using Block = ObjectBlock<IterateObject>;
-  Block block {};
+V8MONKEY_TEST(ObjectBlock021, "Objects are released on destruction (2)") {
+  Object* obj {new DummyV8MonkeyObject {}};
+  obj->AddRef();
+  auto refCount = 0u;
 
-  block.Iterate(objectVisitor);
+  {
+    TestingBlock tb {};
+    tb.Add(obj);
+    refCount = obj->RefCount();
+  }
+
+  V8MONKEY_CHECK(obj->RefCount() == refCount - 1, "Refcount adjusted correctly");
+
+  for (auto i = obj->RefCount(); i > 0; i--) {
+    obj->Release(nullptr);
+  }
+}
+
+
+V8MONKEY_TEST(ObjectBlock022, "Iterating over an empty object block works") {
+  TestingBlock tb {};
+
+  tb.Iterate(objectVisitor);
   V8MONKEY_CHECK(true, "Didn't crash when iterating over empty");
 }
 
 
-V8MONKEY_TEST(ObjectBlock021, "Intra-block iteration works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock023, "Intra-block iteration works as expected (1)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
-  using Block = ObjectBlock<IterateObject>;
-  static_assert(Block::slabSize >= SLOTS, "This test makes bad assumptions about the slab size");
-  Block block {};
+  static_assert(TestingBlock::slabSize >= SLOTS, "This test makes bad assumptions about the slab size");
+  TestingBlock tb {};
 
   for (auto i = 0; i < SLOTS; i++) {
-    block.Add(new IterateObject {i});
+    tb.Add(new IterateObject {i});
   }
 
   resetForIteration();
-  block.Iterate(objectVisitor);
+  tb.Iterate(objectVisitor);
 
   auto limit = std::begin(objectVisited);
   std::advance(limit, SLOTS);
@@ -358,25 +375,24 @@ V8MONKEY_TEST(ObjectBlock021, "Intra-block iteration works as expected (1)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock022, "Intra-block iteration works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock024, "Intra-block iteration works as expected (2)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
-  using Block = ObjectBlock<IterateObject>;
-  static_assert(Block::slabSize >= SLOTS + 1, "This test makes bad assumptions about the slab size");
-  Block block {};
-  Block::Limits deletionPoint;
+  static_assert(TestingBlock::slabSize >= SLOTS + 1, "This test makes bad assumptions about the slab size");
+  TestingBlock tb {};
+  TestingBlock::Limits deletionPoint;
 
   // The game here is to add another object, delete it, and confirm it wasn't iterated, but the survivors were
   for (auto i = 0; i < SLOTS; i++) {
-    deletionPoint = block.Add(new IterateObject {i});
+    deletionPoint = tb.Add(new IterateObject {i});
   }
 
-  block.Add(new IterateObject {SLOTS});
-  block.Delete(deletionPoint.next);
+  tb.Add(new IterateObject {SLOTS});
+  tb.Delete(deletionPoint.next);
 
   resetForIteration();
-  block.Iterate(objectVisitor);
+  tb.Iterate(objectVisitor);
 
   auto limit = std::begin(objectVisited);
   std::advance(limit, SLOTS);
@@ -388,37 +404,35 @@ V8MONKEY_TEST(ObjectBlock022, "Intra-block iteration works as expected (2)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock023, "Inter-block iteration works as expected (1)") {
-  using Block = ObjectBlock<IterateObject>;
-  Block block {};
+V8MONKEY_TEST(ObjectBlock025, "Inter-block iteration works as expected (1)") {
+  TestingBlock tb {};
 
   for (auto i = 0; i < iterationObjectMax; i++) {
-    block.Add(new IterateObject {i});
+    tb.Add(new IterateObject {i});
   }
 
   resetForIteration();
-  block.Iterate(objectVisitor);
+  tb.Iterate(objectVisitor);
 
   V8MONKEY_CHECK(std::all_of(std::begin(objectVisited), std::end(objectVisited), [](bool& b) { return b; }),
                  "All objects that should have been iterated were");
 }
 
 
-V8MONKEY_TEST(ObjectBlock024, "Inter-block iteration works as expected (2)") {
-  using Block = ObjectBlock<IterateObject>;
-  Block block {};
-  Block::Limits deletionPoint;
+V8MONKEY_TEST(ObjectBlock026, "Inter-block iteration works as expected (2)") {
+  TestingBlock tb {};
+  TestingBlock::Limits deletionPoint;
 
   // The game here is to add another object, delete it, and confirm it wasn't iterated, but the survivors were
   for (auto i = 0; i < iterationObjectMax - 1; i++) {
-    deletionPoint = block.Add(new IterateObject {i});
+    deletionPoint = tb.Add(new IterateObject {i});
   }
 
-  block.Add(new IterateObject {iterationObjectMax - 1});
-  block.Delete(deletionPoint.next);
+  tb.Add(new IterateObject {iterationObjectMax - 1});
+  tb.Delete(deletionPoint.next);
 
   resetForIteration();
-  block.Iterate(objectVisitor);
+  tb.Iterate(objectVisitor);
 
   auto limit = std::begin(objectVisited);
   std::advance(limit, iterationObjectMax - 1);
@@ -429,31 +443,29 @@ V8MONKEY_TEST(ObjectBlock024, "Inter-block iteration works as expected (2)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock025, "Iterating with data over an empty object block works") {
-  using Block = ObjectBlock<IterateObject>;
-  Block block {};
+V8MONKEY_TEST(ObjectBlock027, "Iterating with data over an empty object block works") {
+  TestingBlock tb {};
 
   void* objData {nullptr};
-  block.Iterate(objectDataVisitor, objData);
+  tb.Iterate(objectDataVisitor, objData);
   V8MONKEY_CHECK(true, "Didn't crash when iterating over empty");
 }
 
 
-V8MONKEY_TEST(ObjectBlock026, "Intra-block iteration with data works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock028, "Intra-block iteration with data works as expected (1)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
-  using Block = ObjectBlock<IterateObject>;
-  static_assert(Block::slabSize >= SLOTS, "This test makes bad assumptions about the slab size");
-  Block block {};
+  static_assert(TestingBlock::slabSize >= SLOTS, "This test makes bad assumptions about the slab size");
+  TestingBlock tb {};
 
   for (auto i = 0; i < SLOTS; i++) {
-    block.Add(new IterateObject {i});
+    tb.Add(new IterateObject {i});
   }
 
   resetForIteration();
   void* objData {reinterpret_cast<void*>(0xbeef)};
-  block.Iterate(objectDataVisitor, objData);
+  tb.Iterate(objectDataVisitor, objData);
 
   auto limit = std::begin(objectVisited);
   std::advance(limit, SLOTS);
@@ -468,26 +480,25 @@ V8MONKEY_TEST(ObjectBlock026, "Intra-block iteration with data works as expected
 }
 
 
-V8MONKEY_TEST(ObjectBlock027, "Intra-block iteration with data works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock029, "Intra-block iteration with data works as expected (2)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
-  using Block = ObjectBlock<IterateObject>;
-  static_assert(Block::slabSize >= SLOTS + 1, "This test makes bad assumptions about the slab size");
-  Block block {};
-  Block::Limits deletionPoint;
+  static_assert(TestingBlock::slabSize >= SLOTS + 1, "This test makes bad assumptions about the slab size");
+  TestingBlock tb {};
+  TestingBlock::Limits deletionPoint;
 
   // The game here is to add another object, delete it, and confirm it wasn't iterated, but the survivors were
   for (auto i = 0; i < SLOTS; i++) {
-    deletionPoint = block.Add(new IterateObject {i});
+    deletionPoint = tb.Add(new IterateObject {i});
   }
 
-  block.Add(new IterateObject {SLOTS});
-  block.Delete(deletionPoint.next);
+  tb.Add(new IterateObject {SLOTS});
+  tb.Delete(deletionPoint.next);
 
   resetForIteration();
   void* objData {reinterpret_cast<void*>(0xdead)};
-  block.Iterate(objectDataVisitor, objData);
+  tb.Iterate(objectDataVisitor, objData);
 
   auto limit = std::begin(objectVisited);
   std::advance(limit, SLOTS);
@@ -504,17 +515,16 @@ V8MONKEY_TEST(ObjectBlock027, "Intra-block iteration with data works as expected
 }
 
 
-V8MONKEY_TEST(ObjectBlock028, "Inter-block iteration with data works as expected (1)") {
-  using Block = ObjectBlock<IterateObject>;
-  Block block {};
+V8MONKEY_TEST(ObjectBlock030, "Inter-block iteration with data works as expected (1)") {
+  TestingBlock tb {};
 
   for (auto i = 0; i < iterationObjectMax; i++) {
-    block.Add(new IterateObject {i});
+    tb.Add(new IterateObject {i});
   }
 
   resetForIteration();
   void* objData {reinterpret_cast<void*>(0xcafe)};
-  block.Iterate(objectDataVisitor, objData);
+  tb.Iterate(objectDataVisitor, objData);
 
   V8MONKEY_CHECK(std::all_of(std::begin(objectVisited), std::end(objectVisited), [](bool& b) { return b; }),
                  "All objects that should have been iterated were");
@@ -524,22 +534,21 @@ V8MONKEY_TEST(ObjectBlock028, "Inter-block iteration with data works as expected
 }
 
 
-V8MONKEY_TEST(ObjectBlock029, "Inter-block iteration with data works as expected (2)") {
-  using Block = ObjectBlock<IterateObject>;
-  Block block {};
-  Block::Limits deletionPoint;
+V8MONKEY_TEST(ObjectBlock031, "Inter-block iteration with data works as expected (2)") {
+  TestingBlock tb {};
+  TestingBlock::Limits deletionPoint;
 
   // The game here is to add another object, delete it, and confirm it wasn't iterated, but the survivors were
   for (auto i = 0; i < iterationObjectMax - 1; i++) {
-    deletionPoint = block.Add(new IterateObject {i});
+    deletionPoint = tb.Add(new IterateObject {i});
   }
 
-  block.Add(new IterateObject {iterationObjectMax - 1});
-  block.Delete(deletionPoint.next);
+  tb.Add(new IterateObject {iterationObjectMax - 1});
+  tb.Delete(deletionPoint.next);
 
   resetForIteration();
   void* objData {reinterpret_cast<void*>(0xf00d)};
-  block.Iterate(objectDataVisitor, objData);
+  tb.Iterate(objectDataVisitor, objData);
 
   auto limit = std::begin(objectVisited);
   std::advance(limit, iterationObjectMax - 1);
@@ -552,4 +561,21 @@ V8MONKEY_TEST(ObjectBlock029, "Inter-block iteration with data works as expected
                  "All objects visited with correct data");
 
   V8MONKEY_CHECK(!objectVisited[iterationObjectMax - 1], "Deleted object was not iterated");
+}
+
+
+V8MONKEY_TEST(ObjectBlock032, "Templated slabSize works as expected") {
+  // VS2013 doesn't support constexpr
+  #define SLOTS 10
+  using Block = v8::DataStructures::ObjectBlock<SLOTS>;
+  Block tb {};
+  Block::Limits oldLimits {nullptr, nullptr, nullptr};
+
+  for (auto i = 0u; i < SLOTS; i++) {
+    oldLimits = tb.Add(new DummyV8MonkeyObject {});
+  }
+
+  Block::Limits limits = tb.Add(new DummyV8MonkeyObject {});
+  V8MONKEY_CHECK(limits.limit != oldLimits.limit, "Moved to new block");
+  #undef SLOTS
 }

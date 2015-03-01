@@ -135,7 +135,7 @@ namespace {
    *
    */
 
-  void GCIterationFunction(v8::internal::ObjectContainer::ValueType obj, void* data) {
+  void GCIterationFunction(v8::internal::Object* obj, void* data) {
     GCData* gcData {reinterpret_cast<GCData*>(data)};
     obj->Trace(gcData->rt, gcData->tracer);
   }

@@ -386,9 +386,6 @@ $(v8monkeytarget): $(v8objects) $(v8monkeyheaders) $(smtarget)
 
 # XXX I think the objects should depend on the local h file
 
-src/data_structures/objectblock.h: src/utils/V8MonkeyCommon.h
-
-
 $(call variants, src/engine/init): $(v8monkeyheader) src/runtime/isolate.h src/platform/platform.h src/utils/test.h \
                                    src/utils/V8MonkeyCommon.h src/utils/SpiderMonkeyUtils.h $(JSAPIheader)
 
@@ -402,7 +399,7 @@ src/platform/platform.h: src/utils/test.h src/utils/V8MonkeyCommon.h
 $(call variants, src/platform/platform): src/platform/platform.h src/utils/V8MonkeyCommon.h
 
 
-$(call variants, src/runtime/handlescope): $(v8monkeyheader) src/data_structures/objectblock.h \
+$(call variants, src/runtime/handlescope): $(v8monkeyheader) src/types/objectblock.h \
                                            src/runtime/isolate.h src/types/base_types.h src/utils/V8MonkeyCommon.h
 
 
@@ -410,13 +407,13 @@ $(call variants, src/runtime/IsolateAPI): $(v8monkeyheader) src/runtime/isolate.
 
 
 $(call variants, src/runtime/isolate): $(v8monkeyheader) src/data_structures/destruct_list.h \
-                                       src/data_structures/objectblock.h src/runtime/isolate.h \
+                                       src/types/objectblock.h src/runtime/isolate.h \
                                        src/utils/SpiderMonkeyUtils.h src/platform/platform.h src/utils/test.h \
                                        src/utils/V8MonkeyCommon.h $(v8monkeyheadersdir)/v8config.h \
                                        src/types/base_types.h
 
 
-$(call variants, src/runtime/persistent): $(v8monkeyheader) src/data_structures/objectblock.h \
+$(call variants, src/runtime/persistent): $(v8monkeyheader) src/types/objectblock.h \
                                            src/runtime/isolate.h src/types/base_types.h src/utils/V8MonkeyCommon.h
 
 
@@ -430,6 +427,9 @@ $(call variants, src/threads/locker): $(v8monkeyheader) src/runtime/isolate.h sr
 
 
 src/types/base_types.h: $(v8monkeyheader) src/utils/SpiderMonkeyUtils.h src/utils/test.h
+
+
+src/types/objectblock.h: src/types/base_types.h src/utils/V8MonkeyCommon.h
 
 
 src/types/value_types.h: $(JSAPIheader) src/utils/test.h
@@ -620,7 +620,7 @@ $(call inttest, destructlist): src/data_structures/destruct_list.h src/types/bas
 $(call inttest, fatalerror): $(v8monkeyheader) src/runtime/isolate.h src/utils/test.h src/utils/V8MonkeyCommon.h
 
 
-$(call inttest, handlescope): $(v8monkeyheader) src/data_structures/objectblock.h src/runtime/isolate.h \
+$(call inttest, handlescope): $(v8monkeyheader) src/types/objectblock.h src/runtime/isolate.h \
                               src/utils/test.h src/utils/V8MonkeyCommon.h
 
 
@@ -634,13 +634,13 @@ $(call inttest, isolate): $(v8monkeyheader) $(JSAPIheader) src/platform/platform
 $(call inttest, miscutils): src/utils/MiscUtils.h
 
 
-$(call inttest, objectblock): src/data_structures/objectblock.h
+$(call inttest, objectblock): src/types/objectblock.h
 
 
 $(call inttest, platform): src/platform/platform.h
 
 
-$(call inttest, persistent): $(v8monkeyheader) src/data_structures/objectblock.h src/runtime/isolate.h \
+$(call inttest, persistent): $(v8monkeyheader) src/types/objectblock.h src/runtime/isolate.h \
 							 src/types/base_types.h src/utils/test.h src/utils/V8MonkeyCommon.h
 
 

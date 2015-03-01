@@ -65,6 +65,7 @@ V8MONKEY_TEST(RefCount003, "Release decreases refcount") {
   refCounted->Release(&refCounted);
 
   V8MONKEY_CHECK(refCounted->RefCount() == 1, "Refcount correct");
+  refCounted->Release(&refCounted);
 }
 
 

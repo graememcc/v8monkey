@@ -5,7 +5,7 @@
 #include <cinttypes>
 
 // ObjectBlock
-#include "data_structures/objectblock.h"
+#include "types/objectblock.h"
 
 // shared_ptr
 #include "memory"
@@ -55,7 +55,7 @@ namespace v8 {
 //     */
 
     class EXPORT_FOR_TESTING_ONLY Isolate {
-      using LocalHandles = ObjectContainer;
+      using LocalHandles = Object::ObjectContainer;
 
       public:
         // XXX Put an initializer list here once we have the shape of InternalIsolate nailed down

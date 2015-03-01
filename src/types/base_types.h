@@ -4,9 +4,6 @@
 // atomic_uint, atomic_fetch_{add,subtract}
 #include <atomic>
 
-// ObjectBlock
-#include "data_structures/objectblock.h"
-
 // is_base_of
 #include <type_traits>
 
@@ -25,11 +22,15 @@ class JSTracer;
 
 
 namespace v8 {
+  namespace DataStructures {
+    template <unsigned int SlabSize = 1024u>
+    class ObjectBlock;
+  }
+
+
   namespace internal {
 
-    class Object;
 
-    using ObjectContainer = ::v8::DataStructures::ObjectBlock<Object, Object*>;
 
     /*
      * The base class of all internal refcounted objects (i.e. anything that can be stored in a Local or Persistent
@@ -107,6 +108,8 @@ namespace v8 {
         Object(Object&& other) = delete;
         Object& operator=(const Object& other) = delete;
         Object& operator=(Object&& other) = delete;
+
+        using ObjectContainer = ::v8::DataStructures::ObjectBlock<>;
 
       private:
         std::atomic_uint refCount {0};
