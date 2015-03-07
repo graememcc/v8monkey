@@ -145,72 +145,62 @@ namespace v8 {
 //        // Used for isolate teardown
 //        void IsolateRelease();
     };
-//
-//
-//    /*
-//     *  The base class of all objects that implement types for the V8 API
-//     *
-//     */
-//    class V8Value: public V8MonkeyObject {
-//      public:
-//        virtual bool IsUndefined() const { return false; }
-//        virtual bool IsNull() const { return false; }
-//        virtual bool IsTrue() const { return false; }
-//        virtual bool IsFalse() const { return false; }
-//        virtual bool IsString() const { return false; }
-//        virtual bool IsObject() const { return false; }
-//        virtual bool IsBoolean() const { return false; }
-//        virtual bool IsNumber() const { return false; }
-//        virtual bool IsInt32() const { return false; }
-//        virtual bool IsUint32() const { return false; }
-//        virtual bool IsExternal() const { return false; }
-//        virtual bool IsNativeError() const { return false; }
-//        virtual bool IsFunction() const { return false; }
-//        virtual bool IsArray() const { return false; }
-//        virtual bool IsDate() const { return false; }
-//        virtual bool IsBooleanObject() const { return false; }
-//        virtual bool IsNumberObject() const { return false; }
-//        virtual bool IsStringObject() const { return false; }
-//        virtual bool IsRegExp() const { return false; }
-//        /*
-//        Local<Boolean> ToBoolean() const;
-//
-//        Local<Number> ToNumber() const;
-//
-//        Local<String> ToString() const;
-//
-//        Local<String> ToDetailString() const;
-//
-//        Local<Object> ToObject() const;
-//
-//        Local<Integer> ToInteger() const;
-//
-//        Local<Uint32> ToUint32() const;
-//
-//        Local<Int32> ToInt32() const;
-//
-//        Local<Uint32> ToArrayIndex() const;
-//
-//        bool BooleanValue() const;
-//
-//        double NumberValue() const;
-//
-//        int64_t IntegerValue() const;
-//
-//        uint32_t Uint32Value() const;
-//
-//        int32_t Int32Value() const;
-//
-//        bool Equals(Handle<Value> that) const;
-//
-//        bool StrictEquals(Handle<Value> that) const;
-//        */
-//
-//        virtual void Trace(JSRuntime*, JSTracer*) {
-//          // Need to call ShouldTrace for weak callbacks
-//          ShouldTrace();
-//        }
-////
+
+
+    using ObjectContainer = ::v8::DataStructures::ObjectBlock<>;
+
+    /*
+     *  The base class of all objects that implement value types for the V8 API
+     *
+     */
+
+    class V8Value: public Object {
+      public:
+        V8Value() {}
+        virtual ~V8Value() = 0;
+
+        virtual bool IsUndefined() const { return false; }
+        virtual bool IsNull() const { return false; }
+        virtual bool IsTrue() const { return false; }
+        virtual bool IsFalse() const { return false; }
+        virtual bool IsString() const { return false; }
+        virtual bool IsSymbol() const { return false; }
+        virtual bool IsFunction() const { return false; }
+        virtual bool IsArray() const { return false; }
+        virtual bool IsObject() const { return false; }
+        virtual bool IsBoolean() const { return false; }
+        virtual bool IsNumber() const { return false; }
+        virtual bool IsExternal() const { return false; }
+        virtual bool IsInt32() const { return false; }
+        virtual bool IsUint32() const { return false; }
+        virtual bool IsDate() const { return false; }
+        virtual bool IsBooleanObject() const { return false; }
+        virtual bool IsNumberObject() const { return false; }
+        virtual bool IsStringObject() const { return false; }
+        virtual bool IsSymbolObject() const { return false; }
+        virtual bool IsNativeError() const { return false; }
+        virtual bool IsRegExp() const { return false; }
+        virtual bool IsPromise() const { return false; }
+        virtual bool IsArrayBuffer() const { return false; }
+        virtual bool IsArrayBufferView() const { return false; }
+        virtual bool IsTypedArray() const { return false; }
+        virtual bool IsUint8Array() const { return false; }
+        virtual bool IsUint8ClampedArray() const { return false; }
+        virtual bool IsInt8Array() const { return false; }
+        virtual bool IsUint16Array() const { return false; }
+        virtual bool IsInt16Array() const { return false; }
+        virtual bool IsUint32Array() const { return false; }
+        virtual bool IsInt32Array() const { return false; }
+        virtual bool IsFloat32Array() const { return false; }
+        virtual bool IsFloat64Array() const { return false; }
+        virtual bool IsDataView() const { return false; }
+
+        virtual bool BooleanValue() const = 0;
+//        virtual double NumberValue() const = 0;
+//        virtual int64_t IntegerValue() const = 0;
+//        virtual uint32_t Uint32Value() const = 0;
+//        virtual int32_t Int32Value() const = 0;
+
 ////        template <typename T, typename U>
 ////        static T* ConvertFromAPI(const U* val) {
 ////          static_assert(std::is_base_of<V8Value, T>::value, "ConvertFromAPI target is not a V8Value type");
@@ -218,9 +208,14 @@ namespace v8 {
 ////
 ////          return *(reinterpret_cast<T**>(const_cast<U*>(val)));
 ////        }
-//    };
-//
-//
+
+        V8Value(const V8Value& other) = delete;
+        V8Value(V8Value&& other) = delete;
+        V8Value& operator=(const V8Value& other) = delete;
+        V8Value& operator=(V8Value&& other) = delete;
+    };
+
+
     /*
      * A dummy implementation of V8MonkeyObject for testing purposes
      *
@@ -235,10 +230,10 @@ namespace v8 {
 
         DummyV8MonkeyObject() = default;
         ~DummyV8MonkeyObject() = default;
-        DummyV8MonkeyObject(const DummyV8MonkeyObject& other) = default;
-        DummyV8MonkeyObject(DummyV8MonkeyObject&& other) = default;
-        DummyV8MonkeyObject& operator=(const DummyV8MonkeyObject& other) = default;
-        DummyV8MonkeyObject& operator=(DummyV8MonkeyObject&& other) = default;
+        DummyV8MonkeyObject(const DummyV8MonkeyObject& other) = delete;
+        DummyV8MonkeyObject(DummyV8MonkeyObject&& other) = delete;
+        DummyV8MonkeyObject& operator=(const DummyV8MonkeyObject& other) = delete;
+        DummyV8MonkeyObject& operator=(DummyV8MonkeyObject&& other) = delete;
 
       private:
         void DoTrace(JSRuntime*, JSTracer*) override {}
@@ -263,10 +258,10 @@ namespace v8 {
         // XXX What is this used for?!?
         int index;
 
-        DeletionObject(const DeletionObject& other) = default;
-        DeletionObject(DeletionObject&& other) = default;
-        DeletionObject& operator=(const DeletionObject& other) = default;
-        DeletionObject& operator=(DeletionObject&& other) = default;
+        DeletionObject(const DeletionObject& other) = delete;
+        DeletionObject(DeletionObject&& other) = delete;
+        DeletionObject& operator=(const DeletionObject& other) = delete;
+        DeletionObject& operator=(DeletionObject&& other) = delete;
 
       private:
         bool* ptr;
@@ -282,10 +277,10 @@ namespace v8 {
         TraceFake(bool* boolPtr, int* traceCount = nullptr) : ptr(boolPtr), traceCountPtr {traceCount} {}
 
         ~TraceFake() = default;
-        TraceFake(const TraceFake& other) = default;
-        TraceFake(TraceFake&& other) = default;
-        TraceFake& operator=(const TraceFake& other) = default;
-        TraceFake& operator=(TraceFake&& other) = default;
+        TraceFake(const TraceFake& other) = delete;
+        TraceFake(TraceFake&& other) = delete;
+        TraceFake& operator=(const TraceFake& other) = delete;
+        TraceFake& operator=(TraceFake&& other) = delete;
 
       private:
         bool* ptr {nullptr};
