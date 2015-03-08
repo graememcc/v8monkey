@@ -314,7 +314,21 @@ V8MONKEY_TEST(ObjectBlock019, "Deleting to most-recent end is a no-op") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock020, "Objects are released on destruction (1)") {
+V8MONKEY_TEST(ObjectBlock020, "Deletion copes with nullptrs") {
+  TestingBlock tb {};
+  DummyV8MonkeyObject* obj {new DummyV8MonkeyObject {}};
+  TestingBlock::Limits deletionPoint = tb.Add(obj);
+  Object** slotToEmpty = tb.Add(obj).objectAddress;
+  // Manually delete the first dummy slot. Note: need to handle the refcount
+  (*slotToEmpty)->Release(slotToEmpty);
+  *slotToEmpty = nullptr;
+
+  tb.Delete(deletionPoint.next);
+  V8MONKEY_CHECK(true, "Didn't crash");
+}
+
+
+V8MONKEY_TEST(ObjectBlock021, "Objects are released on destruction (1)") {
   bool wasDeleted {false};
 
   {
@@ -326,7 +340,7 @@ V8MONKEY_TEST(ObjectBlock020, "Objects are released on destruction (1)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock021, "Objects are released on destruction (2)") {
+V8MONKEY_TEST(ObjectBlock022, "Objects are released on destruction (2)") {
   Object* obj {new DummyV8MonkeyObject {}};
   obj->AddRef();
   auto refCount = 0u;
@@ -345,7 +359,7 @@ V8MONKEY_TEST(ObjectBlock021, "Objects are released on destruction (2)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock022, "Iterating over an empty object block works") {
+V8MONKEY_TEST(ObjectBlock023, "Iterating over an empty object block works") {
   TestingBlock tb {};
 
   tb.Iterate(objectVisitor);
@@ -353,7 +367,7 @@ V8MONKEY_TEST(ObjectBlock022, "Iterating over an empty object block works") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock023, "Intra-block iteration works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock024, "Intra-block iteration works as expected (1)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
@@ -375,7 +389,7 @@ V8MONKEY_TEST(ObjectBlock023, "Intra-block iteration works as expected (1)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock024, "Intra-block iteration works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock025, "Intra-block iteration works as expected (2)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
@@ -404,7 +418,7 @@ V8MONKEY_TEST(ObjectBlock024, "Intra-block iteration works as expected (2)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock025, "Inter-block iteration works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock026, "Inter-block iteration works as expected (1)") {
   TestingBlock tb {};
 
   for (auto i = 0; i < iterationObjectMax; i++) {
@@ -419,7 +433,7 @@ V8MONKEY_TEST(ObjectBlock025, "Inter-block iteration works as expected (1)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock026, "Inter-block iteration works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock027, "Inter-block iteration works as expected (2)") {
   TestingBlock tb {};
   TestingBlock::Limits deletionPoint;
 
@@ -443,7 +457,7 @@ V8MONKEY_TEST(ObjectBlock026, "Inter-block iteration works as expected (2)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock027, "Iterating with data over an empty object block works") {
+V8MONKEY_TEST(ObjectBlock028, "Iterating with data over an empty object block works") {
   TestingBlock tb {};
 
   void* objData {nullptr};
@@ -452,7 +466,7 @@ V8MONKEY_TEST(ObjectBlock027, "Iterating with data over an empty object block wo
 }
 
 
-V8MONKEY_TEST(ObjectBlock028, "Intra-block iteration with data works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock029, "Intra-block iteration with data works as expected (1)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
@@ -480,7 +494,7 @@ V8MONKEY_TEST(ObjectBlock028, "Intra-block iteration with data works as expected
 }
 
 
-V8MONKEY_TEST(ObjectBlock029, "Intra-block iteration with data works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock030, "Intra-block iteration with data works as expected (2)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
@@ -515,7 +529,7 @@ V8MONKEY_TEST(ObjectBlock029, "Intra-block iteration with data works as expected
 }
 
 
-V8MONKEY_TEST(ObjectBlock030, "Inter-block iteration with data works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock031, "Inter-block iteration with data works as expected (1)") {
   TestingBlock tb {};
 
   for (auto i = 0; i < iterationObjectMax; i++) {
@@ -534,7 +548,7 @@ V8MONKEY_TEST(ObjectBlock030, "Inter-block iteration with data works as expected
 }
 
 
-V8MONKEY_TEST(ObjectBlock031, "Inter-block iteration with data works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock032, "Inter-block iteration with data works as expected (2)") {
   TestingBlock tb {};
   TestingBlock::Limits deletionPoint;
 
@@ -564,7 +578,7 @@ V8MONKEY_TEST(ObjectBlock031, "Inter-block iteration with data works as expected
 }
 
 
-V8MONKEY_TEST(ObjectBlock032, "Templated slabSize works as expected") {
+V8MONKEY_TEST(ObjectBlock033, "Templated slabSize works as expected") {
   // VS2013 doesn't support constexpr
   #define SLOTS 10
   using Block = v8::DataStructures::ObjectBlock<SLOTS>;

@@ -19,6 +19,9 @@
 // EXPORT_FOR_TESTING_ONLY
 #include "utils/test.h"
 
+// V8MONKEY_ASSERT
+#include "utils/V8MonkeyCommon.h"
+
 // FatalErrorCallback, Isolate, kNumIsolateDataSlots
 #include "v8.h"
 
@@ -234,6 +237,8 @@ namespace v8 {
          */
 
         Object** AddLocalHandle(Object* obj) {
+          V8MONKEY_ASSERT(obj, "Attempting to add nullptr?");
+
           AutoGCMutex {this};
           auto result = localHandleData.Add(obj);
           localHandleLimits.next = result.next;

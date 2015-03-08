@@ -1098,7 +1098,6 @@ V8MONKEY_TEST(IntIsolate054,
 }
 
 
-
 V8MONKEY_TEST(IntIsolate055, "IsInitted initially reports false (1)") {
   TestUtils::AutoTestCleanup ac {};
 
@@ -1131,6 +1130,27 @@ V8MONKEY_TEST(IntIsolate057, "V8 Init inits currently entered isolate") {
 
   internal::Isolate* ii {internal::Isolate::FromAPIIsolate(i)};
   V8MONKEY_CHECK(ii->IsInitted(), "Init true");
+}
+
+
+V8MONKEY_TEST(IntIsolate058, "Isolate tracing copes with nullptrs in local handle data") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  internal::Isolate* ii {internal::Isolate::GetCurrent()};
+
+  bool wasTraced {false};
+  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
+  internal::Object** slot1 {ii->AddLocalHandle(dummy)};
+  ii->AddLocalHandle(dummy);
+  // Manually delete the first dummy slot. Note: need to handle the refcount
+  (*slot1)->Release(slot1);
+  *slot1 = nullptr;
+
+  wasTraced = false;
+  SpiderMonkey::ForceGC();
+  V8MONKEY_CHECK(wasTraced, "Tracing unaffected by nullptr existence");
 }
 
 

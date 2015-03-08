@@ -187,7 +187,9 @@ namespace v8 {
         bool isFirstSlab = afterOrAtBeginning(firstSlot, slabData) && beforeEnd(firstSlot, slabData + slab->size());
 
         for (auto slot = (isFirstSlab ? firstSlot : slabData); slot < slabData + slab->size(); slot++) {
-          (*slot)->Release(slot);
+          if (*slot) {
+            (*slot)->Release(slot);
+          }
         }
       });
     }
