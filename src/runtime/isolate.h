@@ -60,8 +60,9 @@ namespace v8 {
       public:
         // XXX Put an initializer list here once we have the shape of InternalIsolate nailed down
         Isolate() : embedderData {nullptr}, hasFatalError {false}, previousIsolates {}, localHandleData {},
-                    localHandleLimits {nullptr, nullptr}, isDisposed {false}, isRegisteredForGC {false},
-                    fatalErrorHandler {nullptr}, lockingThread {0}, lockingMutex{}, GCMutex{} {}
+                    localHandleLimits {nullptr, nullptr}, isDisposed {false}, isInitted {false},
+                    isRegisteredForGC {false}, fatalErrorHandler {nullptr}, lockingThread {0}, lockingMutex{},
+                    GCMutex{} {}
 
 //        InternalIsolate() : isDisposed(false), isRegisteredForGC(false), fatalErrorHandler(nullptr), threadData(nullptr),
 //                            embedderData(nullptr), lockingThread(0), isInitted(false) {
@@ -240,6 +241,22 @@ namespace v8 {
           return result.objectAddress;
         }
 
+        /*
+         * Reports whether the isolate has been initialized. Required for V8 compatability: some API calls should assert
+         * when called if the the isolate has not been initialized
+         *
+         */
+
+       bool IsInitted() const { return isInitted; }
+
+
+        /*
+         * Initialize the isolate. Provided for V8 compatability.
+         *
+         */
+
+       void Init() { isInitted = true; }
+
 //        // XXX Check need to hold GCMutex in dispose/destructor
 //        // Copy the given HandleData into our own. The caller must hold the GC Mutex.
 //        // XXX Check need to hold it in dispose/destructor
@@ -370,6 +387,9 @@ namespace v8 {
         // Has this isolate been disposed?
         bool isDisposed {false};
 
+        // Has this isolate been initialized?
+        bool isInitted {false};
+
         // Have we told SpiderMonkey we're a rooter?
         bool isRegisteredForGC {false};
 
@@ -416,9 +436,6 @@ namespace v8 {
 //        ThreadData* FindOrCreateThreadData(int threadID, InternalIsolate* previousIsolate);
 //        ThreadData* FindThreadData(int threadID);
 //        void DeleteAndFreeThreadData(ThreadData* data);
-
-//        // V8 compat
-//        bool isInitted;
     };
   }
 }

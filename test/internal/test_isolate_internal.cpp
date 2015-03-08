@@ -1097,11 +1097,42 @@ V8MONKEY_TEST(IntIsolate054,
   V8MONKEY_CHECK(wasTraced, "Tracing unaffected by thread destruction");
 }
 
-// XXX Write the following test when we have the mechanisms to support it
-// (Required mechanisms: Can inject shared_ptr wrapped objects into isolates)
-// Enter an isolate, inject a TraceFake THAT WE HOLD IN A SHARED_PTR, exit and dispose
-// Set the TraceFake location to false, and force a GC
-// value still false is correct. It shows that we don't trace objects for an isolate after the isolate is destroyed
+
+
+V8MONKEY_TEST(IntIsolate055, "IsInitted initially reports false (1)") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  internal::Isolate* ii {internal::Isolate::FromAPIIsolate(i)};
+
+  V8MONKEY_CHECK(!ii->IsInitted(), "Init false");
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate056, "IsInitted initially reports false (2)") {
+  TestUtils::AutoTestCleanup ac {};
+
+  // Confirming that entering alone does not trigger init
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  internal::Isolate* ii {internal::Isolate::FromAPIIsolate(i)};
+
+  V8MONKEY_CHECK(!ii->IsInitted(), "Init false");
+}
+
+
+V8MONKEY_TEST(IntIsolate057, "V8 Init inits currently entered isolate") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  V8::Initialize();
+
+  internal::Isolate* ii {internal::Isolate::FromAPIIsolate(i)};
+  V8MONKEY_CHECK(ii->IsInitted(), "Init true");
+}
+
 
 V8MONKEY_TEST(IntScope001, "Scopes exit copes with multiple entries on main thread") {
   TestUtils::AutoTestCleanup ac {};
@@ -1116,46 +1147,3 @@ V8MONKEY_TEST(IntScope001, "Scopes exit copes with multiple entries on main thre
   V8MONKEY_CHECK(internal::Isolate::IsEntered(internal::Isolate::FromAPIIsolate(i)),
                  "Isolate::Scopes behave correctly in the face of multiple entries");
 }
-
-
-// V8MONKEY_TEST(IntIsolate035, "IsInitted initially reports false (1)") {
-//   TestUtils::AutoTestCleanup ac {};
-//   Isolate* i {Isolate::New()};
-//   internal::Isolate* ii = CurrentAsInternal();
-//
-//   V8MONKEY_CHECK(!ii->IsInitted(), "Init false");
-//   i->Dispose();
-// }
-//
-//
-// V8MONKEY_TEST(IntIsolate036, "IsInitted initially reports false (2)") {
-//   TestUtils::AutoTestCleanup ac {};
-//   Isolate* i {Isolate::New()};
-//   i->Enter();
-//   internal::Isolate* ii = CurrentAsInternal();
-//
-//   V8MONKEY_CHECK(!ii->IsInitted(), "Init false");
-// }
-//
-//
-// V8MONKEY_TEST(IntIsolate037, "IsInitted reports true after init") {
-//   TestUtils::AutoTestCleanup ac {};
-//   Isolate* i {Isolate::New()};
-//   i->Enter();
-//
-//   internal::Isolate* ii = CurrentAsInternal();
-//   ii->Init();
-//
-//   V8MONKEY_CHECK(ii->IsInitted(), "Init true");
-// }
-//
-//
-// V8MONKEY_TEST(IntIsolate038, "V8 Init inits currently entered isolate") {
-//   TestUtils::AutoTestCleanup ac {};
-//   Isolate* i {Isolate::New()};
-//   i->Enter();
-//   V8::Initialize();
-//   internal::Isolate* ii = CurrentAsInternal();
-//
-//   V8MONKEY_CHECK(ii->IsInitted(), "Init true");
-// }
