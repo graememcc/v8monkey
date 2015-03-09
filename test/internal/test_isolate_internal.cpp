@@ -770,8 +770,7 @@ V8MONKEY_TEST(IntIsolate036, "Exiting an isolate doesn't deregister an isolate f
   Isolate* i {Isolate::New()};
   i->Enter();
   bool wasTraced {false};
-  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
-  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(new internal::TraceFake {&wasTraced});
   i->Exit();
 
   SpiderMonkey::ForceGC();
@@ -908,8 +907,7 @@ V8MONKEY_TEST(IntIsolate044, "GetLocalHandleLimits no longer null after adding a
   Isolate* apiIsolate {Isolate::New()};
   internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
 
-  internal::DummyV8MonkeyObject* dummy {new internal::DummyV8MonkeyObject {}};
-  i->AddLocalHandle(dummy);
+  i->AddLocalHandle(new internal::DummyV8MonkeyObject {});
 
   internal::LocalHandleLimits limits = i->GetLocalHandleLimits();
   V8MONKEY_CHECK(limits.next, "next field was not nullptr");
@@ -922,8 +920,7 @@ V8MONKEY_TEST(IntIsolate044, "GetLocalHandleLimits no longer null after adding a
 V8MONKEY_TEST(IntIsolate045, "LocalHandleCount non-zero after handle added") {
   Isolate* apiIsolate {Isolate::New()};
   internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
-  internal::DummyV8MonkeyObject* dummy {new internal::DummyV8MonkeyObject {}};
-  i->AddLocalHandle(dummy);
+  i->AddLocalHandle(new internal::DummyV8MonkeyObject {});
 
   V8MONKEY_CHECK(i->LocalHandleCount() != 0u, "No handles");
 
@@ -933,9 +930,9 @@ V8MONKEY_TEST(IntIsolate045, "LocalHandleCount non-zero after handle added") {
 
 V8MONKEY_TEST(IntIsolate046, "AddLocalHandle does not return nullptr") {
   Isolate* i {Isolate::New()};
-  internal::DummyV8MonkeyObject* dummy {new internal::DummyV8MonkeyObject {}};
 
-  V8MONKEY_CHECK(internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy), "Address non-null");
+  V8MONKEY_CHECK(internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(new internal::DummyV8MonkeyObject {}),
+                 "Address non-null");
 
   i->Dispose();
 }
@@ -947,8 +944,7 @@ V8MONKEY_TEST(IntIsolate047, "Objects are traced after added as a local handle")
   Isolate* i {Isolate::New()};
   i->Enter();
   bool wasTraced {false};
-  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
-  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(new internal::TraceFake {&wasTraced});
 
   SpiderMonkey::ForceGC();
   V8MONKEY_CHECK(wasTraced, "Value was traced");
@@ -962,8 +958,7 @@ V8MONKEY_TEST(IntIsolate048, "Multiple entries does not result in multiple calls
   i->Enter();
   bool wasTraced {false};
   int traceCount {0};
-  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced, &traceCount}};
-  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(new internal::TraceFake {&wasTraced, &traceCount});
   i->Exit();
   i->Enter();
 
@@ -999,8 +994,7 @@ V8MONKEY_TEST(IntIsolate050, "Destruction of threads not associated with isolate
   Isolate* i {Isolate::New()};
   i->Enter();
   bool wasTraced {false};
-  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
-  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(new internal::TraceFake {&wasTraced});
 
   Thread child {SimplyExit};
   child.Run();
@@ -1020,8 +1014,7 @@ V8MONKEY_TEST(IntIsolate051,
   Isolate* i {Isolate::New()};
   i->Enter();
   bool wasTraced {false};
-  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
-  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(new internal::TraceFake {&wasTraced});
 
   Thread child {CreateEnterExit};
   child.Run();
@@ -1041,8 +1034,7 @@ V8MONKEY_TEST(IntIsolate052,
   Isolate* i {Isolate::New()};
   i->Enter();
   bool wasTraced {false};
-  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
-  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(new internal::TraceFake {&wasTraced});
 
   Thread child {ThreadEnterExit};
   child.Run(i);
@@ -1062,8 +1054,7 @@ V8MONKEY_TEST(IntIsolate053,
   Isolate* i {Isolate::New()};
   i->Enter();
   bool wasTraced {false};
-  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
-  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(new internal::TraceFake {&wasTraced});
 
   Thread child {ThreadEnterCreateExit};
   child.Run(i);
@@ -1083,8 +1074,7 @@ V8MONKEY_TEST(IntIsolate054,
   Isolate* i {Isolate::New()};
   i->Enter();
   bool wasTraced {false};
-  internal::TraceFake* dummy {new internal::TraceFake {&wasTraced}};
-  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(dummy);
+  internal::Isolate::FromAPIIsolate(i)->AddLocalHandle(new internal::TraceFake {&wasTraced});
 
   Isolate* j {Isolate::New()};
   j->Enter();
@@ -1200,6 +1190,111 @@ V8MONKEY_TEST(IntIsolate061, "After isolate init, true and false have correct va
   internal::Object** falseSlot {internal::Internals::GetRoot(i, internal::Internals::kFalseValueRootIndex)};
   asValue  = dynamic_cast<internal::V8Value*>(*falseSlot);
   V8MONKEY_CHECK(!asValue->BooleanValue(), "False is false");
+}
+
+
+V8MONKEY_TEST(IntIsolate062, "LocalHandleCount zeroed after deleting all handles") {
+  Isolate* apiIsolate {Isolate::New()};
+  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+  i->AddLocalHandle(new internal::DummyV8MonkeyObject {});
+  V8MONKEY_CHECK(i->LocalHandleCount() > 0u, "Sanity check");
+
+  i->DeleteLocalHandleSlots(nullptr);
+  V8MONKEY_CHECK(i->LocalHandleCount() == 0u, "No handles");
+
+  apiIsolate->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate063, "LocalHandleCount correct after deleting some handles") {
+  Isolate* apiIsolate {Isolate::New()};
+  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+  i->AddLocalHandle(new internal::DummyV8MonkeyObject {});
+  auto original = i->LocalHandleCount();
+  internal::LocalHandleLimits limits = i->GetLocalHandleLimits();
+
+  i->AddLocalHandle(new internal::DummyV8MonkeyObject {});
+  V8MONKEY_CHECK(i->LocalHandleCount() > original, "Sanity check");
+
+  i->DeleteLocalHandleSlots(limits.next);
+  V8MONKEY_CHECK(i->LocalHandleCount() == original, "Handle count correct");
+
+  apiIsolate->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate064, "GetLocalHandleLimits null after deleting all slots") {
+  Isolate* apiIsolate {Isolate::New()};
+  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+  i->AddLocalHandle(new internal::DummyV8MonkeyObject {});
+  internal::LocalHandleLimits limits = i->GetLocalHandleLimits();
+  V8MONKEY_CHECK(limits.next, "Sanity check");
+  V8MONKEY_CHECK(limits.limit, "Sanity check");
+
+  i->DeleteLocalHandleSlots(nullptr);
+  internal::LocalHandleLimits newLimits = i->GetLocalHandleLimits();
+  V8MONKEY_CHECK(!newLimits.next, "next field now nullptr");
+  V8MONKEY_CHECK(!newLimits.limit, "next field now nullptr");
+
+  apiIsolate->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate065, "GetLocalHandleLimits correctly reverted after deleting some slots") {
+  Isolate* apiIsolate {Isolate::New()};
+  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+  i->AddLocalHandle(new internal::DummyV8MonkeyObject {});
+  internal::LocalHandleLimits limits = i->GetLocalHandleLimits();
+  V8MONKEY_CHECK(limits.next, "Sanity check");
+  V8MONKEY_CHECK(limits.limit, "Sanity check");
+
+  i->AddLocalHandle(new internal::DummyV8MonkeyObject {});
+  internal::LocalHandleLimits nextLimits = i->GetLocalHandleLimits();
+  V8MONKEY_CHECK(nextLimits.next && nextLimits.next != limits.next, "Sanity check");
+  V8MONKEY_CHECK(nextLimits.limit, "Sanity check");
+
+  i->DeleteLocalHandleSlots(limits.next);
+  internal::LocalHandleLimits finalLimits = i->GetLocalHandleLimits();
+  V8MONKEY_CHECK(finalLimits.next == limits.next, "next field reverted");
+  V8MONKEY_CHECK(finalLimits.limit == limits.limit, "limit field reverted");
+
+  apiIsolate->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate066, "Refcount of affected objects dropped after slots deleted (1)") {
+  Isolate* apiIsolate {Isolate::New()};
+  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+  internal::Object* dummy {new internal::DummyV8MonkeyObject {}};
+  dummy->AddRef();
+  auto refCount = dummy->RefCount();
+  i->AddLocalHandle(dummy);
+  V8MONKEY_CHECK(dummy->RefCount() == refCount + 1, "Sanity check");
+
+  i->DeleteLocalHandleSlots(nullptr);
+  V8MONKEY_CHECK(dummy->RefCount() == refCount, "Refcount dropped");
+  dummy->Release(&dummy);
+
+  apiIsolate->Dispose();
+}
+
+
+V8MONKEY_TEST(IntIsolate067, "Refcount of affected objects dropped after slots deleted (2)") {
+  Isolate* apiIsolate {Isolate::New()};
+  internal::Isolate* i {internal::Isolate::FromAPIIsolate(apiIsolate)};
+
+  bool wasDeleted {false};
+  i->AddLocalHandle(new internal::DeletionObject {&wasDeleted});
+
+  i->DeleteLocalHandleSlots(nullptr);
+  V8MONKEY_CHECK(wasDeleted, "Refcount dropped");
+
+  apiIsolate->Dispose();
 }
 
 

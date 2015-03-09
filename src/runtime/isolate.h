@@ -229,10 +229,8 @@ namespace v8 {
         }
 
         /*
-         * Adds the given object to the set of local handles managed by this isolate. Returns a Object** pointer that is
-         * not dereferencable representing the slot where the handle was stored.
-         *
-         * Note, this call takes ownership of the lifetime of the supplied object.
+         * Adds the given object to the set of local handles managed by this isolate. Returns a Object** pointer representing
+         * the slot where the handle was stored.
          *
          */
 
@@ -246,13 +244,26 @@ namespace v8 {
           return result.objectAddress;
         }
 
+
+        /*
+         * Delete all local handles from the given slot onwards. The supplied slot is assumed to have been a previously returned
+         * LocalHandleLimit
+         *
+         */
+
+        void DeleteLocalHandleSlots(Object** slot) {
+          auto result = localHandleData.Delete(slot);
+          localHandleLimits.next = result.next;
+          localHandleLimits.limit = result.limit;
+        }
+
         /*
          * Reports whether the isolate has been initialized. Required for V8 compatability: some API calls should assert
          * when called if the the isolate has not been initialized
          *
          */
 
-       bool IsInitted() const { return isInitted; }
+        bool IsInitted() const { return isInitted; }
 
 
         /*
