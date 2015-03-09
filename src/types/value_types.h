@@ -46,7 +46,9 @@ namespace v8 {
 
    class SMBoolean : public SMValue {
      public:
-        SMBoolean(bool value) : SMValue(JS::BooleanValue(value)) {}
+        SMBoolean(bool value) : SMValue(JS::BooleanValue(value)) {
+          ignoreRuntime = true;
+        }
 
         ~SMBoolean() = default;
         SMBoolean(const SMBoolean& other) = delete;

@@ -86,7 +86,7 @@ namespace v8 {
         // Called when the SpiderMonkey garbage collector requests a trace
         void Trace(JSRuntime* runtime, JSTracer* tracer) {
           // Watch out for cases where a different runtime is being traced
-          if (runtime != owningRuntime) {
+          if (!ignoreRuntime && (runtime != owningRuntime)) {
             return;
           }
 
@@ -110,6 +110,9 @@ namespace v8 {
         Object& operator=(Object&& other) = delete;
 
         using ObjectContainer = ::v8::DataStructures::ObjectBlock<>;
+
+      protected:
+        bool ignoreRuntime {false};
 
       private:
         std::atomic_uint refCount {0};
@@ -157,7 +160,7 @@ namespace v8 {
     class V8Value: public Object {
       public:
         V8Value() {}
-        virtual ~V8Value() = 0;
+        virtual ~V8Value() {}
 
         virtual bool IsUndefined() const { return false; }
         virtual bool IsNull() const { return false; }

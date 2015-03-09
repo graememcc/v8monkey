@@ -256,11 +256,18 @@ namespace v8 {
 
 
         /*
-         * Initialize the isolate. Provided for V8 compatability.
+         * Initialize the isolate in a manner expected by the V8 header.
          *
          */
 
-       void Init() { isInitted = true; }
+        void Init() {
+          if (isInitted) {
+            return;
+          }
+
+          doInit();
+          isInitted = true;
+        }
 
 //        // XXX Check need to hold GCMutex in dispose/destructor
 //        // Copy the given HandleData into our own. The caller must hold the GC Mutex.
@@ -437,6 +444,14 @@ namespace v8 {
 
         void RecordThreadEntry(Isolate* i);
         Isolate* RecordThreadExit();
+
+        /*
+         * Perform one-time initialization tasks, such as installing true, false, etc. in their expected locations
+         *
+         */
+
+        void doInit();
+
 //        // ThreadData linked list manipulations
 //        ThreadData* FindOrCreateThreadData(int threadID, InternalIsolate* previousIsolate);
 //        ThreadData* FindThreadData(int threadID);

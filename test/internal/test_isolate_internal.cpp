@@ -10,7 +10,7 @@
 // TestUtils
 #include "utils/test.h"
 
-// DeletionObject DummyV8MonkeyObject
+// DeletionObject DummyV8MonkeyObject V8Value
 #include "types/base_types.h"
 
 // GetJSRuntime/GetJSContext, SetGCRegistrationHooks
@@ -1151,6 +1151,55 @@ V8MONKEY_TEST(IntIsolate058, "Isolate tracing copes with nullptrs in local handl
   wasTraced = false;
   SpiderMonkey::ForceGC();
   V8MONKEY_CHECK(wasTraced, "Tracing unaffected by nullptr existence");
+}
+
+
+V8MONKEY_TEST(IntIsolate059, "After isolate init, true and false refcounted") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  V8::Initialize();
+
+  internal::Object** trueSlot {internal::Internals::GetRoot(i, internal::Internals::kTrueValueRootIndex)};
+  V8MONKEY_CHECK((*trueSlot)->RefCount() == 1, "True refcounted");
+
+  internal::Object** falseSlot {internal::Internals::GetRoot(i, internal::Internals::kFalseValueRootIndex)};
+  V8MONKEY_CHECK((*falseSlot)->RefCount() == 1, "False refcounted");
+}
+
+
+V8MONKEY_TEST(IntIsolate060, "After isolate init, true and false are of correct type") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  V8::Initialize();
+
+  internal::Object** trueSlot {internal::Internals::GetRoot(i, internal::Internals::kTrueValueRootIndex)};
+  internal::V8Value* asValue {dynamic_cast<internal::V8Value*>(*trueSlot)};
+  V8MONKEY_CHECK(asValue->IsBoolean(), "True is a boolean");
+
+  internal::Object** falseSlot {internal::Internals::GetRoot(i, internal::Internals::kFalseValueRootIndex)};
+  asValue  = dynamic_cast<internal::V8Value*>(*falseSlot);
+  V8MONKEY_CHECK(asValue->IsBoolean(), "False is a boolean");
+}
+
+
+V8MONKEY_TEST(IntIsolate061, "After isolate init, true and false have correct values") {
+  TestUtils::AutoTestCleanup ac {};
+
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  V8::Initialize();
+
+  internal::Object** trueSlot {internal::Internals::GetRoot(i, internal::Internals::kTrueValueRootIndex)};
+  internal::V8Value* asValue {dynamic_cast<internal::V8Value*>(*trueSlot)};
+  V8MONKEY_CHECK(asValue->BooleanValue(), "True is true");
+
+  internal::Object** falseSlot {internal::Internals::GetRoot(i, internal::Internals::kFalseValueRootIndex)};
+  asValue  = dynamic_cast<internal::V8Value*>(*falseSlot);
+  V8MONKEY_CHECK(!asValue->BooleanValue(), "False is false");
 }
 
 

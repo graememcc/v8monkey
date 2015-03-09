@@ -29,6 +29,9 @@
 // ObjectContainer
 #include "types/base_types.h"
 
+// SMBoolean
+#include "types/value_types.h"
+
 // V8MonkeyCommon class definition, TriggerFatalError, V8MONKEY_ASSERT
 #include "utils/V8MonkeyCommon.h"
 
@@ -387,6 +390,28 @@ namespace v8 {
 
 
     /*
+     * On isolate init, we install the constants in their expected locations. We assume that we are being called from
+     * V8::Initialize
+     *
+     */
+
+    void Isolate::doInit() {
+      V8MONKEY_ASSERT(GetCurrent() == this, "Why aren't we in the isolate we're initializing?");
+      V8MONKEY_ASSERT(!isInitted, "Init called twice?");
+
+      // We are skating on thin ice here: the JSAPI header admonishes us not to depend on the internal representation
+      // of JS::Values, however we are depending on the fact that they are JSRuntime-agnostic.
+      auto trueIndex = ::v8::internal::Internals::kTrueValueRootIndex;
+      primitiveValues[trueIndex] = new SMBoolean {true};
+      primitiveValues[trueIndex]->AddRef();
+
+      auto falseIndex = ::v8::internal::Internals::kFalseValueRootIndex;
+      primitiveValues[falseIndex] = new SMBoolean {false};
+      primitiveValues[falseIndex]->AddRef();
+    }
+
+
+    /*
      * Exiting the isolate is another simple book-keeping exercise, however note what doesn't happen: we don't
      * deregister from SpiderMonkey GC rooting. Objects created-particularly persistent objects-may have the same
      * lifetime as the isolate, so could exist until the client calls Isolate::Dispose. It would therefore be
@@ -451,6 +476,15 @@ namespace v8 {
       // TODO Should we worry about the possibility of an already-queued GC being beaten to the lock by the
       //      RemoveGCRooter call above? If that was the case, we could beat it to the lock again below, and then
       //      we delete ourselves...
+
+      for (auto begin = std::begin(primitiveValues), it = begin, end = std::end(primitiveValues); it != end; ++it) {
+        auto dist = std::distance(begin, it);
+        Object* obj {primitiveValues[dist]};
+
+        if (obj) {
+          obj->Release(&primitiveValues[dist]);
+        }
+      }
 
 //       // Although we have just unhooked ourselves from the garbage collector, there might already be a GC running
 //       AutoGCMutex(this);
@@ -727,6 +761,13 @@ namespace v8 {
       AutoGCMutex {this};
 
       GCData gcData {rt, tracer};
+
+      // Trace constants
+      auto primEnd = std::end(primitiveValues);
+      for (auto it = std::begin(primitiveValues); it != primEnd; ++it) {
+        GCIterationFunction(*it, &gcData);
+      }
+
       localHandleData.Iterate(GCIterationFunction, &gcData);
 
       // Trace Persistent handles
