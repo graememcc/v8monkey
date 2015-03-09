@@ -121,9 +121,11 @@ namespace v8 {
          * slot in a currently-allocated slab. The address doesn't necessarily have to be one that was explicitly
          * returned by a previous Add call, but computing other addresses is likely to be error-prone.
          *
+         * Returns a Limits structure, detailing the revised next free slot - which will equal the given desiredEnd -
+         * and the limit of the current block. The contents of the objectAddress field are undefined.
          */
 
-        V8_INLINE void Delete(Slot desiredEnd);
+        V8_INLINE Limits Delete(Slot desiredEnd);
 
         // Note: we expect iteration to be performed in a tight loop, so provide a custom iteration function rather
         // than defining custom iterators and begin/end methods. This avoids potential problems with invalidating
@@ -196,7 +198,7 @@ namespace v8 {
 
 
     template <unsigned int SlabSize>
-    void ObjectBlock<SlabSize>::Delete(Slot desiredEnd) {
+    typename ObjectBlock<SlabSize>::Limits ObjectBlock<SlabSize>::Delete(Slot desiredEnd) {
       // Fast path
       if (!desiredEnd) {
         if (!slabs.empty() && ! slabs[0]->empty()) {
@@ -205,7 +207,7 @@ namespace v8 {
         }
 
         slabs.clear();
-        return;
+        return Limits {nullptr, nullptr, nullptr};
       }
 
       V8MONKEY_ASSERT(!slabs.empty(), "Attempting to delete from an empty ObjectBlock");
@@ -231,6 +233,7 @@ namespace v8 {
       // erase would be semantically clearer, but then we have the (minor) hassle of converting the reverse iterator
       // to a standard iterator. The assert above confirms this call won't increase the size or capacity.
       slots->resize(static_cast<Slab::size_type>(desiredEnd - slots->data()));
+      return Limits {nullptr, desiredEnd, slots->data() + slabSize};
     }
 
 

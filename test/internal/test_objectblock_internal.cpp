@@ -230,7 +230,17 @@ V8MONKEY_TEST(ObjectBlock014, "Full deletion works as expected (2)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock015, "Intra-block deletion works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock015, "Full deletion works as expected (3)") {
+  TestingBlock tb {};
+  tb.Add(new DummyV8MonkeyObject {});
+
+  TestingBlock::Limits limits = tb.Delete(nullptr);
+  V8MONKEY_CHECK(limits.next == nullptr, "Next field correct");
+  V8MONKEY_CHECK(limits.limit == nullptr, "limit field correct");
+}
+
+
+V8MONKEY_TEST(ObjectBlock016, "Intra-block deletion works as expected (1)") {
   TestingBlock tb {};
   TestingBlock::Limits deletionPoint = tb.Add(new DummyV8MonkeyObject {});
 
@@ -244,7 +254,7 @@ V8MONKEY_TEST(ObjectBlock015, "Intra-block deletion works as expected (1)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock016, "Intra-block deletion works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock017, "Intra-block deletion works as expected (2)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
@@ -267,7 +277,38 @@ V8MONKEY_TEST(ObjectBlock016, "Intra-block deletion works as expected (2)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock017, "Inter-block deletion works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock018, "Intra-block deletion works as expected (3)") {
+  TestingBlock tb {};
+  TestingBlock::Limits deletionPoint = tb.Add(new DummyV8MonkeyObject {});
+
+  static_assert(TestingBlock::slabSize >= 11, "This test makes bad assumptions about the slab size");
+  for (auto i = 0u; i < 10u; i++) {
+    tb.Add(new DummyV8MonkeyObject {});
+  }
+
+  TestingBlock::Limits newLimits = tb.Delete(deletionPoint.next);
+  V8MONKEY_CHECK(newLimits.next == deletionPoint.next, "Next field correct");
+  V8MONKEY_CHECK(newLimits.limit == deletionPoint.limit, "Next field correct");
+}
+
+
+V8MONKEY_TEST(ObjectBlock019, "Intra-block deletion works as expected (4)") {
+  // Tests the edge-case of deleting to the start of a block
+  TestingBlock tb {};
+  TestingBlock::Limits deletionPoint = tb.Add(new DummyV8MonkeyObject {});
+
+  static_assert(TestingBlock::slabSize >= 11, "This test makes bad assumptions about the slab size");
+  for (auto i = 0u; i < 10u; i++) {
+    tb.Add(new DummyV8MonkeyObject {});
+  }
+
+  TestingBlock::Limits newLimits = tb.Delete(deletionPoint.objectAddress);
+  V8MONKEY_CHECK(newLimits.next == deletionPoint.objectAddress, "Next field correct");
+  V8MONKEY_CHECK(newLimits.limit == deletionPoint.limit, "Next field correct");
+}
+
+
+V8MONKEY_TEST(ObjectBlock020, "Inter-block deletion works as expected (1)") {
   TestingBlock tb {};
   TestingBlock::Limits deletionPoint = tb.Add(new DummyV8MonkeyObject {});
 
@@ -280,7 +321,7 @@ V8MONKEY_TEST(ObjectBlock017, "Inter-block deletion works as expected (1)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock018, "Inter-block deletion works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock021, "Inter-block deletion works as expected (2)") {
   TestingBlock tb {};
   bool firstObjectDeleted {false};
   bool wasDeleted[TestingBlock::slabSize];
@@ -299,7 +340,37 @@ V8MONKEY_TEST(ObjectBlock018, "Inter-block deletion works as expected (2)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock019, "Deleting to most-recent end is a no-op") {
+V8MONKEY_TEST(ObjectBlock022, "Inter-block deletion works as expected (3)") {
+  TestingBlock tb {};
+  TestingBlock::Limits deletionPoint = tb.Add(new DummyV8MonkeyObject {});
+
+  for (auto i = 0u; i < TestingBlock::slabSize; i++) {
+    tb.Add(new DummyV8MonkeyObject {});
+  }
+
+  TestingBlock::Limits newLimits = tb.Delete(deletionPoint.next);
+  V8MONKEY_CHECK(newLimits.next == deletionPoint.next, "Next field correct");
+  V8MONKEY_CHECK(newLimits.limit == deletionPoint.limit, "Limit field correct");
+}
+
+
+V8MONKEY_TEST(ObjectBlock023, "Inter-block deletion works as expected (4)") {
+  // Tests the edge-case of deleting to the end of the previous block
+  TestingBlock tb {};
+  TestingBlock::Limits deletionPoint;
+
+  for (auto i = 0u; i < TestingBlock::slabSize; i++) {
+    deletionPoint = tb.Add(new DummyV8MonkeyObject {});
+  }
+
+  tb.Add(new DummyV8MonkeyObject {});
+  TestingBlock::Limits newLimits = tb.Delete(deletionPoint.next);
+  V8MONKEY_CHECK(newLimits.next == deletionPoint.next, "Next field correct");
+  V8MONKEY_CHECK(newLimits.limit == deletionPoint.limit, "Limit field correct");
+}
+
+
+V8MONKEY_TEST(ObjectBlock024, "Deleting to most-recent end is a no-op") {
   TestingBlock tb {};
   TestingBlock::Limits deletionPoint {nullptr, nullptr, nullptr};
 
@@ -309,12 +380,14 @@ V8MONKEY_TEST(ObjectBlock019, "Deleting to most-recent end is a no-op") {
   }
 
   auto originalSlotCount = tb.NumberOfItems();
-  tb.Delete(deletionPoint.next);
+  TestingBlock::Limits newLimits = tb.Delete(deletionPoint.next);
   V8MONKEY_CHECK(tb.NumberOfItems() == originalSlotCount, "Slot count unchanged");
+  V8MONKEY_CHECK(newLimits.next == deletionPoint.next, "Next field unchanged");
+  V8MONKEY_CHECK(newLimits.limit == deletionPoint.limit, "Limit field unchanged");
 }
 
 
-V8MONKEY_TEST(ObjectBlock020, "Deletion copes with nullptrs") {
+V8MONKEY_TEST(ObjectBlock025, "Deletion copes with nullptrs") {
   TestingBlock tb {};
   DummyV8MonkeyObject* obj {new DummyV8MonkeyObject {}};
   TestingBlock::Limits deletionPoint = tb.Add(obj);
@@ -328,7 +401,7 @@ V8MONKEY_TEST(ObjectBlock020, "Deletion copes with nullptrs") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock021, "Objects are released on destruction (1)") {
+V8MONKEY_TEST(ObjectBlock026, "Objects are released on destruction (1)") {
   bool wasDeleted {false};
 
   {
@@ -340,7 +413,7 @@ V8MONKEY_TEST(ObjectBlock021, "Objects are released on destruction (1)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock022, "Objects are released on destruction (2)") {
+V8MONKEY_TEST(ObjectBlock027, "Objects are released on destruction (2)") {
   Object* obj {new DummyV8MonkeyObject {}};
   obj->AddRef();
   auto refCount = 0u;
@@ -359,7 +432,7 @@ V8MONKEY_TEST(ObjectBlock022, "Objects are released on destruction (2)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock023, "Iterating over an empty object block works") {
+V8MONKEY_TEST(ObjectBlock028, "Iterating over an empty object block works") {
   TestingBlock tb {};
 
   tb.Iterate(objectVisitor);
@@ -367,7 +440,7 @@ V8MONKEY_TEST(ObjectBlock023, "Iterating over an empty object block works") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock024, "Intra-block iteration works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock029, "Intra-block iteration works as expected (1)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
@@ -389,7 +462,7 @@ V8MONKEY_TEST(ObjectBlock024, "Intra-block iteration works as expected (1)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock025, "Intra-block iteration works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock030, "Intra-block iteration works as expected (2)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
@@ -418,7 +491,7 @@ V8MONKEY_TEST(ObjectBlock025, "Intra-block iteration works as expected (2)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock026, "Inter-block iteration works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock031, "Inter-block iteration works as expected (1)") {
   TestingBlock tb {};
 
   for (auto i = 0; i < iterationObjectMax; i++) {
@@ -433,7 +506,7 @@ V8MONKEY_TEST(ObjectBlock026, "Inter-block iteration works as expected (1)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock027, "Inter-block iteration works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock032, "Inter-block iteration works as expected (2)") {
   TestingBlock tb {};
   TestingBlock::Limits deletionPoint;
 
@@ -457,7 +530,7 @@ V8MONKEY_TEST(ObjectBlock027, "Inter-block iteration works as expected (2)") {
 }
 
 
-V8MONKEY_TEST(ObjectBlock028, "Iterating with data over an empty object block works") {
+V8MONKEY_TEST(ObjectBlock033, "Iterating with data over an empty object block works") {
   TestingBlock tb {};
 
   void* objData {nullptr};
@@ -466,7 +539,7 @@ V8MONKEY_TEST(ObjectBlock028, "Iterating with data over an empty object block wo
 }
 
 
-V8MONKEY_TEST(ObjectBlock029, "Intra-block iteration with data works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock034, "Intra-block iteration with data works as expected (1)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
@@ -494,7 +567,7 @@ V8MONKEY_TEST(ObjectBlock029, "Intra-block iteration with data works as expected
 }
 
 
-V8MONKEY_TEST(ObjectBlock030, "Intra-block iteration with data works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock035, "Intra-block iteration with data works as expected (2)") {
   // VS2013 doesn't implement constexpr
   #define SLOTS 10
 
@@ -529,7 +602,7 @@ V8MONKEY_TEST(ObjectBlock030, "Intra-block iteration with data works as expected
 }
 
 
-V8MONKEY_TEST(ObjectBlock031, "Inter-block iteration with data works as expected (1)") {
+V8MONKEY_TEST(ObjectBlock036, "Inter-block iteration with data works as expected (1)") {
   TestingBlock tb {};
 
   for (auto i = 0; i < iterationObjectMax; i++) {
@@ -548,7 +621,7 @@ V8MONKEY_TEST(ObjectBlock031, "Inter-block iteration with data works as expected
 }
 
 
-V8MONKEY_TEST(ObjectBlock032, "Inter-block iteration with data works as expected (2)") {
+V8MONKEY_TEST(ObjectBlock037, "Inter-block iteration with data works as expected (2)") {
   TestingBlock tb {};
   TestingBlock::Limits deletionPoint;
 
@@ -578,7 +651,7 @@ V8MONKEY_TEST(ObjectBlock032, "Inter-block iteration with data works as expected
 }
 
 
-V8MONKEY_TEST(ObjectBlock033, "Templated slabSize works as expected") {
+V8MONKEY_TEST(ObjectBlock038, "Templated slabSize works as expected") {
   // VS2013 doesn't support constexpr
   #define SLOTS 10
   using Block = v8::DataStructures::ObjectBlock<SLOTS>;
