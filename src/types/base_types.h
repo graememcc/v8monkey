@@ -1,3 +1,4 @@
+/*
 #ifndef V8MONKEY_BASETYPES_H
 #define V8MONKEY_BASETYPES_H
 
@@ -29,9 +30,19 @@ namespace v8 {
 
 
   namespace internal {
+*/
 
 
+    /*
+     * It is assumed that objects are stored in an ObjectBlock, in shared_ptrs. Thus, whenever a handle is
+     * dereferenced, instead of an internal::Object**, what one actually has is a shared_ptr<Object>*, cast
+     * to internal::Object** to fit V8 API requirements. The function templates below deal with getting useful types
+     * out of those wrapped values.
+     *
+     */
 
+    //Object
+    //using 
     /*
      * The base class of all internal refcounted objects (i.e. anything that can be stored in a Local or Persistent
      * handle).
@@ -45,21 +56,25 @@ namespace v8 {
      *
      */
 
+/*
     class EXPORT_FOR_TESTING_ONLY Object {
       public:
         Object() : refCount {0}, weakCount{0}, owningRuntime {::v8::SpiderMonkey::GetJSRuntimeForThread()},
                    callbackList {nullptr} {}
 
         virtual ~Object() {}
+*/
 
         /*
          * Bumps this object's strong reference count.
          *
          */
 
+/*
         void AddRef() {
           std::atomic_fetch_add(&refCount, 1u);
         }
+*/
 
         /*
          * Decrements this object's strong reference count. Deletes the object if the decremented refcount is zero.
@@ -68,6 +83,7 @@ namespace v8 {
          *
          */
 
+/*
         void Release(Object**) {
           std::atomic_fetch_sub(&refCount, 1u);
 
@@ -75,6 +91,7 @@ namespace v8 {
             delete this;
           }
         }
+*/
 
         // Support for weak Persistent handles. See persistent.cpp/v8monkeyobject.cpp for details
 //        void MakeWeak(V8MonkeyObject** slotPtr, void* parameters, WeakReferenceCallback callback);
@@ -84,6 +101,7 @@ namespace v8 {
 //        void PersistentRelease(V8MonkeyObject** slotPtr);
 
         // Called when the SpiderMonkey garbage collector requests a trace
+/*
         void Trace(JSRuntime* runtime, JSTracer* tracer) {
           // Watch out for cases where a different runtime is being traced
           if (!ignoreRuntime && (runtime != owningRuntime)) {
@@ -151,12 +169,14 @@ namespace v8 {
 
 
     using ObjectContainer = ::v8::DataStructures::ObjectBlock<>;
+*/
 
     /*
      *  The base class of all objects that implement value types for the V8 API
      *
      */
 
+/*
     class V8Value: public Object {
       public:
         V8Value() {}
@@ -217,6 +237,7 @@ namespace v8 {
         V8Value& operator=(const V8Value& other) = delete;
         V8Value& operator=(V8Value&& other) = delete;
     };
+*/
 
 
     /*
@@ -224,6 +245,7 @@ namespace v8 {
      *
      */
 
+/*
     #ifdef V8MONKEY_INTERNAL_TEST
     class EXPORT_FOR_TESTING_ONLY DummyV8MonkeyObject : public Object {
       public:
@@ -304,3 +326,4 @@ namespace v8 {
 
 
 #endif
+*/

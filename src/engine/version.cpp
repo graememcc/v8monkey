@@ -8,6 +8,7 @@
 #define VERSION_STRING V8COMPAT " V8 API provided by V8Monkey (SpiderMonkey " SMVERSION ")"
 
 
+/*
 namespace {
   const char* versionString = VERSION_STRING;
 }
@@ -19,3 +20,4 @@ namespace v8 {
   // XXX Check compatability: does real V8 have a similar member?
   //const char* V8::version_string = VERSION_STRING;
 }
+*/

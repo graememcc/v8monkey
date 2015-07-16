@@ -1,3 +1,4 @@
+/*
 // The class under test
 #include "data_structures/destruct_list.h"
 
@@ -549,3 +550,4 @@
 //
 //  V8MONKEY_CHECK(true, "Nothing went wrong with null in the list");
 //}
+*/

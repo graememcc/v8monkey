@@ -1,3 +1,4 @@
+/*
 // HandleScope interface, Locker
 #include "v8.h"
 
@@ -12,6 +13,7 @@
 
 // TriggerFatalError, ASSERT
 #include "utils/V8MonkeyCommon.h"
+*/
 
 
 /*

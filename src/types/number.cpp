@@ -1,3 +1,4 @@
+/*
 // fpclassify
 #include <cmath>
 
@@ -19,6 +20,7 @@
 //  using namespace V8Monkey;
 //
 //
+*/
 //  /*
 //   * Builds a V8Number which represents the given number.
 //   *

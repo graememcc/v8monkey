@@ -1,3 +1,4 @@
+/*
 // HandleScope, Integer, Isolate, Local, Locker, Number, V8
 #include "v8.h"
 
@@ -133,3 +134,4 @@ using namespace v8;
 //   Isolate::GetCurrent()->Exit();
 //   V8::Dispose();
 // }
+*/

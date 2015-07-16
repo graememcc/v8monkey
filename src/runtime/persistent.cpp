@@ -1,3 +1,4 @@
+/*
 // ObjectBlock
 #include "data_structures/objectblock.h"
 
@@ -12,6 +13,7 @@
 
 // CheckDeath
 #include "utils/V8MonkeyCommon.h"
+*/
 
 
 //namespace v8 {

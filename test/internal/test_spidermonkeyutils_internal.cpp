@@ -1,3 +1,4 @@
+/*
 // intptr_t
 #include <cinttypes>
 
@@ -42,3 +43,4 @@ V8MONKEY_TEST(IntSMUtils004, "JSContext non-null after assignment") {
   cx = GetJSContextForThread();
   V8MONKEY_CHECK(cx, "Context not null");
 }
+*/

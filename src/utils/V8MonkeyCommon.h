@@ -1,3 +1,4 @@
+/*
 #ifndef V8MONKEY_COMMON_H
 #define V8MONKEY_COMMON_H
 
@@ -52,3 +53,4 @@ namespace v8 {
 
 
 #endif
+*/

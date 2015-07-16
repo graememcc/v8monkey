@@ -1,3 +1,4 @@
+/*
 // exception
 #include <exception>
 
@@ -41,6 +42,7 @@ V8MonkeyTest::V8MonkeyTest(const char* file, const char* name, const char* desc,
   auto filenameEntry = testsByFileName.insert(make_pair(file, set<TestName>())).first;
   filenameEntry->second.insert(name);
 }
+*/
 
 
 /*
@@ -55,6 +57,7 @@ V8MonkeyTest::V8MonkeyTest(const char* file, const char* name, const char* desc,
  */
 
 // XXX Need to use Platform primitives for forking
+/*
 V8MonkeyTest::TestResult V8MonkeyTest::Run() {
   pid_t processID {fork()};
 
@@ -93,6 +96,7 @@ V8MonkeyTest::TestResult V8MonkeyTest::Run() {
     return TestResult {WEXITSTATUS(status) != 0, false};
   }
 }
+*/
 
 
 /*
@@ -100,6 +104,7 @@ V8MonkeyTest::TestResult V8MonkeyTest::Run() {
  *
  */
 
+/*
 V8MonkeyTest::TestDescription V8MonkeyTest::GetFullDescription() {
   string s {"["};
   s += testName;
@@ -107,6 +112,7 @@ V8MonkeyTest::TestDescription V8MonkeyTest::GetFullDescription() {
   s += description;
   return s;
 }
+*/
 
 
 /*
@@ -117,6 +123,7 @@ V8MonkeyTest::TestDescription V8MonkeyTest::GetFullDescription() {
  *
  */
 
+/*
 void V8MonkeyTest::ListAllTests() {
   if (testsByFileName.empty()) {
     cout << "No tests registered" << endl;
@@ -137,6 +144,7 @@ void V8MonkeyTest::ListAllTests() {
     cout << endl;
   }
 }
+*/
 
 
 /*
@@ -144,9 +152,11 @@ void V8MonkeyTest::ListAllTests() {
  *
  */
 
+/*
 void V8MonkeyTest::CountTests() {
   cout << "Registered tests: " << testsByName.size() << endl;
 }
+*/
 
 /*
  * Run the test with a given name, or print an error to standard error if there is no such test. If the test fails, a
@@ -154,6 +164,7 @@ void V8MonkeyTest::CountTests() {
  *
  */
 
+/*
 V8MonkeyTest::TestResult V8MonkeyTest::RunNamedTest(const TestName& testName, ExecutedTests& testsExecuted, TestFailures& failures) {
   auto lookupResult = testsByName.find(testName);
   auto notFound = testsByName.end();
@@ -173,6 +184,7 @@ V8MonkeyTest::TestResult V8MonkeyTest::RunNamedTest(const TestName& testName, Ex
 
   return result;
 }
+*/
 
 
 /*
@@ -181,6 +193,7 @@ V8MonkeyTest::TestResult V8MonkeyTest::RunNamedTest(const TestName& testName, Ex
  *
  */
 
+/*
 V8MonkeyTest::TestResult V8MonkeyTest::RunTestsForFile(const string& fileName, ExecutedTests& testsExecuted, TestFailures& failures) {
   auto testsForFile = testsByFileName.find(fileName);
   auto notFound = testsByFileName.end();
@@ -206,6 +219,7 @@ V8MonkeyTest::TestResult V8MonkeyTest::RunTestsForFile(const string& fileName, E
 
   return result;
 }
+*/
 
 
 /*
@@ -213,6 +227,7 @@ V8MonkeyTest::TestResult V8MonkeyTest::RunTestsForFile(const string& fileName, E
  *
  */
 
+/*
 V8MonkeyTest::TestResult V8MonkeyTest::RunAllTests(TestFailures& failures) {
   if (testsByFileName.empty()) {
     cout << "No tests registered" << endl;
@@ -234,3 +249,4 @@ V8MonkeyTest::TestResult V8MonkeyTest::RunAllTests(TestFailures& failures) {
   // Signal to the caller that we're the parent process
   return result;
 }
+*/

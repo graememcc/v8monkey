@@ -2,6 +2,7 @@
 #define V8MONKEY_SMARTPOINTER_H
 
 
+/*
 namespace v8 {
 namespace V8Monkey {
 
@@ -106,5 +107,6 @@ class SmartPtr {
 
 }
 }
+*/
 
 #endif

@@ -1,3 +1,4 @@
+/*
 // IsEntered
 #include "runtime/isolate.h"
 
@@ -86,3 +87,4 @@ V8MONKEY_TEST(FatalHandler003, "Specified fatal error handler is isolate specifi
   V8MONKEY_CHECK(!callback2Called, "Old handler not called");
   V8MONKEY_CHECK(callback1Called, "Handler called");
 }
+*/

@@ -1,3 +1,4 @@
+/*
 // partition
 #include <algorithm>
 
@@ -41,6 +42,7 @@ using namespace v8::V8Platform;
 
 namespace {
   // XXX Actually: do they even need to have entered the isolate now?
+*/
   /*
    * As V8 clients may start creating primitive values as soon as they enter a particular isolate, we are forced to
    * allocate a JSRuntime and JSContext at that time. Further, the isolate must then participate in GC rooting to
@@ -72,6 +74,7 @@ namespace {
    *
    */
 
+/*
   struct RooterRegistration {
     v8::internal::Isolate* isolate;
     JSRuntime* runtime;
@@ -87,6 +90,7 @@ namespace {
     RooterRegistration& operator=(RooterRegistration&& other) = default;
     ~RooterRegistration() = default;
   };
+*/
 
 
   /*
@@ -101,7 +105,9 @@ namespace {
    *
    */
 
+/*
   std::vector<RooterRegistration> rooterRegistrations {};
+*/
 
 
   /*
@@ -114,6 +120,7 @@ namespace {
    *
    */
 
+/*
   void RemoveRooter(JSRuntime* rt) {
     V8MONKEY_ASSERT(rt, "RemoveRooter called with nullptr");
 
@@ -142,6 +149,7 @@ namespace {
 
     rooterRegistrations.erase(begin, end);
   }
+*/
 
 
   /*
@@ -187,7 +195,9 @@ namespace {
    *
    */
 
+/*
   bool spiderMonkeyDestroyed {false};
+*/
 
 
   /*
@@ -196,6 +206,7 @@ namespace {
    *
    */
 
+/*
   std::atomic<int> runtimeCount {0};
 
 
@@ -207,6 +218,7 @@ namespace {
   void recordJSRuntimeDestruction() {
     std::atomic_fetch_sub(&runtimeCount, 1);
   }
+*/
 
 
   /*
@@ -214,8 +226,10 @@ namespace {
    *
    */
 
+/*
   extern "C" void tearDownRuntimeAndContext(void* raw);
   TLSKey<v8::SpiderMonkey::SpiderMonkeyData*> smDataKey{&tearDownRuntimeAndContext};
+*/
 
 
   /*
@@ -224,6 +238,7 @@ namespace {
    *
    */
 
+/*
   extern "C"
   void tearDownRuntimeAndContext(void* raw) {
     using SpiderMonkeyData = v8::SpiderMonkey::SpiderMonkeyData;
@@ -254,6 +269,7 @@ namespace {
 
     recordJSRuntimeDestruction();
   }
+*/
 
 
   /*
@@ -262,6 +278,7 @@ namespace {
    *
    */
 
+/*
   void assignRuntimeAndContext() {
     using SpiderMonkeyData = v8::SpiderMonkey::SpiderMonkeyData;
 
@@ -300,6 +317,7 @@ namespace {
 
   class SpiderMonkeyTearDown;
   std::unique_ptr<SpiderMonkeyTearDown> tearDown {nullptr};
+*/
 
 
   /*
@@ -314,6 +332,7 @@ namespace {
    *
    */
 
+/*
   class SpiderMonkeyTearDown {
     public:
       SpiderMonkeyTearDown() {}
@@ -362,6 +381,7 @@ namespace {
       SpiderMonkeyTearDown& operator=(const SpiderMonkeyTearDown& other) = delete;
       SpiderMonkeyTearDown& operator=(SpiderMonkeyTearDown&& other) = default;
   };
+*/
 
 
   /*
@@ -370,6 +390,7 @@ namespace {
    *
    */
 
+/*
   void initSpiderMonkey() {
     bool successful {JS_Init()};
 
@@ -546,7 +567,6 @@ namespace v8{
     #endif
 
 
-/*
     JSCompartment* SpiderMonkeyUtils::GetCurrentCompartment() {
       // XXX TODO
       return nullptr;
@@ -557,6 +577,6 @@ namespace v8{
       // XXX TODO
       return nullptr;
     }
-*/
   }
 }
+*/

@@ -1,3 +1,4 @@
+/*
 // DeletionObject DummyV8MonkeyObject V8MonkeyObject
 #include "types/base_types.h"
 
@@ -473,3 +474,4 @@ V8MONKEY_TEST(RefCount004, "Refcount falling to zero deletes object") {
 //
 //  fakeSlot->PersistentRelease(&fakeSlot);
 //}
+*/

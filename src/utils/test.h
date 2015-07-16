@@ -1,3 +1,4 @@
+/*
 #ifndef V8MONKEY_TEST_H
 #define V8MONKEY_TEST_H
 
@@ -12,18 +13,18 @@
   #define EXPORT_FOR_TESTING_ONLY
 #endif
 
-
+*/
 // /*
 //  * In internals testing builds, define a utility class with a grabbag of methods handy for poking around inside our
 //  * internals, and additional utility functions.
 //  *
 //  */
 //
-#ifdef V8MONKEY_INTERNAL_TEST
+//#ifdef V8MONKEY_INTERNAL_TEST
 //
-  namespace v8 {
+  //namespace v8 {
 //   namespace V8Monkey {
-    namespace TestUtils {
+    //namespace TestUtils {
 //       public:
 //
 //         // XXX Is this still needed?
@@ -57,6 +58,7 @@
 //          *
 //          */
 //
+/*
       class EXPORT_FOR_TESTING_ONLY AutoIsolateCleanup {
          public:
            AutoIsolateCleanup() {}
@@ -83,6 +85,7 @@
 //     };
 //   }
 // }
+*/
 //
 //
 // /*
@@ -131,9 +134,11 @@
     V8MONKEY_CHECK(v8::V8Monkey::InternalIsolate::IsEntered(v8::V8Monkey::InternalIsolate::FromIsolate(i)), "Correctly stayed in isolate");\
   }
 */
+/*
   }
 }
 #endif
 
 
 #endif
+*/

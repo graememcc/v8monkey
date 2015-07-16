@@ -1,3 +1,4 @@
+/*
 // for_each
 #include <algorithm>
 
@@ -43,6 +44,7 @@
 
 
 struct JSRuntime;
+*/
 
 
 // XXX Review comment
@@ -79,8 +81,10 @@ struct JSRuntime;
  */
 
 
+/*
 namespace {
   using namespace v8::V8Platform;
+*/
 
 
   /*
@@ -88,10 +92,12 @@ namespace {
    *
    */
 
+/*
   // The thread's unique ID
   TLSKey<int> threadIDKey {};
   // The internal isolate that the thread has entered
   TLSKey<v8::internal::Isolate*> currentIsolateKey {};
+*/
 
 
 // XXX Keep this comment, move it and repurpose it for wherever we do the rooted isolate tracking
@@ -115,10 +121,12 @@ namespace {
    *
    */
 
+/*
   void GCTracingFunction(JSTracer* tracer, void* data) {
     v8::SpiderMonkey::TracerData* traceData {reinterpret_cast<v8::SpiderMonkey::TracerData*>(data)};
     traceData->isolate->Trace(traceData->rt, tracer);
   }
+*/
 
 
   /*
@@ -126,10 +134,12 @@ namespace {
    *
    */
 
+/*
   struct GCData {
     JSRuntime* rt;
     JSTracer* tracer;
   };
+*/
 
 
   /*
@@ -138,6 +148,7 @@ namespace {
    *
    */
 
+/*
   void GCIterationFunction(v8::internal::Object* obj, void* data) {
     if (!obj) {
       return;
@@ -146,6 +157,7 @@ namespace {
     GCData* gcData {reinterpret_cast<GCData*>(data)};
     obj->Trace(gcData->rt, gcData->tracer);
   }
+*/
 
 
   /*
@@ -153,6 +165,7 @@ namespace {
    *
    */
 
+/*
   int fetchOrAssignThreadID() {
     static std::atomic_int idCount {1};
 
@@ -167,6 +180,7 @@ namespace {
 
     return id;
   }
+*/
 //
 //
 //   /*
@@ -214,6 +228,7 @@ namespace {
 //     // We use nullptr in lieu of a slot to indicate this was triggered by isolate deletion
 //     obj->PersistentRelease(nullptr);
 //   }
+/*
 }
 
 
@@ -229,6 +244,7 @@ namespace v8 {
 //
 //     return fetchOrAssignThreadID();
 //   }
+*/
 
 
   /*
@@ -237,12 +253,14 @@ namespace v8 {
    *
    */
 
+/*
   bool V8::IsDead() {
     internal::Isolate* i {internal::Isolate::GetCurrent()};
     // Follow V8 and assert here
     V8MONKEY_ASSERT(i, "Not in an isolate");
     return i->IsDead();
   }
+*/
 
 
   /*
@@ -251,11 +269,13 @@ namespace v8 {
    *
    */
 
+/*
   void V8::SetFatalErrorHandler(FatalErrorCallback fn) {
     // V8 assumes that the caller is in an isolate (although it asserts in debug builds)
     internal::Isolate* i {internal::Isolate::GetCurrent()};
     i->SetFatalErrorHandler(fn);
   }
+*/
 //
 //
 //   void Isolate::Enter() {
@@ -278,7 +298,9 @@ namespace v8 {
 //   }
 //
 //
+/*
   namespace internal {
+*/
 
 //     /*
 //      * Isolates stack, can be entered multiple times, and can be used by multiple threads. As V8 allows threads to
@@ -317,6 +339,7 @@ namespace v8 {
 //         entryCount(0), threadID(id), previousIsolate(previous), prev(previousElement), next(nextElement) {}
 //     };
 
+/*
     // XXX Temporary?
     void Isolate::RecordThreadEntry(Isolate* i) {
       previousIsolates.emplace_back(i);
@@ -331,6 +354,7 @@ namespace v8 {
       previousIsolates.erase(end);
       return i;
     }
+*/
 
     /*
      * When an Isolate is entered, we will assign that thread a JSRuntime and a JSContext if the thread does not
@@ -348,6 +372,7 @@ namespace v8 {
      *
      */
 
+/*
     void Isolate::Enter() {
       using namespace ::v8;
 
@@ -387,6 +412,7 @@ namespace v8 {
       // Invariant: a thread's most recently entered isolate should be stored in TLS
       currentIsolateKey.Set(this);
     }
+*/
 
 
     /*
@@ -395,6 +421,7 @@ namespace v8 {
      *
      */
 
+/*
     void Isolate::doInit() {
       V8MONKEY_ASSERT(GetCurrent() == this, "Why aren't we in the isolate we're initializing?");
       V8MONKEY_ASSERT(!isInitted, "Init called twice?");
@@ -409,6 +436,7 @@ namespace v8 {
       primitiveValues[falseIndex] = new SMBoolean {false};
       primitiveValues[falseIndex]->AddRef();
     }
+*/
 
 
     /*
@@ -420,6 +448,7 @@ namespace v8 {
      *
      */
 
+/*
     void Isolate::Exit() {
 //       int threadID = fetchOrAssignThreadID();
 //
@@ -447,6 +476,7 @@ namespace v8 {
 //       // Note: after this call, data will be a dangling pointer
 //       DeleteAndFreeThreadData(data);
     }
+*/
 
 
     // XXX Verify the thing below about HandleScopes. Remind yourself, what checking does V8 do?
@@ -459,6 +489,7 @@ namespace v8 {
      *
      */
 
+/*
     void Isolate::Dispose(bool fromDestructor) {
       if (ContainsThreads()) {
         V8Monkey::TriggerFatalError("v8::Isolate::Dispose", "Attempt to dispose isolate in which threads are active");
@@ -535,6 +566,7 @@ namespace v8 {
       V8MONKEY_ASSERT(!isRegisteredForGC, "Isolate is still rooting?");
     }
 
+*/
 //
 //
 //     /*
@@ -609,6 +641,7 @@ namespace v8 {
       *
       */
 
+/*
      void Isolate::Lock() {
        lockingMutex.Lock();
        lockingThread = fetchOrAssignThreadID();
@@ -624,6 +657,7 @@ namespace v8 {
      bool Isolate::IsLockedForThisThread() const {
        return lockingThread == fetchOrAssignThreadID();
      }
+*/
 
 
     /*
@@ -631,9 +665,11 @@ namespace v8 {
      *
      */
 
+/*
     Isolate* Isolate::GetCurrent() {
       return currentIsolateKey.Get();
     }
+*/
 
 
      /*
@@ -641,9 +677,11 @@ namespace v8 {
       *
       */
 
+/*
     bool Isolate::IsEntered(Isolate* i) {
       return currentIsolateKey.Get() == i;
     }
+*/
 
 
 //     /*
@@ -756,6 +794,7 @@ namespace v8 {
      *
      */
 
+/*
     void Isolate::Trace(JSRuntime* rt, JSTracer* tracer) {
       // Don't allow API mutation of the handle structures during tracing
       AutoGCMutex {this};
@@ -821,3 +860,4 @@ namespace v8 {
 
   }
 }
+*/

@@ -1,3 +1,4 @@
+/*
 // all_of
 #include <algorithm>
 
@@ -666,3 +667,4 @@ V8MONKEY_TEST(ObjectBlock038, "Templated slabSize works as expected") {
   V8MONKEY_CHECK(limits.limit != oldLimits.limit, "Moved to new block");
   #undef SLOTS
 }
+*/

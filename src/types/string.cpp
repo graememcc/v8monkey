@@ -1,3 +1,4 @@
+/*
 // strlen
 #include <cstring>
 
@@ -24,6 +25,7 @@
 
 // ASSERT
 #include "utils/V8MonkeyCommon.h"
+*/
 //
 //
 //namespace {

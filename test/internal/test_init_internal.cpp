@@ -1,3 +1,4 @@
+/*
 // Isolate, V8
 #include "v8.h"
 
@@ -110,6 +111,7 @@
 // }
 // 
 // 
+*/
 // /*
 //  * Tests deleted due to abandoning multithreaded support
 //  *

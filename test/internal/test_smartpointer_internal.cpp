@@ -1,3 +1,4 @@
+/*
 // The class under test
 #include "data_structures/smart_pointer.h"
 
@@ -191,3 +192,4 @@
 //  // TODO: This should be a static assert. Finding out now is way too late.
 //  V8MONKEY_CHECK(sizeof(SmartPtr<DummyV8MonkeyObject>) == sizeof(DummyV8MonkeyObject*), "Pointer size OK");
 //}
+*/

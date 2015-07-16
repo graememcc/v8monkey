@@ -1,3 +1,4 @@
+/*
 // fprintf
 #include <cstdio>
 
@@ -235,3 +236,4 @@ namespace v8 {
     }
   }
 }
+*/

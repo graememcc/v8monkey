@@ -1,3 +1,4 @@
+/*
 #ifndef V8MONKEY_VALUETYPES_H
 #define V8MONKEY_VALUETYPES_H
 
@@ -13,12 +14,14 @@
 //
 namespace v8 {
   namespace internal {
+*/
 
     /*
      * Base class for types that wrap a SpiderMonkey JSValue
      *
      */
 
+/*
     class EXPORT_FOR_TESTING_ONLY SMValue : public V8Value {
       public:
         SMValue(JS::Value val) : jsval (val) {}
@@ -37,6 +40,7 @@ namespace v8 {
       protected:
         JS::Heap<JS::Value> jsval;
     };
+*/
 
 
     /*
@@ -44,6 +48,7 @@ namespace v8 {
      *
      */
 
+/*
    class SMBoolean : public SMValue {
      public:
         SMBoolean(bool value) : SMValue(JS::BooleanValue(value)) {
@@ -118,6 +123,7 @@ namespace v8 {
 //        bool isNull;
 //        bool isUndefined;
 //    };
+*/
 
 
 //    // XXX Does anybody use this?
@@ -159,9 +165,11 @@ namespace v8 {
 //        JSRuntime* rt;
 //        JS::Heap<JS::Value> jsValue;
 //    };
+/*
   }
 }
 
 
 
 #endif
+*/

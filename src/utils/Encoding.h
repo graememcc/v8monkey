@@ -1,3 +1,4 @@
+/*
 #ifndef V8MONKEY_ENCODING_H
 #define V8MONKEY_ENCODING_H
 
@@ -191,3 +192,4 @@ namespace v8 {
 
 
 #endif
+*/

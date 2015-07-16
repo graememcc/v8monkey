@@ -1,3 +1,4 @@
+/*
 // JSTraceDataOp
 #include "jsapi.h"
 
@@ -31,15 +32,18 @@ using namespace v8::V8Platform;
 
 
 namespace {
+*/
   /*
    * Returns a bool denoting whether the given isolate is seen as not locked by the executing thread.
    *
    */
 
+/*
   void* ThreadNotLocked(void* iso) {
     internal::Isolate* i {reinterpret_cast<internal::Isolate*>(iso)};
     return reinterpret_cast<void*>(!i->IsLockedForThisThread());
   }
+*/
 
 
   /*
@@ -47,12 +51,14 @@ namespace {
    *
    */
 
+/*
   void* RuntimeInitiallyNull(void* = nullptr) {
     TestUtils::AutoIsolateCleanup ac {};
 
     bool result {SpiderMonkey::GetJSRuntimeForThread() == nullptr};
     return reinterpret_cast<void*>(result);
   }
+*/
 
 
   /*
@@ -60,12 +66,14 @@ namespace {
    *
    */
 
+/*
   void* ContextInitiallyNull(void* = nullptr) {
     TestUtils::AutoIsolateCleanup ac {};
 
     bool result {SpiderMonkey::GetJSContextForThread() == nullptr};
     return reinterpret_cast<void*>(result);
   }
+*/
 
 
   /*
@@ -73,6 +81,7 @@ namespace {
    *
    */
 
+/*
   void* RuntimeNonNullAfterEntry(void* = nullptr) {
     TestUtils::AutoIsolateCleanup ac {};
 
@@ -81,6 +90,7 @@ namespace {
     bool result {SpiderMonkey::GetJSRuntimeForThread() != nullptr};
     return reinterpret_cast<void*>(result);
   }
+*/
 
 
   /*
@@ -88,6 +98,7 @@ namespace {
    *
    */
 
+/*
   void* ContextNonNullAfterEntry(void* = nullptr) {
     TestUtils::AutoIsolateCleanup ac {};
 
@@ -96,6 +107,7 @@ namespace {
     bool result {SpiderMonkey::GetJSContextForThread() != nullptr};
     return reinterpret_cast<void*>(result);
   }
+*/
 
 
   /*
@@ -103,6 +115,7 @@ namespace {
    *
    */
 
+/*
   void* FetchThreadRT(void* arg = nullptr) {
     Isolate* i {nullptr};
     if (!arg) {
@@ -120,6 +133,7 @@ namespace {
     }
     return rt;
   }
+*/
 
 
   /*
@@ -127,6 +141,7 @@ namespace {
    *
    */
 
+/*
   void* FetchThreadCX(void* arg = nullptr) {
     TestUtils::AutoIsolateCleanup ac {};
 
@@ -146,6 +161,7 @@ namespace {
     }
     return cx;
   }
+*/
 
 
   /*
@@ -154,6 +170,7 @@ namespace {
    *
    */
 
+/*
   void* ChildrenGetDistinctRuntimes(void* = nullptr) {
     TestUtils::AutoIsolateCleanup ac {};
 
@@ -168,6 +185,7 @@ namespace {
 
     return reinterpret_cast<void*>(result);
   }
+*/
 
 
   /*
@@ -176,6 +194,7 @@ namespace {
    *
    */
 
+/*
   void* ChildrenGetDistinctContexts(void* = nullptr) {
     TestUtils::AutoIsolateCleanup ac {};
 
@@ -190,6 +209,7 @@ namespace {
 
     return reinterpret_cast<void*>(result);
   }
+*/
 
 
   /*
@@ -198,6 +218,7 @@ namespace {
    *
    */
 
+/*
   void* ChildrenSameIsoGetDistinctRuntimes(void* = nullptr) {
     TestUtils::AutoIsolateCleanup ac {};
 
@@ -212,6 +233,7 @@ namespace {
 
     return reinterpret_cast<void*>(result);
   }
+*/
 
 
   /*
@@ -220,6 +242,7 @@ namespace {
    *
    */
 
+/*
   void* ChildrenSameIsoGetDistinctContexts(void* = nullptr) {
     TestUtils::AutoIsolateCleanup ac {};
 
@@ -254,6 +277,7 @@ namespace {
     wasDeregisteredFromGC = true;
     runtimeDeregisteredFromGC = rt;
   }
+*/
 
 
   /*
@@ -262,6 +286,7 @@ namespace {
    *
    */
 
+/*
   void* ThreadWasRooted(void* iso) {
     TestUtils::AutoIsolateCleanup ac {};
 
@@ -274,6 +299,7 @@ namespace {
 
     return reinterpret_cast<void*>(result);
   }
+*/
 
 
   /*
@@ -281,6 +307,7 @@ namespace {
    *
    */
 
+/*
   void* ThreadEnterExit(void* iso) {
     // Note: can't construct an AutoIsolateCleanup - we don't want to dispose of the isolate
 
@@ -296,6 +323,7 @@ namespace {
     Isolate* isolate;
     bool* updateAddress;
   };
+*/
 
   /*
    * Function that creates a TraceFake in the supplied isolate that updates the given address.
@@ -304,6 +332,7 @@ namespace {
    *
    */
 
+/*
    void* MakeTraceFake(void* info) {
      // Note: can't construct an AutoIsolateCleanup - we don't want to dispose of the isolate
 
@@ -317,6 +346,7 @@ namespace {
      apiIsolate->Exit();
      return nullptr;
   }
+*/
 
   /*
    * A thread function that should simply exit.
@@ -325,9 +355,11 @@ namespace {
    *
    */
 
+/*
   void* SimplyExit(void*) {
     return nullptr;
   }
+*/
 
 
   /*
@@ -335,6 +367,7 @@ namespace {
    *
    */
 
+/*
   void* CreateEnterExit(void*) {
     Isolate* i {Isolate::New()};
     i->Enter();
@@ -343,6 +376,7 @@ namespace {
 
     return nullptr;
   }
+*/
 
 
   /*
@@ -350,6 +384,7 @@ namespace {
    *
    */
 
+/*
   void* ThreadEnterCreateExit(void* iso) {
     // Note: cannot create an AutoIsolateCleanup. We don't want to destroy the isolate yet.
     Isolate* i {reinterpret_cast<Isolate*>(iso)};
@@ -361,8 +396,10 @@ namespace {
     return nullptr;
   }
 }
+*/
 
 
+/*
 V8MONKEY_TEST(IntIsolate001, "IsEntered works correctly") {
   Isolate* i {Isolate::New()};
   i->Enter();
@@ -1311,3 +1348,4 @@ V8MONKEY_TEST(IntScope001, "Scopes exit copes with multiple entries on main thre
   V8MONKEY_CHECK(internal::Isolate::IsEntered(internal::Isolate::FromAPIIsolate(i)),
                  "Isolate::Scopes behave correctly in the face of multiple entries");
 }
+*/

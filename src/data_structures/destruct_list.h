@@ -18,6 +18,7 @@
  */
 
 
+/*
 namespace v8 {
   namespace V8Monkey {
 
@@ -136,6 +137,7 @@ namespace v8 {
     };
   }
 }
+*/
 
 
 #endif

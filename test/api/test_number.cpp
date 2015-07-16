@@ -1,3 +1,4 @@
+/*
 // std::is_nan
 #include <cmath>
 
@@ -2372,3 +2373,4 @@
 //   Isolate::GetCurrent()->Exit();
 //   V8::Dispose();
 // }
+*/

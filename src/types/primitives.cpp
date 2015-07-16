@@ -1,3 +1,4 @@
+/*
 // ConvertFromAPI V8Boolean V8SpecialValue
 #include "types/value_types.h"
 
@@ -6,6 +7,7 @@
 
 // InitPrimitiveSingletons TearDownPrimitiveSingletons
 #include "utils/V8MonkeyCommon.h"
+*/
 
 
 /*

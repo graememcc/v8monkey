@@ -1,3 +1,4 @@
+/*
 // std::isnan
 #include <cmath>
 
@@ -9,376 +10,198 @@
 
 // Unit-testing support
 #include "V8MonkeyTest.h"
-//
-//
-//using namespace v8;
-//
-//
-//V8MONKEY_TEST(Boolean001, "IsUndefined works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsUndefined(), "IsUndefined reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean002, "IsNull works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsNull(), "IsNull reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean003, "IsString works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsString(), "IsString reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean004, "IsFunction works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsFunction(), "IsFunction reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean005, "IsArray works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsArray(), "IsArray reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean006, "IsObject works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsObject(), "IsObject reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean007, "IsNumber works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsNumber(), "IsNumber reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean008, "IsExternal works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsExternal(), "IsExternal reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean009, "IsDate works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsDate(), "IsDate reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean010, "IsBooleanObject works correctly") {
-//  bool b = true;
-//
-//  V8::Initialize();
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsBooleanObject(), "IsBooleanObject reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean011, "IsNumberObject works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsNumberObject(), "IsNumberObject reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean012, "IsStringObject works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsStringObject(), "IsStringObject reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean013, "IsNativeError works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsNativeError(), "IsNativeError reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean014, "IsRegExp works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsRegExp(), "IsRegExp reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean015, "IsInt32 works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsInt32(), "IsInt32 reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//V8MONKEY_TEST(Boolean016, "IsUint32 works correctly") {
-//  bool b = true;
-//  V8::Initialize();
-//
-//  {
-//    HandleScope h;
-//    Handle<Boolean> n = Boolean::New(b);
-//
-//    V8MONKEY_CHECK(!n->IsUint32(), "IsUint32 reports correct result");
-//  }
-//
-//  Isolate::GetCurrent()->Exit();
-//  V8::Dispose();
-//}
-//
-//
-//#define BOOLEANISBOOLEANTEST(testNumber, variant, val) \
-//V8MONKEY_TEST(Boolean##testNumber, "IsBoolean works correctly (" #variant ")") { \
-//  V8::Initialize(); \
-//\
-//  { \
-//    HandleScope h; \
-//    bool value = val; \
-//    Handle<Value> b = Boolean::New(value); \
-//\
-//    V8MONKEY_CHECK(b->IsBoolean(), "Correct value returned"); \
-//  } \
-// \
-//  Isolate::GetCurrent()->Exit(); \
-//  V8::Dispose(); \
-//}
-//
-//
-//BOOLEANISBOOLEANTEST(017, 1, true)
-//BOOLEANISBOOLEANTEST(018, 2, false)
-//#undef BOOLEANISBOOLEANTEST
-//
-//
-//#define BOOLEANISTRUETEST(testNumber, variant, val) \
-//V8MONKEY_TEST(Boolean##testNumber, "IsTrue works correctly (" #variant ")") { \
-//  V8::Initialize(); \
-//\
-//  { \
-//    HandleScope h; \
-//    bool value = val; \
-//    Handle<Value> b = Boolean::New(value); \
-//\
-//    V8MONKEY_CHECK(b->IsTrue() == value, "Correct value returned"); \
-//  } \
-// \
-//  Isolate::GetCurrent()->Exit(); \
-//  V8::Dispose(); \
-//}
-//
-//
-//BOOLEANISTRUETEST(019, 1, true)
-//BOOLEANISTRUETEST(020, 2, false)
-//#undef BOOLEANISFALSETEST
-//
-//
-//#define BOOLEANISFALSETEST(testNumber, variant, val) \
-//V8MONKEY_TEST(Boolean##testNumber, "IsFalse works correctly (" #variant ")") { \
-//  V8::Initialize(); \
-//\
-//  { \
-//    HandleScope h; \
-//    bool value = val; \
-//    Handle<Value> b = Boolean::New(value); \
-//\
-//    V8MONKEY_CHECK(b->IsFalse() == !value, "Correct value returned"); \
-//  } \
-// \
-//  Isolate::GetCurrent()->Exit(); \
-//  V8::Dispose(); \
-//}
-//
-//
-//BOOLEANISFALSETEST(021, 1, true)
-//BOOLEANISFALSETEST(022, 2, false)
-//#undef BOOLEANISFALSETEST
-//
-//
-//#define BOOLEANVALUETEST(testNumber, variant, val) \
-//V8MONKEY_TEST(Boolean##testNumber, "Value works correctly (" #variant ")") { \
-//  V8::Initialize(); \
-//\
-//  { \
-//    HandleScope h; \
-//    bool value = val; \
-//    Handle<Boolean> b = Boolean::New(value); \
-//\
-//    V8MONKEY_CHECK(b->Value() == value, "Correct value returned"); \
-//  } \
-// \
-//  Isolate::GetCurrent()->Exit(); \
-//  V8::Dispose(); \
-//}
-//
-//
-//BOOLEANVALUETEST(023, 1, true)
-//BOOLEANVALUETEST(024, 2, false)
-//#undef BOOLEANVALUETEST
-//
-//
-//#define BOOLEANBOOLEANVALUETEST(testNumber, variant, val) \
-//V8MONKEY_TEST(Boolean##testNumber, "BooleanValue works correctly (" #variant ")") { \
-//  V8::Initialize(); \
-//\
-//  { \
-//    HandleScope h; \
-//    bool value = val; \
-//    Handle<Boolean> b = Boolean::New(value); \
-//\
-//    V8MONKEY_CHECK(b->BooleanValue() == b->Value(), "Correct value returned"); \
-//  } \
-// \
-//  Isolate::GetCurrent()->Exit(); \
-//  V8::Dispose(); \
-//}
-//
-//
-//BOOLEANBOOLEANVALUETEST(025, 1, true)
-//BOOLEANBOOLEANVALUETEST(026, 2, false)
-//#undef BOOLEANBOOLEANVALUETEST
-//
-//
+
+
+using namespace v8;
+
+
+#define BOOLEAN_IS_TEST(num, fn) \
+V8MONKEY_TEST(Boolean##num, "Is" #fn " works correctly") { \
+  Isolate* i {Isolate::New()}; \
+  i->Enter(); \
+  V8::Initialize(); \
+\
+  { \
+    HandleScope h {i}; \
+\
+    Handle<Boolean> t {Boolean::New(i, true)}; \
+    V8MONKEY_CHECK(!t->Is##fn(), "Is" #fn " reported correct result for true"); \
+\
+    Handle<Boolean> f {Boolean::New(i, false)}; \
+    V8MONKEY_CHECK(!f->Is##fn(), "Is" #fn " reported correct result for false"); \
+  } \
+\
+  i->Exit(); \
+  i->Dispose(); \
+  V8::Dispose(); \
+}
+
+
+// XXX Add test for IsUndefined once implemented
+// XXX Add test for IsNull once implemented
+// XXX Add test for IsString once implemented
+
+BOOLEAN_IS_TEST(001, Symbol)
+BOOLEAN_IS_TEST(002, Function)
+BOOLEAN_IS_TEST(003, Array)
+BOOLEAN_IS_TEST(004, Object)
+BOOLEAN_IS_TEST(005, Number)
+BOOLEAN_IS_TEST(006, External)
+BOOLEAN_IS_TEST(007, Int32)
+BOOLEAN_IS_TEST(008, Uint32)
+BOOLEAN_IS_TEST(009, Date)
+BOOLEAN_IS_TEST(010, BooleanObject)
+BOOLEAN_IS_TEST(011, NumberObject)
+BOOLEAN_IS_TEST(012, StringObject)
+BOOLEAN_IS_TEST(013, SymbolObject)
+BOOLEAN_IS_TEST(014, NativeError)
+BOOLEAN_IS_TEST(015, RegExp)
+BOOLEAN_IS_TEST(016, Promise)
+BOOLEAN_IS_TEST(017, ArrayBuffer)
+BOOLEAN_IS_TEST(018, ArrayBufferView)
+BOOLEAN_IS_TEST(019, TypedArray)
+BOOLEAN_IS_TEST(020, Uint8Array)
+BOOLEAN_IS_TEST(021, Uint8ClampedArray)
+BOOLEAN_IS_TEST(022, Int8Array)
+BOOLEAN_IS_TEST(023, Uint16Array)
+BOOLEAN_IS_TEST(024, Int16Array)
+BOOLEAN_IS_TEST(025, Uint32Array)
+BOOLEAN_IS_TEST(026, Int32Array)
+BOOLEAN_IS_TEST(027, Float32Array)
+BOOLEAN_IS_TEST(028, Float64Array)
+BOOLEAN_IS_TEST(029, DataView)
+#undef BOOLEAN_IS_TEST
+
+
+V8MONKEY_TEST(Boolean030, "IsBoolean works correctly") {
+  Isolate* i {Isolate::New()}; 
+  i->Enter(); 
+  V8::Initialize(); 
+
+  { 
+    HandleScope h {i}; 
+
+    Handle<Boolean> t {Boolean::New(i, true)}; 
+    V8MONKEY_CHECK(t->IsBoolean(), "IsBoolean reported correct result for true"); 
+
+    Handle<Boolean> f {Boolean::New(i, false)}; 
+    V8MONKEY_CHECK(f->IsBoolean(), "IsBoolean reported correct result for false"); 
+  } 
+
+  i->Exit(); 
+  i->Dispose(); 
+  V8::Dispose(); 
+}
+
+
+V8MONKEY_TEST(Boolean031, "IsTrue works correctly") {
+  Isolate* i {Isolate::New()}; 
+  i->Enter(); 
+  V8::Initialize(); 
+
+  { 
+    HandleScope h {i}; 
+
+    Handle<Boolean> t {Boolean::New(i, true)}; 
+    V8MONKEY_CHECK(t->IsTrue(), "IsTrue reported correct result for true"); 
+
+    Handle<Boolean> f {Boolean::New(i, false)}; 
+    V8MONKEY_CHECK(!f->IsTrue(), "IsTrue reported correct result for false"); 
+  } 
+
+  i->Exit(); 
+  i->Dispose(); 
+  V8::Dispose(); 
+}
+
+
+V8MONKEY_TEST(Boolean032, "IsFalse works correctly") {
+  Isolate* i {Isolate::New()}; 
+  i->Enter(); 
+  V8::Initialize(); 
+
+  { 
+    HandleScope h {i}; 
+
+    Handle<Boolean> t {Boolean::New(i, true)}; 
+    V8MONKEY_CHECK(!t->IsFalse(), "IsFalse reported correct result for true"); 
+
+    Handle<Boolean> f {Boolean::New(i, false)}; 
+    V8MONKEY_CHECK(f->IsFalse(), "IsFalse reported correct result for false"); 
+  } 
+
+  i->Exit(); 
+  i->Dispose(); 
+  V8::Dispose(); 
+}
+
+
+V8MONKEY_TEST(Boolean033, "Value works correctly") {
+  Isolate* i {Isolate::New()}; 
+  i->Enter(); 
+  V8::Initialize(); 
+
+  { 
+    HandleScope h {i}; 
+
+    Handle<Boolean> t {Boolean::New(i, true)}; 
+    V8MONKEY_CHECK(t->Value(), "Value reported correct result for true"); 
+
+    Handle<Boolean> f {Boolean::New(i, false)}; 
+    V8MONKEY_CHECK(!f->Value(), "Value reported correct result for false"); 
+  } 
+
+  i->Exit(); 
+  i->Dispose(); 
+  V8::Dispose(); 
+}
+
+
+V8MONKEY_TEST(Boolean034, "BooleanValue works correctly") {
+  Isolate* i {Isolate::New()}; 
+  i->Enter(); 
+  V8::Initialize(); 
+
+  { 
+    HandleScope h {i}; 
+
+    Handle<Value> t {Boolean::New(i, true)}; 
+    V8MONKEY_CHECK(t->BooleanValue(), "BooleanValue reported correct result for true"); 
+
+    Handle<Value> f {Boolean::New(i, false)}; 
+    V8MONKEY_CHECK(!f->BooleanValue(), "BooleanValue reported correct result for false"); 
+  } 
+
+  i->Exit(); 
+  i->Dispose(); 
+  V8::Dispose(); 
+}
+
+
+V8MONKEY_TEST(Boolean035, "Boolean statics works correctly") {
+  Isolate* i {Isolate::New()}; 
+  i->Enter(); 
+  V8::Initialize(); 
+
+  { 
+    HandleScope h {i}; 
+
+    Handle<Boolean> t {True(i)};
+    V8MONKEY_CHECK(t->BooleanValue(), "BooleanValue reported correct result for true"); 
+
+    Handle<Value> f {False(i)};
+    V8MONKEY_CHECK(!f->BooleanValue(), "BooleanValue reported correct result for false"); 
+  } 
+
+  i->Exit(); 
+  i->Dispose(); 
+  V8::Dispose(); 
+}
+
+
+// XXX ToBoolean
+
+
 //#define BOOLEANNUMERICVALUETEST(testNumber, variant, val, method, expected) \
 //V8MONKEY_TEST(Boolean##testNumber, #method " works correctly (" #variant ")") { \
 //  V8::Initialize(); \
@@ -479,50 +302,8 @@
 //BOOLEANTOARRAYINDEXTEST(046, 1, true, 1)
 //BOOLEANTOARRAYINDEXTEST(047, 2, false, 0)
 //#undef BOOLEANTOARRAYINDEXTEST
-//
-//
-//#define BOOLEANSTATICTEST(testNumber, variant, method, expected) \
-//V8MONKEY_TEST(Boolean##testNumber, #method " returns correct value (" #variant ")") { \
-//  V8::Initialize(); \
-//\
-//  { \
-//    HandleScope h; \
-//    Handle<Boolean> b = method(); \
-//\
-//    V8MONKEY_CHECK(b->Value() == expected, "Correct value returned"); \
-//  } \
-// \
-//  Isolate::GetCurrent()->Exit(); \
-//  V8::Dispose(); \
-//}
-//
-//
-//BOOLEANSTATICTEST(048, 1, True, true)
-//BOOLEANSTATICTEST(049, 2, False, false)
-//#undef BOOLEANSTATICTEST
-//
-//
-//#define BOOLEANSTATICISOLATETEST(testNumber, variant, method, expected) \
-//V8MONKEY_TEST(Boolean##testNumber, #method " with isolate returns correct value (" #variant ")") { \
-//  V8::Initialize(); \
-//\
-//  { \
-//    HandleScope h; \
-//    Handle<Boolean> b = method(Isolate::GetCurrent()); \
-//\
-//    V8MONKEY_CHECK(b->Value() == expected, "Correct value returned"); \
-//  } \
-// \
-//  Isolate::GetCurrent()->Exit(); \
-//  V8::Dispose(); \
-//}
-//
-//
-//BOOLEANSTATICISOLATETEST(050, 1, True, true)
-//BOOLEANSTATICISOLATETEST(051, 2, False, false)
-//#undef BOOLEANSTATICISOLATETEST
-//
-//
+
+
 //#define BOOLEANEQUALITYTEST(testNumber, variant, val, method) \
 //V8MONKEY_TEST(Boolean##testNumber, #method " works correctly (" #variant ")") { \
 //  V8::Initialize(); \
@@ -2029,3 +1810,4 @@
 //  Isolate::GetCurrent()->Exit();
 //  V8::Dispose();
 //}
+*/

@@ -1,3 +1,4 @@
+/*
 #include "v8.h"
 
 #include "utils/test.h"
@@ -2507,4 +2508,3 @@
 //   Isolate::GetCurrent()->Exit();
 //   V8::Dispose();
 // }
-// */

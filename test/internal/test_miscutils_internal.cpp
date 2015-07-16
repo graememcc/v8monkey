@@ -1,3 +1,4 @@
+/*
 // Ensure we are using correct type definitions
 #include "v8stdint.h"
 
@@ -33,3 +34,4 @@ V8MONKEY_TEST(IntTwoByteLength004, "Non-empty string has correct length (3)") {
   const uint16_t data[] {0x0041, 0x0060, 0x0000, 0x0000};
   V8MONKEY_CHECK(TwoByteLength(&data[0]) == 2, "Length is correct");
 }
+*/

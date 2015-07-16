@@ -1,3 +1,4 @@
+/*
 // strlen strstr
 #include <cstring>
 
@@ -37,3 +38,4 @@ V8MONKEY_TEST(Vers005, "Version string mentions SpiderMonkey version") {
   const char* version {v8::V8::GetVersion()};
   V8MONKEY_CHECK(strstr(version, SMVERSION) != 0, "V8Monkey version string contains SpiderMonkey version");
 }
+*/

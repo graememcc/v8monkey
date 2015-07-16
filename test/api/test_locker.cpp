@@ -1,3 +1,4 @@
+/*
 // Thread
 #include "platform/platform.h"
 
@@ -311,3 +312,4 @@ V8MONKEY_TEST(Locker018, "Unlocking doesn't affect isolate entry status") {
   i->Exit();
   i->Dispose();
 }
+*/

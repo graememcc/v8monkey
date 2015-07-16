@@ -1,8 +1,10 @@
+/*
 // internal::isolate definition
 #include "runtime/isolate.h"
 
 // Class definition
 #include "v8.h"
+*/
 
 
 /*
@@ -14,6 +16,7 @@
  *
  */
 
+/*
 #define FORWARD_TO_INTERNAL(method) \
    do { \
      internal::Isolate* internal = reinterpret_cast<internal::Isolate*>(this); \
@@ -72,3 +75,4 @@ namespace v8 {
 //   }
 }
 #undef FORWARD_TO_INTERNAL
+*/

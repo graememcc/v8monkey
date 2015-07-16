@@ -1,3 +1,4 @@
+/*
 #ifndef V8MONKEY_SMUTILS_H
 #define V8MONKEY_SMUTILS_H
 
@@ -17,6 +18,7 @@ namespace v8 {
 
   namespace SpiderMonkey {
     using RooterCallback = JSTraceDataOp;
+*/
 
     /*
      * In this namespace, we wrap some common JSAPI calls, particularly where there is a need to perform additional
@@ -24,10 +26,12 @@ namespace v8 {
      *
      */
 
+/*
     struct SpiderMonkeyData {
       JSRuntime* rt;
       JSContext* cx;
     };
+*/
 
 
     /*
@@ -35,7 +39,9 @@ namespace v8 {
      *
      */
 
+/*
     void EnsureSpiderMonkey();
+*/
 
 
     /*
@@ -43,7 +49,9 @@ namespace v8 {
      *
      */
 
+/*
     void TearDownSpiderMonkey();
+*/
 
 
     /*
@@ -57,7 +65,9 @@ namespace v8 {
      *
      */
 
+/*
     EXPORT_FOR_TESTING_ONLY void EnsureRuntimeAndContext();
+*/
 
 
     /*
@@ -66,7 +76,9 @@ namespace v8 {
      *
      */
 
+/*
     SpiderMonkeyData GetJSRuntimeAndJSContext();
+*/
 
 
     /*
@@ -74,7 +86,9 @@ namespace v8 {
      *
      */
 
+/*
     EXPORT_FOR_TESTING_ONLY JSRuntime* GetJSRuntimeForThread();
+*/
 
 
     /*
@@ -82,7 +96,9 @@ namespace v8 {
      *
      */
 
+/*
     EXPORT_FOR_TESTING_ONLY JSContext* GetJSContextForThread();
+*/
 
 
     /*
@@ -90,10 +106,12 @@ namespace v8 {
      *
      */
 
+/*
     struct TracerData {
       JSRuntime* rt;
       ::v8::internal::Isolate* isolate;
     };
+*/
 
 
     /*
@@ -112,7 +130,9 @@ namespace v8 {
      *
      */
 
+/*
     void AddIsolateRooter(::v8::internal::Isolate* isolate, RooterCallback callback, TracerData* data);
+*/
 
 
     /*
@@ -123,6 +143,7 @@ namespace v8 {
      *
      */
 
+/*
     void RemoveRooter(::v8::internal::Isolate*);
 
 
@@ -135,6 +156,7 @@ namespace v8 {
       EXPORT_FOR_TESTING_ONLY void SetGCRegistrationHooks(GCRegistrationHook on, GCDeregistrationHook off);
     #endif
   }
+*/
 
 
 //   namespace V8Monkey {
@@ -180,7 +202,7 @@ namespace v8 {
 //
 //    };
 //  }
-}
+//}
 
 
-#endif
+//#endif

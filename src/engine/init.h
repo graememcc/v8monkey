@@ -22,7 +22,7 @@
  */
 
 // TODO: This is apparently unused. Nice comment, though.
-#define ATTEMPT_ENGINE_INIT V8::Initialize();
+// #define ATTEMPT_ENGINE_INIT V8::Initialize();
 
 
 #endif

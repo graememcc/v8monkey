@@ -1,3 +1,4 @@
+/*
 // TODO: If multi-threaded tests cannot be re-enabled, this header can be removed
 // Thread
 #include "platform/platform.h"
@@ -31,7 +32,6 @@
 // }
 // 
 // 
-// /*
 //  * Tests disabled after threading support disabled
 //  *
 // namespace {

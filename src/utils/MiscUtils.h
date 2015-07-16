@@ -1,3 +1,4 @@
+/*
 #ifndef V8MONKEY_MISCUTILS_H
 #define V8MONKEY_MISCUTILS_H
 
@@ -11,12 +12,14 @@
 namespace v8 {
   namespace V8Monkey {
     namespace MiscUtils {
+*/
 
       /*
        * Takes an array of 16-bit values, assumed to be zero-terminated, and returns the number of non-zero entries.
        *
        */
 
+/*
       template <typename T>
       size_t TwoByteLength(const T* s) {
         static_assert(sizeof(T) == 2, "TwoByteLength template instantiated with wrong-sized type");
@@ -36,3 +39,4 @@ namespace v8 {
 }
 
 #endif
+*/

@@ -1,3 +1,4 @@
+/*
 // Required for ISOLATE_INIT_TESTS
 #include "runtime/isolate.h"
 
@@ -393,6 +394,7 @@
 // 
 // // XXX Add value tests for IsNumber once we have implemented a non-number type
 // // XXX Do we need similar tests for Boolean Null Undefined String?
+*/
 // /*
 //       Local<Boolean> ToBoolean() const;
 // */

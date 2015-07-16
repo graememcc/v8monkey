@@ -1,17 +1,17 @@
 // std::isnan, std::isfinite
-#include <cmath>
+//#include <cmath>
 
 // std::numeric_limits
-#include <limits>
+//#include <limits>
 
 // V8Value
-#include "types/value_types.h"
+//#include "types/value_types.h"
 
 // Boolean Handle Integer Int32 Local Number Uint32 Value
-#include "v8.h"
+//#include "v8.h"
 
 // CheckDeath
-#include "utils/V8MonkeyCommon.h"
+//#include "utils/V8MonkeyCommon.h"
 //
 //
 //namespace {

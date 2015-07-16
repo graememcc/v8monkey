@@ -1,3 +1,4 @@
+/*
 // ptrdiff_t
 #include <cstddef>
 
@@ -21,6 +22,7 @@ namespace {
 
   // How many char16_ts do we require to store a value of the given classification?
   size_t utf16CountForClassification[] = {1, 1, 1, 1, 2, 1};
+*/
 
 
   /*
@@ -36,6 +38,7 @@ namespace {
    *
    */
 
+/*
   ByteClassification classifyCodeUnit(const char* s, const char* end) {
     ptrdiff_t limit = end - s;
 
@@ -93,6 +96,7 @@ namespace {
 
     return FOURBYTE;
   }
+*/
 
 
   /*
@@ -101,11 +105,13 @@ namespace {
    *
    */
 
+/*
   char Utf8ToLatin1(const char first, const char second) {
     char result = second & 0x3f;
     result |= static_cast<char>((first & 0x3) << 6);
     return result;
   }
+*/
 
 
   /*
@@ -114,6 +120,7 @@ namespace {
    *
    */
 
+/*
   bool hasBOM(const char* s) {
     char bom1 = static_cast<char>(0xef);
     char bom2 = static_cast<char>(0xbb);
@@ -121,6 +128,7 @@ namespace {
 
     return s[0] == bom1 && s[1] == bom2 && s[2] == bom3;
   }
+*/
 
 
   /*
@@ -130,6 +138,7 @@ namespace {
    *
    */
 
+/*
   char16_t utf8ToUtf16(const char* s, ByteClassification classification) {
     char16_t top, middle, bottom;
 
@@ -158,6 +167,7 @@ namespace {
         return 0xfffd;
     }
   }
+*/
 
 
   /*
@@ -166,6 +176,7 @@ namespace {
    *
    */
 
+/*
   void utf8toSurrogatePair(const char* s, char16_t* dest) {
     char16_t ls_bottom6 = static_cast<char16_t>(s[3] & 0x3f);
     char16_t ls_top4 = static_cast<char16_t>((s[2] & 0x0f) << 6);
@@ -331,3 +342,4 @@ namespace v8 {
     }
   }
 }
+*/

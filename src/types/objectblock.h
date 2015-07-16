@@ -1,3 +1,4 @@
+/*
 #ifndef V8MONKEY_OBJECTBLOCK_H
 #define V8MONKEY_OBJECTBLOCK_H
 
@@ -21,6 +22,7 @@
 
 // V8MONKEY_ASSERT
 #include "utils/V8MonkeyCommon.h"
+*/
 
 
 /*
@@ -36,6 +38,7 @@
  */
 
 
+/*
 namespace v8 {
   namespace DataStructures {
 
@@ -73,12 +76,14 @@ namespace v8 {
             slabs = std::move(other.slabs);
           }
         }
+*/
 
         /*
          * Return the number of occupied slots in this ObjectBlock
          *
          */
 
+/*
         unsigned long NumberOfItems() const {
           if (slabs.empty()) {
             return 0;
@@ -88,6 +93,7 @@ namespace v8 {
         }
 
         // XXX Need to make a note about dereferencing these pointers once we've worked through it.
+*/
         /*
          * Informational structure returned by a call to Add. The pointers returned point to the first free slot in
          * the current slab, and the limit of the current slab (i.e. one element past the last valid slot) respectively.
@@ -96,11 +102,13 @@ namespace v8 {
          *
          */
 
+/*
         struct Limits {
           Object** objectAddress;
           Object** next;
           Object** limit;
         };
+*/
 
 
         /*
@@ -110,7 +118,9 @@ namespace v8 {
          *
          */
 
+/*
         V8_INLINE Limits Add(Object* data);
+*/
 
         /*
          * Takes a pointer to the slot that should be the first empty slot after this deletion operation completes.
@@ -125,7 +135,9 @@ namespace v8 {
          * and the limit of the current block. The contents of the objectAddress field are undefined.
          */
 
+/*
         V8_INLINE Limits Delete(Slot desiredEnd);
+*/
 
         // Note: we expect iteration to be performed in a tight loop, so provide a custom iteration function rather
         // than defining custom iterators and begin/end methods. This avoids potential problems with invalidating
@@ -135,8 +147,9 @@ namespace v8 {
          * Calls the given function with a shared pointer to the given raw type for each entry in the ObjectBlock.
          *
          */
-
+/*
         V8_INLINE void Iterate(void (*fn)(Object*)) const;
+*/
 
         /*
          * Calls the given function with a shared pointer to the given raw type and the supplied data for each entry in
@@ -144,6 +157,7 @@ namespace v8 {
          *
          */
 
+/*
         V8_INLINE void Iterate(void (*fn)(Object*, void*), void* data) const;
 
         ObjectBlock(const ObjectBlock<SlabSize>& other) = delete;
@@ -261,3 +275,4 @@ namespace v8 {
 }
 
 #endif
+*/

@@ -1,3 +1,4 @@
+/*
 // iostream
 #include <iostream>
 
@@ -57,6 +58,7 @@ struct ArgParseResult {
   void addFile(char* fileName) { filenames.emplace(fileName); }
   void addTest(string testName) { testnames.insert(testName); }
 };
+*/
 
 
 /*
@@ -66,6 +68,7 @@ struct ArgParseResult {
  *
  */
 
+/*
 TestName stripLeadingTrailingSquareBrackets(string original) {
   if (original.front() != '[' || original.back() != ']') {
     return TestName {original};
@@ -73,6 +76,7 @@ TestName stripLeadingTrailingSquareBrackets(string original) {
 
   return TestName {original, 1, original.size() - 2};
 }
+*/
 
 
 /*
@@ -89,6 +93,7 @@ TestName stripLeadingTrailingSquareBrackets(string original) {
  *
  */
 
+/*
 ArgParseResult parseArgs(int argc, char** argv) {
   ArgParseResult result;
 
@@ -155,6 +160,7 @@ ArgParseResult parseArgs(int argc, char** argv) {
 
   return result;
 }
+*/
 
 
 /*
@@ -163,6 +169,7 @@ ArgParseResult parseArgs(int argc, char** argv) {
  *
  */
 
+/*
 int usage(string& progName, const char* errorMessage = nullptr) {
   const bool errorSupplied {errorMessage && errorMessage[0] != '\0'};
 
@@ -183,11 +190,14 @@ int usage(string& progName, const char* errorMessage = nullptr) {
 
   return errorSupplied ? 1 : 0;
 }
+*/
 
 
+/*
 int usage(string& progName, string&& errorMessage) {
   return usage(progName, errorMessage.c_str());
 }
+*/
 
 
 /*
@@ -197,6 +207,7 @@ int usage(string& progName, string&& errorMessage) {
  */
 // XXX Can we indent test output?
 
+/*
 V8MonkeyTest::TestResult runTestsByFile(const TestfileNames& fileNames, ExecutedTests executedTests, TestFailures& testFailures) {
   V8MonkeyTest::TestResult result;
   for (const auto& filename : fileNames) {
@@ -212,6 +223,7 @@ V8MonkeyTest::TestResult runTestsByFile(const TestfileNames& fileNames, Executed
 
   return result;
 }
+*/
 
 
 /*
@@ -219,6 +231,7 @@ V8MonkeyTest::TestResult runTestsByFile(const TestfileNames& fileNames, Executed
  *
  */
 
+/*
 V8MonkeyTest::TestResult runTestsByName(const TestNames& testNames, ExecutedTests& executedTests, TestFailures& testFailures) {
   auto notExecuted = executedTests.end();
 
@@ -246,6 +259,7 @@ V8MonkeyTest::TestResult runTestsByName(const TestNames& testNames, ExecutedTest
 
   return result;
 }
+*/
 
 
 /*
@@ -253,6 +267,7 @@ V8MonkeyTest::TestResult runTestsByName(const TestNames& testNames, ExecutedTest
  *
  */
 
+/*
 void reportFailures(const TestFailures& testFailures) {
   auto failureCount = testFailures.size();
 
@@ -266,6 +281,7 @@ void reportFailures(const TestFailures& testFailures) {
     cout << message << endl;
   }
 }
+*/
 
 
 /*
@@ -274,6 +290,7 @@ void reportFailures(const TestFailures& testFailures) {
  *
  */
 
+/*
 string getBaseName(char* argv0) {
   string name {argv0};
   auto slash = name.rfind('/');
@@ -287,9 +304,11 @@ string getBaseName(char* argv0) {
 
   return name;
 }
+*/
 
 
 int main(int argc, char** argv) {
+/*
   using TestResult =  V8MonkeyTest::TestResult;
 
   string progName {getBaseName(argv[0])};
@@ -344,4 +363,5 @@ int main(int argc, char** argv) {
   }
 
   return static_cast<int>(testFailures.size());
+*/ return 0;
 }

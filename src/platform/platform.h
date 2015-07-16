@@ -1,6 +1,7 @@
 #ifndef V8MONKEY_PLATFORM_H
 #define V8MONKEY_PLATFORM_H
 
+/*
 // size_t
 #include <cstddef>
 
@@ -15,6 +16,7 @@
 
 // V8MONKEY_ASSERT
 #include "utils/V8MonkeyCommon.h"
+*/
 
 
 /*
@@ -23,6 +25,7 @@
  */
 
 
+/*
 #ifndef APIEXPORT
   #define APIEXPORT __attribute__ ((visibility("default")))
 #endif
@@ -35,6 +38,7 @@ namespace v8 {
 
     // Platform-agnostic thread execution functions
     using ThreadFunction = void* (*)(void*);
+*/
 
 
     /*
@@ -42,6 +46,7 @@ namespace v8 {
      *
      */
 
+/*
     class EXPORT_FOR_TESTING_ONLY PlatformTLSKey {
       protected:
         void* privateData {nullptr};
@@ -202,6 +207,7 @@ namespace v8 {
     };
   }
 }
+*/
 
 
 #endif

@@ -1,3 +1,4 @@
+/*
 // Isolate::New, V8::Initialize
 #include "v8.h"
 
@@ -102,6 +103,7 @@ V8MONKEY_TEST(Dispose003, "OK to call V8::Dispose without initting V8") {
 //
 //   V8MONKEY_CHECK(!result, "Failed dispose returned false");
 // }
+*/
 
 
 ///*

@@ -1,3 +1,4 @@
+/*
 #ifndef V8MONKEY_AUTOLOCK_H
 #define V8MONKEY_AUTOLOCK_H
 
@@ -7,6 +8,7 @@
 
 namespace v8 {
   namespace V8Monkey {
+*/
 
     /*
      * A stack-allocated RAII class which will acquire a mutex, and release it when falling out of scope
@@ -14,6 +16,7 @@ namespace v8 {
      */
 
 
+/*
     using namespace v8::V8Platform;
 
 
@@ -48,3 +51,4 @@ namespace v8 {
 
 
 #endif
+*/

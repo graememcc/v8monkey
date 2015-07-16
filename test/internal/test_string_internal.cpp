@@ -1,3 +1,4 @@
+/*
 // size_t, strlen
 #include <cstring>
 
@@ -907,3 +908,4 @@
 //   // In test builds, copy assignment would have poisoned char16_tacter 0
 //   V8MONKEY_CHECK(c == d, "Copy worked correctly");
 // }
+*/

@@ -1,3 +1,4 @@
+/*
 // Thread
 #include "platform/platform.h"
 
@@ -12,6 +13,7 @@
 
 
 using namespace v8;
+*/
 
 
 /*
@@ -21,6 +23,7 @@ using namespace v8;
  *
  */
 
+/*
 namespace {
   // Some tests trigger fatal errors: from the API point of view we can only check that V8::IsDead reports true,
   // however that doesn't distinguish between successful V8 disposals and errors, so we install the following fake
@@ -425,6 +428,7 @@ V8MONKEY_TEST(Scope004, "Multiple Scopes stack correctly for main thread") {
 // using namespace v8;
 //
 //
+*/
 // /*
 //  * TODO: As a relic of the attempt at multithreading, most tests delegate to a helper function for actual computation.
 //  *       If multithreading doesn't return, those intermediate functions can be dropped, and the code moved in to the
@@ -577,4 +581,3 @@ V8MONKEY_TEST(Scope004, "Multiple Scopes stack correctly for main thread") {
 //   child.Run();
 //   V8MONKEY_CHECK(child.Join(), "Disposing V8 without init from thread works in right circumstances");
 // }
-// */

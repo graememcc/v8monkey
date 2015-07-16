@@ -1,6 +1,7 @@
 #ifndef V8MONKEY_V8MONKEYTEST_H
 #define V8MONKEY_V8MONKEYTEST_H
 
+/*
 // map
 #include <map>
 
@@ -12,6 +13,7 @@
 
 // string
 #include <string>
+*/
 
 
 /*
@@ -20,6 +22,7 @@
  *
  */
 
+/*
 class V8MonkeyTest {
   public:
     using TestDescription = std::string;
@@ -85,6 +88,7 @@ class V8MonkeyTest {
     TestDescription description;
     void (*test)();
 };
+*/
 
 
 /*

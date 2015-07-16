@@ -1,3 +1,4 @@
+/*
 // Enter Exit GetDefaultIsolate Lock Unlock
 #include "runtime/isolate.h"
 
@@ -6,6 +7,7 @@
 
 // V8MONKEY_ASSERT
 #include "utils/V8MonkeyCommon.h"
+*/
 
 
 /*
@@ -18,6 +20,7 @@
 // XXX Need to use FromIsolate here. Also looks like we want an equivalent ToIsolate
 //
 //
+/*
 namespace v8 {
   bool Locker::active_ = false;
 
@@ -91,3 +94,4 @@ namespace v8 {
     isolate_->Lock();
   }
 }
+*/

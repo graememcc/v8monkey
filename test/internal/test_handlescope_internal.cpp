@@ -1,3 +1,4 @@
+/*
 // ObjectBlock
 #include "data_structures/objectblock.h"
 
@@ -1011,3 +1012,4 @@
 //     V8MONKEY_CHECK(asObj->RefCount() == 1, "Object didn't die when handlescope died");
 //   }
 // }
+*/

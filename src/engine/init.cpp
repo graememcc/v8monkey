@@ -1,3 +1,4 @@
+/*
 // abort exit getenv
 #include <cstdlib>
 
@@ -24,6 +25,7 @@
 
 // V8 interface
 #include "v8.h"
+*/
 
 
 /*
@@ -94,6 +96,7 @@
 //}
 //
 //
+/*
 namespace v8 {
   bool V8::Initialize() {
     SpiderMonkey::EnsureSpiderMonkey();
@@ -181,6 +184,7 @@ namespace v8 {
     }
 
 
+*/
 //    bool V8MonkeyCommon::CheckDeath(const char* method) {
 //      if (V8::IsDead()) {
 //        TriggerFatalError(method, "V8 is dead");
@@ -215,5 +219,5 @@ namespace v8 {
 //        hasFatalError = true;
 //      }
 //    #endif
-  }
-}
+//}
+//}
