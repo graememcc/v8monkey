@@ -19,10 +19,6 @@
 .DEFAULT_GOAL = all
 
 
-# XXX TEMPORARY
-#CXX=clang++
-
-
 #**********************************************************************************************************************#
 #                                                      Variables                                                       #
 #**********************************************************************************************************************#
@@ -570,8 +566,9 @@ $(outdir)/test/internalLib/%.o: %.cpp | $(outdir)/test/internalLib/src
 $(internaltestobjects): | $(outdir)/test/internal
 
 
-# TODO The little trick we use in the test harness to build the linked list of test functions is neat, but it is sensitive
-#      to compilation order. It will segfault if the test files are specified before the V8MonkeyTest file
+# TODO The test harness builds a linked list of test functions using a macro. This is a neat trick, but has the drawback
+#      of being sensitive to compilation order; the resulting program will segfault when the test files are specified
+#      before V8MonkeyTest.cpp.
 
 
 # Build a version of the shared library for internal tests
