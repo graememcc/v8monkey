@@ -1,4 +1,3 @@
-/*
 // iostream
 #include <iostream>
 
@@ -16,7 +15,7 @@ using namespace std;
 
 
 using TestName = V8MonkeyTest::TestName;
-using TestfileNames = set<V8MonkeyTest::TestfileName>;
+using ContainingFiles = set<V8MonkeyTest::ContainingFile>;
 using TestNames = V8MonkeyTest::TestNames;
 using ExecutedTests = V8MonkeyTest::ExecutedTests;
 using TestFailures = V8MonkeyTest::TestFailures;
@@ -24,30 +23,29 @@ using TestFailures = V8MonkeyTest::TestFailures;
 
 enum ArgRequest {Usage, TestList, RegisteredTestCount, RunByFile, RunByName, RunAll, None, BadArg, FileError, NameError};
 
-
 struct ArgParseResult {
   ArgRequest request1 {None};
   ArgRequest request2 {None};
-  TestfileNames filenames {};
+  ContainingFiles filenames {};
   TestNames testnames {};
   string badArg {};
 
   ArgParseResult() {}
 
-  bool UsageRequested() { return request1 == Usage || request2 == Usage; }
-  bool TestListRequested() { return request1 == TestList || request2 == TestList; }
-  bool RegisteredTestCountRequested() { return request1 == RegisteredTestCount || request2 == RegisteredTestCount; }
-  bool RunByFileRequested() { return request1 == RunByFile || request2 == RunByFile; }
-  bool RunByNameRequested() { return request1 == RunByName || request2 == RunByName; }
-  bool RunAllRequested() { return request1 == RunAll || request2 == RunAll; }
-  bool NothingRequested() { return request1 == None && request2 == None; }
-  bool BadRequestMade() { return request1 == BadArg || request2 == BadArg; }
-  bool FileNameErrorMade() { return request1 == FileError || request2 == FileError; }
-  bool TestNameErrorMade() { return request1 == NameError || request2 == NameError; }
+  bool UsageRequested() const { return request1 == Usage || request2 == Usage; }
+  bool TestListRequested() const { return request1 == TestList || request2 == TestList; }
+  bool RegisteredTestCountRequested() const { return request1 == RegisteredTestCount || request2 == RegisteredTestCount; }
+  bool RunByFileRequested() const { return request1 == RunByFile || request2 == RunByFile; }
+  bool RunByNameRequested() const { return request1 == RunByName || request2 == RunByName; }
+  bool RunAllRequested() const { return request1 == RunAll || request2 == RunAll; }
+  bool NothingRequested() const { return request1 == None && request2 == None; }
+  bool BadRequestMade() const { return request1 == BadArg || request2 == BadArg; }
+  bool FileNameErrorMade() const { return request1 == FileError || request2 == FileError; }
+  bool TestNameErrorMade() const { return request1 == NameError || request2 == NameError; }
 
-  bool canRequestTestList() { return !UsageRequested(); };
-  bool canRequestTestCount() { return !UsageRequested() && !TestListRequested(); };
-  bool canRequestByFileOrName() { return !UsageRequested() && !TestListRequested() && !RegisteredTestCountRequested(); }
+  bool canRequestTestList() const { return !UsageRequested(); };
+  bool canRequestTestCount() const { return !UsageRequested() && !TestListRequested(); };
+  bool canRequestByFileOrName() const { return !UsageRequested() && !TestListRequested() && !RegisteredTestCountRequested(); }
 
   void setTo(ArgRequest r) { request1 = request2 = r; filenames.clear(); testnames.clear(); }
   void setTo(ArgRequest r1, ArgRequest r2) { request1 = r1; request2 = r2; }
@@ -58,7 +56,6 @@ struct ArgParseResult {
   void addFile(char* fileName) { filenames.emplace(fileName); }
   void addTest(string testName) { testnames.insert(testName); }
 };
-*/
 
 
 /*
@@ -68,7 +65,6 @@ struct ArgParseResult {
  *
  */
 
-/*
 TestName stripLeadingTrailingSquareBrackets(string original) {
   if (original.front() != '[' || original.back() != ']') {
     return TestName {original};
@@ -76,7 +72,6 @@ TestName stripLeadingTrailingSquareBrackets(string original) {
 
   return TestName {original, 1, original.size() - 2};
 }
-*/
 
 
 /*
@@ -93,7 +88,6 @@ TestName stripLeadingTrailingSquareBrackets(string original) {
  *
  */
 
-/*
 ArgParseResult parseArgs(int argc, char** argv) {
   ArgParseResult result;
 
@@ -108,6 +102,7 @@ ArgParseResult parseArgs(int argc, char** argv) {
     // If we find a help request, all other command line arguments are ignored
     if (arg == "-h" || arg == "--help") {
       result.setTo(Usage);
+// Note that we continue to check the command line so we can report any errors
       continue;
     }
 
@@ -160,7 +155,6 @@ ArgParseResult parseArgs(int argc, char** argv) {
 
   return result;
 }
-*/
 
 
 /*
@@ -169,8 +163,7 @@ ArgParseResult parseArgs(int argc, char** argv) {
  *
  */
 
-/*
-int usage(string& progName, const char* errorMessage = nullptr) {
+int usage(const string& progName, const char* errorMessage = nullptr) {
   const bool errorSupplied {errorMessage && errorMessage[0] != '\0'};
 
   if (errorSupplied) {
@@ -190,14 +183,6 @@ int usage(string& progName, const char* errorMessage = nullptr) {
 
   return errorSupplied ? 1 : 0;
 }
-*/
-
-
-/*
-int usage(string& progName, string&& errorMessage) {
-  return usage(progName, errorMessage.c_str());
-}
-*/
 
 
 /*
@@ -207,13 +192,13 @@ int usage(string& progName, string&& errorMessage) {
  */
 // XXX Can we indent test output?
 
-/*
-V8MonkeyTest::TestResult runTestsByFile(const TestfileNames& fileNames, ExecutedTests executedTests, TestFailures& testFailures) {
+V8MonkeyTest::TestResult runTestsByFile(const ContainingFiles& fileNames, ExecutedTests executedTests, TestFailures& testFailures) {
   V8MonkeyTest::TestResult result;
   for (const auto& filename : fileNames) {
     cout << "Running tests from file " << filename << ": " << endl;
     result = V8MonkeyTest::RunTestsForFile(filename, executedTests, testFailures);
 
+    // If we forked, there is no need for the child (which was spawned to run one specific test) to continue iteration
     if (result.processIsChild) {
       return result;
     }
@@ -223,16 +208,15 @@ V8MonkeyTest::TestResult runTestsByFile(const TestfileNames& fileNames, Executed
 
   return result;
 }
-*/
 
 
 /*
- * Run all the tests named in the given set, unless the test name is present in the given set of tests already ran.
+ * Run all the tests named in the given set, unless the test name is present in the given set of tests already executed.
  *
  */
 
-/*
-V8MonkeyTest::TestResult runTestsByName(const TestNames& testNames, ExecutedTests& executedTests, TestFailures& testFailures) {
+V8MonkeyTest::TestResult runTestsByName(const TestNames& testNames, ExecutedTests& executedTests,
+                                        TestFailures& testFailures) {
   auto notExecuted = executedTests.end();
 
   // For aesthetic purposes
@@ -251,6 +235,7 @@ V8MonkeyTest::TestResult runTestsByName(const TestNames& testNames, ExecutedTest
 
       result = V8MonkeyTest::RunNamedTest(test, executedTests, testFailures);
 
+      // If we forked, there is no need for the child (which was spawned to run one specific test) to continue iteration
       if (result.processIsChild) {
         return result;
       }
@@ -259,7 +244,6 @@ V8MonkeyTest::TestResult runTestsByName(const TestNames& testNames, ExecutedTest
 
   return result;
 }
-*/
 
 
 /*
@@ -267,9 +251,8 @@ V8MonkeyTest::TestResult runTestsByName(const TestNames& testNames, ExecutedTest
  *
  */
 
-/*
 void reportFailures(const TestFailures& testFailures) {
-  auto failureCount = testFailures.size();
+  const auto failureCount = testFailures.size();
 
   cout << failureCount << " test failure";
   if (failureCount > 1) {
@@ -277,11 +260,10 @@ void reportFailures(const TestFailures& testFailures) {
   }
   cout << ":" << endl;
 
-  for (auto& message : testFailures) {
+  for (const auto& message : testFailures) {
     cout << message << endl;
   }
 }
-*/
 
 
 /*
@@ -290,7 +272,6 @@ void reportFailures(const TestFailures& testFailures) {
  *
  */
 
-/*
 string getBaseName(char* argv0) {
   string name {argv0};
   auto slash = name.rfind('/');
@@ -304,15 +285,13 @@ string getBaseName(char* argv0) {
 
   return name;
 }
-*/
 
 
 int main(int argc, char** argv) {
-/*
   using TestResult =  V8MonkeyTest::TestResult;
 
-  string progName {getBaseName(argv[0])};
-  auto result = parseArgs(argc, argv);
+  const string progName {getBaseName(argv[0])};
+  const auto result = parseArgs(argc, argv);
 
   if (result.UsageRequested()) {
     return usage(progName);
@@ -327,7 +306,7 @@ int main(int argc, char** argv) {
   } else if (result.TestNameErrorMade()) {
     return usage(progName, "Missing argument for -n/--name option");
   } else if (result.BadRequestMade()) {
-    return usage(progName, string("Unrecognised option: ") + result.badArg);
+    return usage(progName, (string("Unrecognised option: ") + result.badArg).c_str());
   }
 
   // Track test execution, to avoid running a test more than once
@@ -338,6 +317,8 @@ int main(int argc, char** argv) {
 
   if (result.RunByFileRequested()) {
     TestResult testResult = runTestsByFile(result.filenames, executedTests, testFailures);
+
+    // Child processes created to run a specific test should exit now
     if (testResult.processIsChild) {
       return testResult.failed ? 1 : 0;
     }
@@ -363,5 +344,4 @@ int main(int argc, char** argv) {
   }
 
   return static_cast<int>(testFailures.size());
-*/ return 0;
 }

@@ -1,7 +1,6 @@
 #ifndef V8MONKEY_V8MONKEYTEST_H
 #define V8MONKEY_V8MONKEYTEST_H
 
-/*
 // map
 #include <map>
 
@@ -13,20 +12,20 @@
 
 // string
 #include <string>
-*/
 
 
 /*
  * Here, we essentially follow the strategy of Cctest in V8's source tree, defining a class that wraps a test function,
- * and build a linked-list of such tests, with the head of the linked-list a static pointer member of the test class.
+ * together with its meta-information. A macro is provided for test files to announce their tests, which will
+ * construct objects belonging to the wrapper class, which has the side-effect of registering them. Unfortunately, this
+ * can make things sensitive to compilation order.
  *
  */
 
-/*
 class V8MonkeyTest {
   public:
     using TestDescription = std::string;
-    using TestfileName = std::string;
+    using ContainingFile = std::string;
     using TestName = std::string;
     using TestNames = std::set<TestName>;
     using ExecutedTests = std::set<TestName>;
@@ -42,63 +41,68 @@ class V8MonkeyTest {
     V8MonkeyTest(const char* file, const char* name, const char* desc, void (*testFunction)());
 
     // Return the test's filename
-    TestfileName GetFileName() { return fileName; }
+    ContainingFile GetFileName() const { return fileName; }
 
     // Return the test's "codename"
-    TestName GetName() { return testName; }
+    TestName GetName() const { return testName; }
 
     // Return the test's description
-    TestDescription GetDescription() { return description; }
+    TestDescription GetDescription() const { return description; }
 
     // Return a description of the test, suitable for displaying to standard output
-    TestDescription GetFullDescription();
+    TestDescription GetFullDescription() const;
 
-    // Run the test function wrapped by this test (does not traverse the linked list). Returns true if the test
-    // without error, false otherwise
-    TestResult Run();
+    // Run the test function wrapped by this object. Returns true if the test completed without error, false otherwise
+    TestResult Run() const;
 
-    // Prints to stdout the names of all registered tests
+    // Prints the names of all registered tests to stdout
     static void ListAllTests();
 
-    // Prints a count of the number of registered tests to stdout
+    // Prints the number of registered tests to stdout
     static void CountTests();
 
-    // Run all the tests for a given filename, warning on error to standard error if there are no such registered tests.
-    // Fills the given set aFileName with the codenames of the tests ran, and the set aFailures with messages describing
-    // any tests that failed.
-    static TestResult RunTestsForFile(const TestfileName& fileName, ExecutedTests& testsExecuted, TestFailures& failures);
+    // Run all the tests for a given filename; if there are no tests registered for the given filename, display a
+    // warning on standard error. The given set aFileName will be filled with the codenames of the tests ran, and the
+    // set aFailures filled with messages describing any tests that failed. The value returned is a TestResult
+    // structure, to allow the harness's child threads to unwind their callstack to main correctly.
+    static TestResult RunTestsForFile(const ContainingFile& fileName, ExecutedTests& testsExecuted,
+                                            TestFailures& failures);
 
-    // Run the test with a given name, or print an error to standard error if there is no such test. If the test fails,
-    // a description of the test is added to the set aFailures.
-    static TestResult RunNamedTest(const TestName& testName, ExecutedTests& testsExecuted, TestFailures& failures);
+    // Run the test with a given name, or print an error on standard error if there is no such test. If the test fails,
+    // a description of the test is added to the set aFailures. The value returned is a TestResult structure, to allow
+    // the harness's child threads to unwind their callstack to main correctly.
+    static TestResult RunNamedTest(const TestName& testName, ExecutedTests& testsExecuted,
+                                         TestFailures& failures);
 
-    // Execute all tests known to the test harness, filling the given set with descriptions of the test failures
+    // Execute all tests known to the test harness, filling the given set with descriptions of the test failures. A
+    // TestResult is returned, to allow child processes to exit correctly.
     static TestResult RunAllTests(TestFailures& failures);
 
   private:
     // A mapping from filenames to the names of the tests they contain
-    static std::map<TestfileName, TestNames> testsByFileName;
+    static std::map<const ContainingFile, TestNames> testsByFileName;
 
     // A mapping from test codenames to the relevant tests
-    static std::map<TestName, V8MonkeyTest*> testsByName;
+    static std::map<const TestName, const V8MonkeyTest *const> testsByName;
 
-    // Note we convert the char*'s to C++ strings to ensure membership tests compare contents, not pointers
-    TestfileName fileName;
+    // We wish to compare contents, not pointers, so convert the incoming char*s to C++ strings.
+    ContainingFile fileName;
     TestName testName;
     TestDescription description;
     void (*test)();
 };
-*/
 
 
 /*
- * Many tests define an auxillary function which performs the bulk of the test's work and returns a single value
- * cast to void*, allowing the function to be both called from the main thread and supplied as the start procedure
- * when creating a child thread. This macro can be used to define such procedures, giving them the correct signature,
- * and setting up default arguments, so that one doesn't need to explicitly supply a nullptr value.
+ * Some tests, particularly those relating to isolates define an auxillary function which performs the bulk of the
+ * test's work, so that the behaviour can be tested both on the main thread and child threads (with the auxillary
+ * function being supplied as the function to be run by the spawned thread). This macro can be used to define such
+ * procedures, giving them the correct signature, and setting up default arguments, so that one doesn't need to
+ * explicitly supply a nullptr value.
  *
  */
 
+// XXX Do we need an extern "C" here?
 #ifndef V8MONKEY_TEST_HELPER
 #define V8MONKEY_TEST_HELPER(name) void* name(void* arg = nullptr); \
 void* name(void* arg)
@@ -107,13 +111,13 @@ void* name(void* arg)
 
 /*
  * The macro for registering tests with the test harness. This macro:
- *   1) Declares the test function name, to allocate a pointer to it
- *   2) Creates a V8MonkeyTest object wrapping the function (construction of which adds the function to the list
- *      of tests)
+ *   1) Declares the test function name, so that we may declare and allocate a pointer to it
+ *   2) Creates a V8MonkeyTest object wrapping the function (construction of which adds the function to the list of
+ *      registered tests)
  *   3) Defines the test function
  *
  * Note this macro definition gives us uniqueness of codenames for "free", as the codename is used to form the
- * definition of the test function; 2 tests with the same codename will generate the usual redefinition of a function
+ * definition of the test function; two tests with the same codename will generate the usual redefinition of a function
  * error.
  *
  */
@@ -121,7 +125,7 @@ void* name(void* arg)
 #ifndef V8MONKEY_TEST
 #define V8MONKEY_TEST(name, description) \
    static void Test##name(); \
-   V8MonkeyTest test##name(__FILE__, #name, description, &Test##name); \
+   const V8MonkeyTest test##name(__FILE__, #name, description, &Test##name); \
    static void Test##name()
 #endif
 
