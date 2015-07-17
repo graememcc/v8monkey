@@ -1,7 +1,3 @@
-#ifndef V8MONKEY_V8_H
-#define V8MONKEY_V8_H
-
-
 /*
  * Project reset: 16 July 2015
  *
@@ -30,14 +26,11 @@
 #ifndef V8_H_
 #define V8_H_
 
-/*
 #include "v8stdint.h"
-*/
 
 // We reserve the V8_* prefix for macros defined in V8 public API and
 // assume there are no name conflicts with the embedder's code.
 
-/*
 #ifdef V8_OS_WIN
 
 // Setup for Windows DLL export/import. When building the V8 DLL the
@@ -73,7 +66,6 @@
 #endif
 
 #endif  // V8_OS_WIN
-*/
 
 /**
  * The v8 JavaScript engine.
@@ -2144,6 +2136,7 @@ class V8_EXPORT String : public Primitive {
                                   const char* data,
                                   NewStringType type = kNormalString,
                                   int length = -1);
+*/
 
   /** Allocates a new string from Latin-1 data.*/
 /*
@@ -5485,10 +5478,8 @@ class V8_EXPORT PersistentHandleVisitor {  // NOLINT
 /**
  * Container class for static utility functions.
  */
-/*
 class V8_EXPORT V8 {
  public:
-*/
   /** Set the callback to invoke in case of fatal errors. */
 /*
   static void SetFatalErrorHandler(FatalErrorCallback that);
@@ -5616,9 +5607,7 @@ class V8_EXPORT V8 {
 */
 
   /** Get the version string. */
-/*
   static const char* GetVersion();
-*/
 
   /** Callback function for reporting failed access checks.*/
 /*
@@ -5897,8 +5886,8 @@ class V8_EXPORT V8 {
   template <class T> friend class PersistentBase;
   template <class T, class M> friend class Persistent;
   friend class Context;
-};
 */
+};
 
 
 /**
@@ -7688,6 +7677,3 @@ void* Context::GetAlignedPointerFromEmbedderData(int index) {
 
 
 #endif  // V8_H_
-
-
-#endif

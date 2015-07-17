@@ -40,6 +40,10 @@ smmajorversion = $(shell $(milestonecommand) --topsrcdir=$(mozillaroot) --symbol
 libname = $(addprefix lib, $(addsuffix .so, $(strip $(1))))
 
 
+# What V8 API are we emulating?
+v8compat = 3.28.73.0
+
+
 # Our own V8Monkey library will have a suffix which denotes the full SpiderMonkey version we were built from
 smfullversion = $(shell $(milestonecommand) --topsrcdir=$(mozillaroot))
 
@@ -148,13 +152,14 @@ warnings = $(addprefix -W, $(warningswitches))
 #   - std=c++0x SpiderMonkey uses some C++11 features in the header
 #   - fvisibility=hidden We want to minimize the number of symbols exported
 #   - fPIC shared libraries need position-independent code
+#   - DV8SHARED=1 -DBUILDING_V8_SHARED preprocess the header correctly
 # XXX Remove dependency flag (-MMD)
 # XXX Remove debug flag (-g)
 # XXX Remove -DDEBUG
 # XXX Remove suggest
 # XXX Remove conversion
-CXXFLAGS += -MMD -pedantic -Wsuggest-attribute=const -g -DDEBUG=1 $(warnings) $(includeopt) -fPIC \
-            -fvisibility=hidden -fstrict-aliasing -std=c++0x
+CXXFLAGS += -MMD -pedantic -Wsuggest-attribute=const -g -DV8_SHARED=1 -DBUILDING_V8_SHARED=1 -DDEBUG=1 $(warnings) \
+            $(includeopt) -fPIC -fvisibility=hidden -fstrict-aliasing -std=c++0x
 
 
 # Define a command that will produce a link command for the given library name
@@ -179,7 +184,7 @@ include/%.h src/%.h:
 
 
 # Certain files need to be aware of the SpiderMonkey version
-$(call variants, src/engine/version) $(outdir)/test/api/test_version.o: CXXFLAGS += -DSMVERSION='"$(smfullversion)"'
+$(call variants, src/engine/version) $(outdir)/test/api/test_version.o: CXXFLAGS += -DV8COMPAT='"$(v8compat)"' -DSMVERSION='"$(smfullversion)"'
 
 
 #**********************************************************************************************************************#
