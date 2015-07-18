@@ -5682,9 +5682,7 @@ class V8_EXPORT V8 {
    * initialize from scratch.  This function is called implicitly if
    * you use the API without calling it first.
    */
-/*
   static bool Initialize();
-*/
 
   /**
    * Allows the host application to provide a callback which can be used
@@ -5802,9 +5800,7 @@ class V8_EXPORT V8 {
    * a process, this should happen automatically.  It is only necessary
    * to use if the process needs the resources taken up by v8.
    */
-/*
   static bool Dispose();
-*/
 
   /**
    * Iterates through all external resources referenced from current isolate

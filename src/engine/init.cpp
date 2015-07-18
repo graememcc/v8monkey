@@ -1,14 +1,74 @@
 // abort exit getenv
 #include <cstdlib>
 
-// string
-#include <string>
-
 // Print
 #include "platform/platform.h"
 
+// string
+#include <string>
+
+// EnsureSpiderMonkey TearDownSpiderMonkey
+#include "utils/SpiderMonkeyUtils.h"
+
+// V8 interface
+#include "v8.h"
+
 
 namespace v8 {
+  bool V8::Initialize() {
+    SpiderMonkey::EnsureSpiderMonkey();
+
+    /*
+    internal::Isolate* i {internal::Isolate::GetCurrent()};
+
+    if (i && V8::IsDead()) {
+      return false;
+    }
+
+    if (i) {
+      // V8 compatability
+      i->Init();
+    }
+    */
+
+    return true;
+  }
+
+
+  bool V8::Dispose() {
+    SpiderMonkey::TearDownSpiderMonkey();
+    /*
+    using namespace v8::V8Monkey;
+
+    if (!engineInitSucceeded || !v8initted) {
+      return true;
+    }
+
+    // XXX V8::Dispose has some semantics around stopping of utility threads that we haven't tackled
+    //     For now, this is a no-op: our static object above will really shutdown SpiderMonkey
+
+    InternalIsolate* i = InternalIsolate::GetCurrent();
+    if (i == nullptr || i != InternalIsolate::GetDefaultIsolate()) {
+      V8MonkeyCommon::TriggerFatalError("v8::V8::Dispose", "Must dispose V8 from main thread outside any isolate");
+      return false;
+    }
+// XXX REMOVE ME
+if (InternalIsolate::IsEntered(i)) {
+      V8MonkeyCommon::TriggerFatalError("v8::V8::Dispose", "You're still in the isolate!");
+      return false;
+}
+
+    // Attempt to dispose of isolate, in case we're being called from an off-main thread that entered the default
+    i->Dispose();
+
+    V8IsDisposed = true;
+    */
+
+    // V8::Dispose unconditionally returns true
+    return true;
+  }
+
+
   namespace V8Monkey {
     // XXX Need a comment on fromAssert, and the operation of this method, as fromAssert/the environment variable seem
     //     to be the opposite of what's implied
@@ -48,17 +108,11 @@ namespace v8 {
 // InternalIsolate::{EnsureInIsolate, GetCurrent, GetDefaultIsolate, GetFatalErrorHandler}
 #include "runtime/isolate.h"
 
-// EnsureSpiderMonkey TearDownSpiderMonkey
-#include "utils/SpiderMonkeyUtils.h"
-
 // TestUtils interface
 #include "utils/test.h"
 
 // V8MonkeyCommon interface
 #include "utils/V8MonkeyCommon.h"
-
-// V8 interface
-#include "v8.h"
 */
 
 
@@ -92,6 +146,7 @@ namespace v8 {
 //   *
 //   */
 //
+//  XXX I believe this can now be deleted
 //  class OneTrueStaticInitializer {
 //    public:
 //      OneTrueStaticInitializer() {
@@ -132,53 +187,6 @@ namespace v8 {
 //
 /*
 namespace v8 {
-  bool V8::Initialize() {
-    SpiderMonkey::EnsureSpiderMonkey();
-
-    internal::Isolate* i {internal::Isolate::GetCurrent()};
-
-    if (i && V8::IsDead()) {
-      return false;
-    }
-
-    if (i) {
-      // V8 compatability
-      i->Init();
-    }
-
-    return true;
-  }
-
-
-  bool V8::Dispose() {
-    SpiderMonkey::TearDownSpiderMonkey();
-//    using namespace v8::V8Monkey;
-//
-//    if (!engineInitSucceeded || !v8initted) {
-//      return true;
-//    }
-//
-//    // XXX V8::Dispose has some semantics around stopping of utility threads that we haven't tackled
-//    //     For now, this is a no-op: our static object above will really shutdown SpiderMonkey
-//
-//    InternalIsolate* i = InternalIsolate::GetCurrent();
-//    if (i == nullptr || i != InternalIsolate::GetDefaultIsolate()) {
-//      V8MonkeyCommon::TriggerFatalError("v8::V8::Dispose", "Must dispose V8 from main thread outside any isolate");
-//      return false;
-//    }
-//// XXX REMOVE ME
-//if (InternalIsolate::IsEntered(i)) {
-//      V8MonkeyCommon::TriggerFatalError("v8::V8::Dispose", "You're still in the isolate!");
-//      return false;
-//}
-//
-//    // Attempt to dispose of isolate, in case we're being called from an off-main thread that entered the default
-//    i->Dispose();
-//
-//    V8IsDisposed = true;
-    // V8::Dispose unconditionally returns true
-    return true;
-  }
 
 
   namespace V8Monkey {

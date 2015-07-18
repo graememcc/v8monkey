@@ -1,4 +1,3 @@
-/*
 // Isolate::New, V8::Initialize
 #include "v8.h"
 
@@ -14,7 +13,9 @@ using namespace v8;
 
 
 namespace {
+  /*
   void dummyFatalErrorHandler(const char*, const char*) {}
+  */
 }
 
 
@@ -23,6 +24,7 @@ V8MONKEY_TEST(Init001, "Returns true if not in an isolate") {
 }
 
 
+/*
 V8MONKEY_TEST(Init002, "Initializing V8 does not enter an isolate") {
   V8::Initialize();
 
@@ -75,19 +77,14 @@ V8MONKEY_TEST(Dispose001, "V8::Dispose returns true when successful") {
   i->Dispose();
   V8MONKEY_CHECK(V8::Dispose(), "Disposing V8 returned true");
 }
+*/
 
 
 V8MONKEY_TEST(Dispose002, "OK to call V8::Dispose without entering isolate") {
   V8::Initialize();
   V8MONKEY_CHECK(V8::Dispose(), "Disposing V8 returned true");
 }
-
-
-V8MONKEY_TEST(Dispose003, "OK to call V8::Dispose without initting V8") {
-  V8MONKEY_CHECK(V8::Dispose(), "Disposing V8 returned true");
-}
-
-
+/*
 // V8MONKEY_TEST(Dispose003, "V8::Dispose returns false when unsuccessful") {
 //   V8::Initialize();
 //   Isolate* i {Isolate::New()};

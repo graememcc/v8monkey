@@ -1,6 +1,37 @@
-/*
 #ifndef V8MONKEY_SMUTILS_H
 #define V8MONKEY_SMUTILS_H
+
+#endif
+
+
+namespace v8 {
+  namespace SpiderMonkey {
+
+
+    /*
+     * Checks if SpiderMonkey is initialized, and if not, performs that initialization in a thread-safe fashion
+     *
+     */
+
+    void EnsureSpiderMonkey();
+
+
+    /*
+     * Shuts down SpiderMonkey if safe to do so, otherwise aborts with an error
+     *
+     */
+
+    void TearDownSpiderMonkey();
+  }
+}
+
+
+/*
+ * Project reset: 16 July. Code below this line is from before the reset
+ *
+ */
+
+/*
 
 // JSTraceDataOp
 #include "jsapi.h"
@@ -31,26 +62,6 @@ namespace v8 {
       JSRuntime* rt;
       JSContext* cx;
     };
-*/
-
-
-    /*
-     * Checks if SpiderMonkey is initialized, and if not, performs that initialization in a thread-safe fashion
-     *
-     */
-
-/*
-    void EnsureSpiderMonkey();
-*/
-
-
-    /*
-     * Shuts down SpiderMonkey if safe to do so, otherwise aborts with an error
-     *
-     */
-
-/*
-    void TearDownSpiderMonkey();
 */
 
 
@@ -159,6 +170,7 @@ namespace v8 {
 */
 
 
+//   This seems to be code from the previous reset
 //   namespace V8Monkey {
 //    class V8MonkeyCommon;
 //
@@ -203,6 +215,3 @@ namespace v8 {
 //    };
 //  }
 //}
-
-
-//#endif
