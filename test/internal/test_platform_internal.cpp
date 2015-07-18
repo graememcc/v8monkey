@@ -1,4 +1,3 @@
-/*
 // intptr_t
 #include <cinttypes>
 
@@ -12,63 +11,69 @@
 #include "V8MonkeyTest.h"
 
 
-// XXX I think we need to fix some of these casts
-
-
 namespace {
   bool destructorCalled {false};
 
-  intptr_t testData {42};
+  int testData {42};
 
+  extern "C"
   void tlsDestructor(void* data) {
-    intptr_t realData;
-    std::memcpy(reinterpret_cast<char*>(&realData), reinterpret_cast<char*>(&data), sizeof(intptr_t));
-    destructorCalled = realData == testData;
+    int* realData {reinterpret_cast<int*>(data)};
+    destructorCalled = realData == &testData;
   }
 
 
-  // Tests to see if a destructor is called
-  void* thread_tls_destruct(void* arg) {
-    v8::V8Platform::TLSKey<intptr_t>* key {};
-    std::memcpy(reinterpret_cast<char*>(&key), reinterpret_cast<char*>(&arg),
-                sizeof(v8::V8Platform::TLSKey<intptr_t>*));
-    key->Set(testData);
+  // To test if a TLS destructor is called, a TLS key is created. In this function, we set the key (the spawning thread
+  // supplies the address of the key). In the destructor function, we will confirm that the value passed to the
+  // destructor function is the same value.
+  extern "C"
+  void* tlsDestructorTest(void* arg) {
+    v8::V8Platform::TLSKey<int>* key = reinterpret_cast<v8::V8Platform::TLSKey<int>*>(arg);
+    key->Set(&testData);
     return nullptr;
   }
 
 
-  // Support function for thread running test
-  void* thread_run_main(void*) {
+  // A trivial function to be invoked by a thread, used when testing whether a Thread object correctly reports whether
+  // it has been executed.
+  extern "C"
+  void* hasRan(void*) {
     return nullptr;
   }
 
 
-  // Support function for thread result test
+  // To test whether Run reports success correctly, we use this function which sets a boolean to note that it has been
+  // executed. Clearly, if the code has executed, then the call to Run should have reported success.
+  bool threadExecuted {false};
+  extern "C"
+  void* threadRunTest(void*) {
+    threadExecuted = true;
+    return nullptr;
+  }
+
+
+  // To test whether Join returns values correctly, we take the address of the value below and return it. The joining
+  // thread checks to see if it receives this address.
   int threadResult {1000};
-  void* thread_join_main(void*) {
-    return reinterpret_cast<void*>(threadResult);
+  extern "C"
+  void* threadJoinTest(void*) {
+    return reinterpret_cast<void*>(&threadResult);
   }
 
 
-
-  // Support function for thread result test
+  // To test whether arguments are supplied to the thread function correctly, this function returns whatever it was
+  // given, which the spawning thread can check.
   int threadArg {7};
-  void* thread_arg_main(void* arg) {
+  extern "C"
+  void* threadArgTest(void* arg) {
     return arg;
   }
 
 
-  // Support function for thread noparam test
-  void* thread_noarg_main(void* arg) {
-    return arg;
-  }
-
-
-  // Helper variable for the one shot test: ensure this is zeroed before starting the test
+  // To test that one-shots are only executed once, we zero a variable and twice attempt to invoke a function which
+  // increments it, and check the final value.
   int oneShotVal {0};
-
-
-  // One shot function
+  extern "C"
   void oneShot() {
     oneShotVal++;
   }
@@ -79,7 +84,7 @@ using namespace v8::V8Platform;
 
 
 V8MONKEY_TEST(Plat001, "TLS Key get initially returns null") {
-  TLSKey<void*> key1 {};
+  TLSKey<void> key1 {};
   V8MONKEY_CHECK(key1.Get() == nullptr, "Key value is initially null");
   TLSKey<int> key2 {};
   V8MONKEY_CHECK(key2.Get() == 0, "Key value is initially null");
@@ -87,10 +92,10 @@ V8MONKEY_TEST(Plat001, "TLS Key get initially returns null") {
 
 
 V8MONKEY_TEST(Plat002, "TLS Key get returns correct value (1)") {
-  TLSKey<intptr_t> key {};
-  intptr_t value {42};
-  key.Set(value);
-  V8MONKEY_CHECK(key.Get() == value, "Retrieved key is correct");
+  TLSKey<int> key {};
+  int value {42};
+  key.Set(&value);
+  V8MONKEY_CHECK(key.Get() == &value, "Retrieved key is correct");
 }
 
 
@@ -98,59 +103,81 @@ V8MONKEY_TEST(Plat003, "TLS Key get returns correct value (2)") {
   // Test with something smaller than a pointer
   TLSKey<char> key {};
   char value {'\7'};
-  key.Set(value);
-  V8MONKEY_CHECK(key.Get() == value, "Retrieved key is correct");
+  key.Set(&value);
+  V8MONKEY_CHECK(key.Get() == &value, "Retrieved key is correct");
 }
 
 
-V8MONKEY_TEST(Plat004, "Key creation with destructor works correctly") {
-  destructorCalled = false;
-  Thread t {thread_tls_destruct};
+V8MONKEY_TEST(Plat004, "TLS Key set returns true if native function successful") {
+  TLSKey<int> key {};
+  int value {42};
+  bool setResult {key.Set(&value)};
+  // If fetching the value returns the correct value, then setting the key should have reported success
+  V8MONKEY_CHECK(setResult == (key.Get() == &value), "Set reported success correctly");
+}
 
-  TLSKey<intptr_t> key {tlsDestructor};
+
+V8MONKEY_TEST(Plat005, "Key creation with destructor works correctly") {
+  destructorCalled = false;
+  Thread t {tlsDestructorTest};
+
+  TLSKey<int> key {tlsDestructor};
   t.Run(&key);
   t.Join();
-  V8MONKEY_CHECK(destructorCalled, "Destructor for TLS key was called");
+  V8MONKEY_CHECK(destructorCalled, "Destructor for TLS key was called with correct data");
 }
 
 
-V8MONKEY_TEST(Plat005, "HasRan correct after thread runs") {
-  Thread t {thread_run_main};
+V8MONKEY_TEST(Plat006, "HasExecuted initially false") {
+  Thread t {hasRan};
+  V8MONKEY_CHECK(!t.HasExecuted(), "HasRan reported false");
+}
+
+
+V8MONKEY_TEST(Plat007, "HasExecuted correct after thread execution") {
+  Thread t {hasRan};
   t.Run(nullptr);
   t.Join();
   V8MONKEY_CHECK(t.HasExecuted(), "HasRan reported true");
 }
 
 
-V8MONKEY_TEST(Plat006, "Thread joining returns correct value") {
-  Thread t {thread_join_main};
+V8MONKEY_TEST(Plat008, "Run reports success correctly") {
+  Thread t {threadRunTest};
+  // Clear any extant state
+  threadExecuted = false;
+  bool runResult {t.Run()};
+  t.Join();
+  V8MONKEY_CHECK(runResult == threadExecuted, "Run reported success correctly");
+}
+
+
+V8MONKEY_TEST(Plat009, "Thread joining returns correct value") {
+  Thread t {threadJoinTest};
   t.Run(nullptr);
-  void* result {t.Join()};
-  V8MONKEY_CHECK(reinterpret_cast<intptr_t>(result) == threadResult, "Value returned by thread join is correct");
+  V8MONKEY_CHECK(reinterpret_cast<int*>(t.Join()) == &threadResult, "Value returned by thread join is correct");
 }
 
 
-V8MONKEY_TEST(Plat007, "Thread argument passing works correctly") {
-  Thread t {thread_arg_main};
-  t.Run(reinterpret_cast<void*>(threadArg));
-  void* result {t.Join()};
-  V8MONKEY_CHECK(reinterpret_cast<intptr_t>(result) == threadArg, "Value returned shows arg was passed correctly");
+V8MONKEY_TEST(Plat010, "Thread argument passing works correctly") {
+  Thread t {threadArgTest};
+  t.Run(reinterpret_cast<void*>(&threadArg));
+  V8MONKEY_CHECK(reinterpret_cast<int*>(t.Join()) == &threadArg, "Value returned shows arg was passed correctly");
 }
 
 
-V8MONKEY_TEST(Plat008, "Run called with no arguments calls thread function with nullptr") {
-  Thread t {thread_noarg_main};
+V8MONKEY_TEST(Plat011, "Run called with no arguments calls thread function with nullptr") {
+  Thread t {threadArgTest};
   t.Run();
-  void* result {t.Join()};
-  V8MONKEY_CHECK(result == nullptr, "Run was called with null pointer");
+  V8MONKEY_CHECK(t.Join() == nullptr, "Run was called with null pointer");
 }
 
 
-V8MONKEY_TEST(Plat009, "OneShot called only once") {
+V8MONKEY_TEST(Plat012, "OneShot called only once") {
+  // Clear any extant state
   oneShotVal = 0;
-  OneShot o(oneShot);
+  OneShot o {oneShot};
   o.Run();
   o.Run();
   V8MONKEY_CHECK(oneShotVal == 1, "One shot function only ran once");
 }
-*/

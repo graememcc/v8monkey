@@ -1,3 +1,43 @@
+// abort exit getenv
+#include <cstdlib>
+
+// string
+#include <string>
+
+// Print
+#include "platform/platform.h"
+
+
+namespace v8 {
+  namespace V8Monkey {
+    // XXX Need a comment on fromAssert, and the operation of this method, as fromAssert/the environment variable seem
+    //     to be the opposite of what's implied
+    void Abort(const char* location, const char* message, bool fromAssert) {
+      std::string s {"Error at "};
+      s += location;
+      s += ": ";
+      s += message;
+      s += "\n";
+      V8Platform::Platform::PrintError(s.c_str());
+
+      if (fromAssert) {
+        std::abort();
+      } else {
+        const char* envVar {std::getenv("V8MONKEY_NOABORTONASSERT")};
+        if (!envVar || strcmp(envVar, "1")) {
+          std::abort();
+        }
+      }
+    }
+  }
+}
+
+
+/*
+ * Project reset 16 July: code below this comment is from before this reset
+ *
+ */
+
 /*
 // abort exit getenv
 #include <cstdlib>
@@ -8,14 +48,8 @@
 // InternalIsolate::{EnsureInIsolate, GetCurrent, GetDefaultIsolate, GetFatalErrorHandler}
 #include "runtime/isolate.h"
 
-// Print
-#include "platform/platform.h"
-
 // EnsureSpiderMonkey TearDownSpiderMonkey
 #include "utils/SpiderMonkeyUtils.h"
-
-// string
-#include <string>
 
 // TestUtils interface
 #include "utils/test.h"
@@ -148,23 +182,6 @@ namespace v8 {
 
 
   namespace V8Monkey {
-    void Abort(const char* location, const char* message, bool isAssert) {
-      std::string s {"Error at "};
-      s += location;
-      s += ": ";
-      s += message;
-      s += "\n";
-      V8Platform::Platform::PrintError(s.c_str());
-
-      if (isAssert) {
-        std::abort();
-      } else {
-        const char* envVar {std::getenv("V8MONKEY_NOABORTONASSERT")};
-        if (!envVar || strcmp(envVar, "1")) {
-          std::abort();
-        }
-      }
-    }
 
 
     void TriggerFatalError(const char* location, const char* message) {

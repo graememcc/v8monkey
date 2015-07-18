@@ -1,10 +1,10 @@
-/*
 #ifndef V8MONKEY_TEST_H
 #define V8MONKEY_TEST_H
 
+/*
 // FatalErrorCallbackFn
 #include "v8.h"
-
+*/
 
 // Export extra symbols when building the test library
 #ifdef V8MONKEY_INTERNAL_TEST
@@ -13,7 +13,6 @@
   #define EXPORT_FOR_TESTING_ONLY
 #endif
 
-*/
 // /*
 //  * In internals testing builds, define a utility class with a grabbag of methods handy for poking around inside our
 //  * internals, and additional utility functions.
@@ -140,5 +139,5 @@
 #endif
 
 
-#endif
 */
+#endif

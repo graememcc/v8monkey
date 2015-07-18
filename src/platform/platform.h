@@ -1,34 +1,20 @@
 #ifndef V8MONKEY_PLATFORM_H
 #define V8MONKEY_PLATFORM_H
 
-/*
-// size_t
-#include <cstddef>
-
 // memcpy
 #include <cstring>
-
-// conditional, decay, is_same, remove_reference, remove_cv
-#include <type_traits>
 
 // EXPORT_FOR_TESTING_ONLY
 #include "utils/test.h"
 
 // V8MONKEY_ASSERT
 #include "utils/V8MonkeyCommon.h"
-*/
 
 
 /*
  * This file abstracts away platform specific details, though at time of writing the only implementation is for Linux
  *
  */
-
-
-/*
-#ifndef APIEXPORT
-  #define APIEXPORT __attribute__ ((visibility("default")))
-#endif
 
 
 namespace v8 {
@@ -38,7 +24,6 @@ namespace v8 {
 
     // Platform-agnostic thread execution functions
     using ThreadFunction = void* (*)(void*);
-*/
 
 
     /*
@@ -46,12 +31,12 @@ namespace v8 {
      *
      */
 
-/*
     class EXPORT_FOR_TESTING_ONLY PlatformTLSKey {
       protected:
         void* privateData {nullptr};
 
-        void InternalSet(void* data);
+        // Attempt to set the value: returns false if the native implementation failed, true otherwise
+        bool InternalSet(void* data);
         void* InternalGet();
 
         PlatformTLSKey(void (*destructorFn)(void*) = nullptr);
@@ -65,23 +50,27 @@ namespace v8 {
     };
 
 
+    /*
+     * Although unlikely, there are no guarantees that casting an arbitrary small type to void* and back won't lose
+     * information. Thus we only admit keys that are of pointer type.
+     *
+     */
+
     template <typename T>
     class EXPORT_FOR_TESTING_ONLY TLSKey : private PlatformTLSKey {
-      static_assert(sizeof(T) <= sizeof(void*), "Data too big to store in thread-local storage");
       public:
+        // Constructing a TLSKey can call std::terminate if key creation failed
         TLSKey(void (*destructorFn)(void*) = nullptr) : PlatformTLSKey(destructorFn) {}
 
-        void Set(T data) {
-          void* asVoid {nullptr};
-          std::memcpy(reinterpret_cast<char*>(&asVoid), reinterpret_cast<char*>(&data), sizeof(T));
-          InternalSet(asVoid);
+        // Attempt to set the value: returns false if the native implementation failed, true otherwise
+        bool Set(T* data) {
+          void* asVoid {reinterpret_cast<void*>(data)};
+          return InternalSet(asVoid);
         }
 
-        T Get() {
+        T* Get() {
           void* asVoid {InternalGet()};
-          T data {};
-          std::memcpy(reinterpret_cast<char*>(&data), reinterpret_cast<char*>(&asVoid), sizeof(T));
-          return data;
+          return reinterpret_cast<T*>(asVoid);
         }
 
         ~TLSKey() = default;
@@ -92,7 +81,7 @@ namespace v8 {
     };
 
 
-    class APIEXPORT Platform {
+    class EXPORT_FOR_TESTING_ONLY Platform {
       public:
         // Print to stderr
         static void PrintError(const char* message);
@@ -102,25 +91,26 @@ namespace v8 {
     };
 
 
-    // RAII class for handling OSOnce pointers
+    // RAII class for handling functions that should only be executed once per thread
     class EXPORT_FOR_TESTING_ONLY OneShot {
       public:
         OneShot(OneTimeFunction f);
 
         ~OneShot();
 
-        void Run();
+        // Returns true if the function was invoked succesfully, false if the native function returned an error
+        bool Run();
 
         OneShot(OneShot&& other) {
           V8MONKEY_ASSERT(privateData == nullptr, "Moving in to non-null OneShot?");
-          void* otherData = other.privateData;
+          void* otherData {other.privateData};
           other.privateData = nullptr;
           privateData = otherData;
         }
 
         OneShot& operator=(OneShot&& other) {
           V8MONKEY_ASSERT(privateData == nullptr, "Move assigning in to non-null OneShot?");
-          void* otherData = other.privateData;
+          void* otherData {other.privateData};
           other.privateData = nullptr;
           privateData = otherData;
           return *this;
@@ -135,27 +125,28 @@ namespace v8 {
     };
 
 
-    // RAII class for handling OSMutex pointers
+    // RAII class for handling OS Mutexes
     class EXPORT_FOR_TESTING_ONLY Mutex {
       public:
+        // Construction can invoke std::terminate if native mutex construction fails
         Mutex();
 
         ~Mutex();
 
-        void Lock();
-
-        void Unlock();
+        // Lock and Unlock return true if the native operation completes successfully, false otherwise
+        bool Lock();
+        bool Unlock();
 
         Mutex(Mutex&& other) {
           V8MONKEY_ASSERT(privateData == nullptr, "Moving in to non-null Mutex?");
-          void* otherData = other.privateData;
+          void* otherData {other.privateData};
           other.privateData = nullptr;
           privateData = otherData;
         }
 
         Mutex& operator=(Mutex&& other) {
           V8MONKEY_ASSERT(privateData == nullptr, "Move assigning in to non-null Mutex?");
-          void* otherData = other.privateData;
+          void* otherData {other.privateData};
           other.privateData = nullptr;
           privateData = otherData;
           return *this;
@@ -169,8 +160,8 @@ namespace v8 {
     };
 
 
-    // RAII class for handling OSThreads
-    class APIEXPORT Thread {
+    // RAII class for handling OS Threads
+    class EXPORT_FOR_TESTING_ONLY Thread {
       public:
         Thread(ThreadFunction fn) : threadFunction {fn} {}
 
@@ -178,20 +169,22 @@ namespace v8 {
 
         bool HasExecuted() { return hasExecuted; }
 
-        void Run(void* arg = nullptr);
+        // Attempt to spawn the thread: returns false if the native implementation failed, true otherwise
+        bool Run(void* arg = nullptr);
 
+        // std::terminate may be called if the native join attempt fails
         void* Join();
 
         Thread(Thread&& other) {
           V8MONKEY_ASSERT(privateData == nullptr, "Moving in to non-null Thread?");
-          void* otherData = other.privateData;
+          void* otherData {other.privateData};
           other.privateData = nullptr;
           privateData = otherData;
         }
 
         Thread& operator=(Thread&& other) {
           V8MONKEY_ASSERT(privateData == nullptr, "Move assigning in to non-null Thread?");
-          void* otherData = other.privateData;
+          void* otherData {other.privateData};
           other.privateData = nullptr;
           privateData = otherData;
           return *this;
@@ -207,7 +200,6 @@ namespace v8 {
     };
   }
 }
-*/
 
 
 #endif

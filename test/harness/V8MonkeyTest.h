@@ -102,9 +102,8 @@ class V8MonkeyTest {
  *
  */
 
-// XXX Do we need an extern "C" here?
 #ifndef V8MONKEY_TEST_HELPER
-#define V8MONKEY_TEST_HELPER(name) void* name(void* arg = nullptr); \
+#define V8MONKEY_TEST_HELPER(name) extern "C" void* name(void* arg = nullptr); \
 void* name(void* arg)
 #endif
 
