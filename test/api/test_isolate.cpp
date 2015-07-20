@@ -295,6 +295,8 @@ namespace {
     *ptr = Isolate::GetCurrent() == i;
     i->Exit();
     i->Dispose();
+
+    return nullptr;
   }
 }
 
