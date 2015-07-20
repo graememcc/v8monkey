@@ -1,21 +1,5 @@
-/*
-// JSTraceDataOp
-#include "jsapi.h"
-
-// Class under test
-#include "runtime/isolate.h"
-
 // Thread
 #include "platform/platform.h"
-
-// TestUtils
-#include "utils/test.h"
-
-// DeletionObject DummyV8MonkeyObject V8Value
-#include "types/base_types.h"
-
-// GetJSRuntime/GetJSContext, SetGCRegistrationHooks
-#include "utils/SpiderMonkeyUtils.h"
 
 // Isolate, V8
 #include "v8.h"
@@ -28,6 +12,80 @@ using namespace v8;
 using namespace v8::V8Platform;
 
 
+namespace {
+  // Some tests trigger fatal errors: we shall check that the V8 reports death for the current isolate, and that the
+  // registered FatalErrorHandler for the isolate is called. Tests should reset errorCaught before triggering error
+  // generating code.
+  bool errorCaught {false};
+  void fatalErrorHandler(const char*, const char*) {
+    errorCaught = true;
+  }
+
+
+  // The following function is intended to be executed only from a thread. Assumes arg is an isolate that the main
+  // thread has entered, and attempts to dispose of it. Returns the given pointer if it was fatal, and nullptr if
+  // not
+  extern "C"
+  void* CrossThreadBadDispose(void* arg) {
+    // Suppress errors first. Note, we must enter an isolate. (Errors are reported to the thread's current isolate
+    // rather than the isolate affected. This is consistent with V8).
+    Isolate* i {Isolate::New()};
+    i->Enter();
+    V8::SetFatalErrorHandler(fatalErrorHandler);
+
+    Isolate* mainThreadIsolate {reinterpret_cast<Isolate*>(arg)};
+    errorCaught = false;
+    mainThreadIsolate->Dispose();
+
+    // Must compute result now: V8::IsDead requires us to be in an isolate
+    void* retVal = V8::IsDead() && errorCaught ? arg : nullptr;
+    i->Exit();
+    i->Dispose();
+
+    return retVal;
+  }
+}
+
+
+V8MONKEY_TEST(IntIsolate001, "Attempt to dispose in-use isolate from another thread causes fatal error") {
+  // Although we're only using API functions, this is an internal test because of V8Platform visibility
+  // TODO If we compile platform with the test harness, we could make this public once again
+
+  Isolate* i {Isolate::New()};
+  i->Enter();
+  V8Platform::Thread child {CrossThreadBadDispose};
+  child.Run(i);
+
+  V8MONKEY_CHECK(child.Join(), "Disposing an in-use isolate is fatal");
+
+  i->Exit();
+  i->Dispose();
+}
+
+
+/*
+ * Project reset: 16 July
+ *
+ * Code below this line predates the reset
+ *
+ */
+
+
+/*
+// JSTraceDataOp
+#include "jsapi.h"
+
+// Class under test
+#include "runtime/isolate.h"
+
+// TestUtils
+#include "utils/test.h"
+
+// DeletionObject DummyV8MonkeyObject V8Value
+#include "types/base_types.h"
+
+// GetJSRuntime/GetJSContext, SetGCRegistrationHooks
+#include "utils/SpiderMonkeyUtils.h"
 // XXX V8 Dispose where necessary
 
 

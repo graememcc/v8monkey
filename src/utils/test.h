@@ -1,10 +1,7 @@
 #ifndef V8MONKEY_TEST_H
 #define V8MONKEY_TEST_H
 
-/*
-// FatalErrorCallbackFn
-#include "v8.h"
-*/
+
 
 // Export extra symbols when building the test library
 #ifdef V8MONKEY_INTERNAL_TEST
@@ -13,6 +10,47 @@
   #define EXPORT_FOR_TESTING_ONLY
 #endif
 
+
+namespace v8 {
+  namespace TestUtils {
+    class EXPORT_FOR_TESTING_ONLY AutoIsolateCleanup {
+       public:
+         AutoIsolateCleanup() {}
+         ~AutoIsolateCleanup();
+
+      private:
+        AutoIsolateCleanup(AutoIsolateCleanup& other) = delete;
+        AutoIsolateCleanup(AutoIsolateCleanup&& other) = delete;
+        AutoIsolateCleanup& operator=(AutoIsolateCleanup& other) = delete;
+        AutoIsolateCleanup& operator=(AutoIsolateCleanup&& other) = delete;
+    };
+
+
+    class EXPORT_FOR_TESTING_ONLY AutoTestCleanup {
+      public:
+        AutoTestCleanup() = default;
+        ~AutoTestCleanup();
+
+      private:
+        AutoTestCleanup(AutoTestCleanup& other) = delete;
+        AutoTestCleanup(AutoTestCleanup&& other) = delete;
+        AutoTestCleanup& operator=(AutoTestCleanup& other) = delete;
+        AutoTestCleanup& operator=(AutoTestCleanup&& other) = delete;
+    };
+  }
+}
+
+
+/*
+ * Project reset: 16 July. Code below precedes the reset.
+ *
+ */
+
+
+/*
+// FatalErrorCallbackFn
+#include "v8.h"
+*/
 // /*
 //  * In internals testing builds, define a utility class with a grabbag of methods handy for poking around inside our
 //  * internals, and additional utility functions.
@@ -58,25 +96,6 @@
 //          */
 //
 /*
-      class EXPORT_FOR_TESTING_ONLY AutoIsolateCleanup {
-         public:
-           AutoIsolateCleanup() {}
-
-           ~AutoIsolateCleanup();
-      };
-
-      class EXPORT_FOR_TESTING_ONLY AutoTestCleanup {
-        public:
-          AutoTestCleanup() = default;
-
-          ~AutoTestCleanup();
-
-        private:
-          AutoTestCleanup(AutoTestCleanup& other) = delete;
-          AutoTestCleanup(AutoTestCleanup&& other) = delete;
-          AutoTestCleanup& operator=(AutoTestCleanup& other) = delete;
-          AutoTestCleanup& operator=(AutoTestCleanup&& other) = delete;
-      };
 //
 //       private:
 //         // This is just a utility class, so should not be constructible

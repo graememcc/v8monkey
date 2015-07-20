@@ -102,8 +102,8 @@ class V8MonkeyTest {
  *
  */
 
-#ifndef V8MONKEY_TEST_HELPER
-#define V8MONKEY_TEST_HELPER(name) extern "C" void* name(void* arg = nullptr); \
+#ifndef V8MONKEY_THREAD_TEST_FN
+#define V8MONKEY_THREAD_TEST_FN(name) extern "C" void* name(void* arg = nullptr); \
 void* name(void* arg)
 #endif
 

@@ -28,18 +28,6 @@
 //   }
 // 
 // 
-//   V8MONKEY_TEST_HELPER(IsolateStaysEntered) {
-//     TestUtils::AutoIsolateCleanup ac;
-// 
-//     Isolate* i = Isolate::New();
-//     i->Enter();
-//     V8::Initialize();
-// 
-//     bool result = InternalIsolate::IsEntered(AsInternal(i));
-//     return reinterpret_cast<void*>(result);
-//   }
-// 
-// 
 //   void* DefaultIsolateGetsEntered(void* iso) {
 //     TestUtils::AutoIsolateCleanup ac;
 // 
@@ -81,33 +69,6 @@
 // 
 //     return reinterpret_cast<void*>(result);
 //   }
-// }
-// 
-// 
-// V8MONKEY_TEST(IntInit001, "After V8 initialization, current isolate still entered if originally in non-default isolate") {
-//   TestUtils::AutoTestCleanup ac;
-//   V8MONKEY_CHECK(IsolateStaysEntered(), "Entered isolate unchanged");
-// }
-// 
-// 
-// V8MONKEY_TEST(IntInit002, "After V8 initialization, default isolate entered if not already entered (main)") {
-//   TestUtils::AutoTestCleanup ac;
-//   Isolate* defaultIsolate = Isolate::GetCurrent();
-//   V8MONKEY_CHECK(DefaultIsolateGetsEntered(defaultIsolate), "Default was entered");
-// }
-// 
-// 
-// V8MONKEY_TEST(IntInit003, "After V8 initialization, default isolate remains entered if already entered (main)") {
-//   TestUtils::AutoTestCleanup ac;
-//   Isolate* defaultIsolate = Isolate::GetCurrent();
-//   V8MONKEY_CHECK(DefaultIsolateRemainsEntered(defaultIsolate), "Default still entered");
-// }
-// 
-// 
-// V8MONKEY_TEST(IntInit004, "After V8 initialization, default isolate not re-entered if already entered (main)") {
-//   TestUtils::AutoTestCleanup ac;
-//   Isolate* defaultIsolate = Isolate::GetCurrent();
-//   V8MONKEY_CHECK(DefaultIsolateNotReentered(defaultIsolate), "Default still entered");
 // }
 // 
 // 

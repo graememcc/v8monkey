@@ -1,19 +1,14 @@
-/*
 // Thread
 #include "platform/platform.h"
-
-// GetJSRuntimeForThread GetJSContextForThread
-#include "utils/SpiderMonkeyUtils.h"
-
-// Isolate, V8::{Initialize, SetFatalErrorHandler}
-#include "v8.h"
 
 // Unit-testing support
 #include "V8MonkeyTest.h"
 
+// Isolate
+#include "v8.h"
+
 
 using namespace v8;
-*/
 
 
 /*
@@ -23,12 +18,11 @@ using namespace v8;
  *
  */
 
-/*
 namespace {
-  // Some tests trigger fatal errors: from the API point of view we can only check that V8::IsDead reports true,
-  // however that doesn't distinguish between successful V8 disposals and errors, so we install the following fake
-  // error handler. Tests should reset errorCaught before triggering error generating code.
-  auto errorCaught = bool {false};
+  // Some tests trigger fatal errors: we shall check that the V8 reports death for the current isolate, and that the
+  // registered FatalErrorHandler for the isolate is called. Tests should reset errorCaught before triggering error
+  // generating code.
+  bool errorCaught {false};
   void fatalErrorHandler(const char*, const char*) {
     errorCaught = true;
   }
@@ -38,53 +32,62 @@ namespace {
   void dummyFatalErrorHandler(const char*, const char*) { return; }
 
 
+  extern "C"
   void* ReturnCurrentIsolate(void* = nullptr) {
-    return Isolate::GetCurrent();
+    return reinterpret_cast<void*>(Isolate::GetCurrent());
   }
 
 
-  // Returns a void* wrapped bool denoting whether each invocation of Isolate::New returns a fresh isolate
-  void* NewReturnsFreshIsolates(void* = nullptr) {
+  // Creates two isolates, and stores a bool in the supplied location denoting whether they were different
+  extern "C"
+  void* NewReturnsFreshIsolates(void* boolPtr) {
     Isolate* i {Isolate::New()};
     Isolate* j {Isolate::New()};
 
-    void* result {reinterpret_cast<void*>(i != j)};
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
+    *ptr = i != j;
 
     j->Dispose();
     i->Dispose();
-    return result;
+    return nullptr;
   }
 
 
-  // Returns a void* wrapped bool denoting whether GetCurrent changes upon isolate entry
-  void* GetCurrentCorrectAfterEntry(void* = nullptr) {
+  // Stores a bool in the given location denoting whether GetCurrent changes upon isolate entry
+  extern "C"
+  void* GetCurrentCorrectAfterEntry(void* boolPtr) {
     Isolate* i {Isolate::New()};
     i->Enter();
 
-    void* result {reinterpret_cast<void*>(Isolate::GetCurrent() == i)};
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
+    *ptr = Isolate::GetCurrent() == i;
 
     i->Exit();
     i->Dispose();
-    return result;
+    return nullptr;
   }
 
 
-  // Returns a void* wrapped bool denoting whether GetCurrent changes upon isolate exit
-  void* IsolateCorrectAfterSingleExit(void* = nullptr) {
+  // Stores a bool in the given location denoting whether GetCurrent changes upon isolate exit
+  extern "C"
+  void* IsolateCorrectAfterSingleExit(void* boolPtr) {
     Isolate* i {Isolate::GetCurrent()};
     Isolate* j {Isolate::New()};
     j->Enter();
     j->Exit();
     j->Dispose();
 
-    void* result = reinterpret_cast<void*>(Isolate::GetCurrent() == i);
-    return result;
+
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
+    *ptr = Isolate::GetCurrent() == i;
+    return nullptr;
   }
 
 
-  // Returns a void* wrapped bool denoting whether the isolate is correct after a symmetric number of entries and
+  // Stores a bool in the given location denoting whether the isolate is correct after a symmetric number of entries and
   // exits to the same isolate
-  void* MultipleIsolateEntriesHandled(void* = nullptr) {
+  extern "C"
+  void* MultipleIsolateEntriesHandled(void* boolPtr) {
     Isolate* original {Isolate::GetCurrent()};
     Isolate* i {Isolate::New()};
 
@@ -96,33 +99,37 @@ namespace {
     i->Exit();
     i->Exit();
 
-    void* result {reinterpret_cast<void*>(Isolate::GetCurrent() == original)};
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
+    *ptr = Isolate::GetCurrent() == original;
 
     i->Dispose();
-    return result;
+    return nullptr;
   }
 
 
-  // Returns a void* wrapped bool denoting whether the caller remains in an isolate when it is exited fewer
+  // Stores a bool in the given location denoting whether the caller remains in an isolate when it is exited fewer
   // times than it is entered
-  void* AsymmetricEntriesAndExitsHandled(void* = nullptr) {
+  extern "C"
+  void* AsymmetricEntriesAndExitsHandled(void* boolPtr) {
     Isolate* i {Isolate::New()};
 
     i->Enter();
     i->Enter();
     i->Exit();
 
-    void* result {reinterpret_cast<void*>(Isolate::GetCurrent() == i)};
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
+    *ptr = Isolate::GetCurrent() == i;
 
     i->Exit();
     i->Dispose();
-    return result;
+    return nullptr;
   }
 
 
-  // Returns a void* wrapped bool denoting whether isolates stack: i.e. exiting an isolate should return the
+  // Stores a bool in the given location denoting whether isolates stack: i.e. exiting an isolate should return the
   // thread to the isolate it was previously in
-  void* CheckIsolateStacking(void* = nullptr) {
+  extern "C"
+  void* CheckIsolateStacking(void* boolPtr) {
     Isolate* original {Isolate::GetCurrent()};
     Isolate* first {Isolate::New()};
 
@@ -147,27 +154,34 @@ namespace {
     first->Dispose();
     second->Dispose();
     third->Dispose();
-    return reinterpret_cast<void*>(allDistinct && returnedToSecond && returnedToFirst && returnedToOriginal);
+
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
+    *ptr = allDistinct && returnedToSecond && returnedToFirst && returnedToOriginal;
+    return nullptr;
   }
 
 
-  // Returns a void* wrapped bool denoting whether attempts to dispose an isolate whilst inside it is fatal
-  void* CheckBadDisposeIsFatal(void* = nullptr) {
+  // Stores a bool in the given location denoting whether attempts to dispose an isolate whilst inside it is fatal
+  extern "C"
+  void* CheckBadDisposeIsFatal(void* boolPtr) {
     Isolate* i {Isolate::New()};
     i->Enter();
     errorCaught = false;
     V8::SetFatalErrorHandler(fatalErrorHandler);
     i->Dispose();
 
-    void* result {reinterpret_cast<void*>(V8::IsDead() && errorCaught)};
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
+    *ptr = V8::IsDead() && errorCaught;
 
     i->Exit();
     i->Dispose();
-    return result;
+    return nullptr;
   }
 
 
-  void* CheckFailedDisposeDoesntDelete(void* = nullptr) {
+  // Stores a bool in the given location denoting whether a failed Dispose call leaves a dangling pointer
+  extern "C"
+  void* CheckFailedDisposeDoesntDelete(void* boolPtr) {
     Isolate* i {Isolate::New()};
     i->Enter();
     V8::SetFatalErrorHandler(dummyFatalErrorHandler);
@@ -177,64 +191,49 @@ namespace {
     i->Exit();
 
     i->Dispose();
-    return reinterpret_cast<void*>(true);
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
+    *ptr = true;
+    return nullptr;
   }
 
 
-  // The following function is intended to be executed only from a thread. Assumes arg is an isolate that the main
-  // thread has entered, and attempts to dispose of it. Returns a void* wrapped bool signalling whether this was fatal.
-  void* CrossThreadBadDispose(void* arg) {
-    Isolate* i {Isolate::New()};
-    i->Enter();
-
-    // Suppress errors first
-    V8::SetFatalErrorHandler(fatalErrorHandler);
-
-    Isolate* mainThreadIsolate {reinterpret_cast<Isolate*>(arg)};
-    errorCaught = false;
-    mainThreadIsolate->Dispose();
-    void* result {reinterpret_cast<void*>(V8::IsDead() && errorCaught)};
-
-    // We will have entered the default isolate courtesy of SetFatalErrorHandler
-    i->Exit();
-    i->Dispose();
-
-    return result;
-  }
-
-
-  // Returns a void* wrapped bool denoting whether the current isolate equals the one prior to Scope creation when a
-  // single Scope is entered and destroyed
-  void* CheckSingleScopeRestoresInitialState(void* = nullptr) {
+  // Stores a bool in the given location denoting whether the current isolate equals the one prior to Scope creation
+  // when a single Scope is entered and destroyed
+  extern "C"
+  void* CheckSingleScopeRestoresInitialState(void* boolPtr) {
     Isolate* initial {Isolate::GetCurrent()};
     Isolate* i {Isolate::New()};
     {
       Isolate::Scope scope {i};
     }
 
-    bool result {Isolate::GetCurrent() == initial};
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
+    *ptr = Isolate::GetCurrent() == initial;
 
     i->Dispose();
-    return reinterpret_cast<void*>(result);
+    return nullptr;
   }
 
 
-  // Returns a void* wrapped bool denoting whether GetCurrent is correct after constructing a Scope
-  void* GetCurrentCorrectAfterScopeConstruction(void* = nullptr) {
+  // Stores a bool in the given location denoting whether GetCurrent is correct after constructing a Scope
+  extern "C"
+  void* GetCurrentCorrectAfterScopeConstruction(void* boolPtr) {
     Isolate* i {Isolate::New()};
-    bool result {};
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
     {
       Isolate::Scope scope {i};
-      result = Isolate::GetCurrent() == i;
+      *ptr = Isolate::GetCurrent() == i;
     }
 
     i->Dispose();
-    return reinterpret_cast<void*>(result);
+    return nullptr;
   }
 
 
-  // Returns a void* wrapped bool denoting whether scopes stack correctly when the first isolate is explicitly entered
-  void* CheckScopesStackAfterExplicitEntry(void* = nullptr) {
+  // Stores a bool in the given location denoting whether scopes stack correctly when the first isolate is explicitly
+  // entered
+  extern "C"
+  void* CheckScopesStackAfterExplicitEntry(void* boolPtr) {
     Isolate* first {Isolate::New()};
     first->Enter();
 
@@ -243,18 +242,20 @@ namespace {
       Isolate::Scope scope {second};
     }
 
-    bool result {Isolate::GetCurrent() == first};
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
+    *ptr = Isolate::GetCurrent() == first;
 
     second->Dispose();
     first->Exit();
     first->Dispose();
 
-    return reinterpret_cast<void*>(result);
+    return nullptr;
   }
 
 
-  // Returns a void* wrapped bool denoting whether scopes stack correctly
-  void* CheckScopesStack(void* = nullptr) {
+  // Stores a bool in the given location denoting whether scopes stack correctly
+  extern "C"
+  void* CheckScopesStack(void* boolPtr) {
     Isolate* first {Isolate::New()};
     bool firstOK {}, secondOK {};
     {
@@ -274,7 +275,9 @@ namespace {
     }
     first->Dispose();
 
-    return reinterpret_cast<void*>(firstOK && secondOK);
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
+    *ptr = firstOK && secondOK;
+    return nullptr;
   }
 }
 
@@ -285,56 +288,229 @@ V8MONKEY_TEST(Isolate001, "Isolate::GetCurrent initially null (main thread)") {
 
 
 V8MONKEY_TEST(Isolate002, "Each invocation of Isolate::New returns a new isolate (main thread)") {
-  V8MONKEY_CHECK(NewReturnsFreshIsolates(), "Isolate::New returned distinct isolates");
+  bool result;
+  NewReturnsFreshIsolates(&result);
+  V8MONKEY_CHECK(result, "Isolate::New returned distinct isolates");
 }
 
 
 V8MONKEY_TEST(Isolate003, "Isolate::GetCurrent reports correct value after entry (main thread)") {
-  V8MONKEY_CHECK(GetCurrentCorrectAfterEntry(), "Isolate::GetCurrent returned correct isolate");
+  bool result;
+  GetCurrentCorrectAfterEntry(&result);
+  V8MONKEY_CHECK(result, "Isolate::GetCurrent returned correct isolate");
 }
 
 
 V8MONKEY_TEST(Isolate004, "Isolate::GetCurrent reports correct value after exit (main thread)") {
-  V8MONKEY_CHECK(IsolateCorrectAfterSingleExit(), "Isolate::GetCurrent returned correct isolate");
+  bool result;
+  IsolateCorrectAfterSingleExit(&result);
+  V8MONKEY_CHECK(result, "Isolate::GetCurrent returned correct isolate");
 }
 
 
 V8MONKEY_TEST(Isolate005, "Isolate::GetCurrent reports correct value after multiple entries and exits (main thread)") {
-  V8MONKEY_CHECK(MultipleIsolateEntriesHandled(), "Isolate::GetCurrent returned correct isolate at final exit");
+  bool result;
+  MultipleIsolateEntriesHandled(&result);
+  V8MONKEY_CHECK(result, "Isolate::GetCurrent returned correct isolate at final exit");
 }
 
 
 V8MONKEY_TEST(Isolate006, "Isolate::GetCurrent reports correct value after asymmetric entries and exits (main thread)") {
-  V8MONKEY_CHECK(AsymmetricEntriesAndExitsHandled(), "Isolate::GetCurrent returned correct isolate at penultimate exit");
+  bool result;
+  AsymmetricEntriesAndExitsHandled(&result);
+  V8MONKEY_CHECK(result, "Isolate::GetCurrent returned correct isolate at penultimate exit");
 }
 
 
 V8MONKEY_TEST(Isolate007, "Isolates stack correctly (main thread)") {
-  V8MONKEY_CHECK(CheckIsolateStacking(), "Isolates stack correctly");
+  bool result;
+  CheckIsolateStacking(&result);
+  V8MONKEY_CHECK(result, "Isolates stack correctly");
 }
 
 
 V8MONKEY_TEST(Isolate008, "Calling Dispose whilst within an isolate triggers an error (main thread)") {
-  V8MONKEY_CHECK(CheckBadDisposeIsFatal(), "Dispose from within an isolate is fatal");
+  bool result;
+  CheckBadDisposeIsFatal(&result);
+  V8MONKEY_CHECK(result, "Dispose from within an isolate is fatal");
 }
 
 
 V8MONKEY_TEST(Isolate009, "Calling Dispose whilst within an isolate doesn't delete isolate (main thread)") {
-  V8MONKEY_CHECK(CheckFailedDisposeDoesntDelete(), "Isolate not deleted if dispose failed");
+  bool result;
+  CheckFailedDisposeDoesntDelete(&result);
+  V8MONKEY_CHECK(result, "Isolate not deleted if dispose failed");
 }
 
 
-V8MONKEY_TEST(Isolate010, "Attempt to dispose in-use isolate from another thread causes fatal error") {
-  Isolate* i {Isolate::New()};
-  i->Enter();
-  V8Platform::Thread child {CrossThreadBadDispose};
-  child.Run(i);
-
-  V8MONKEY_CHECK(child.Join(), "Disposing an in-use isolate is fatal");
-
-  i->Exit();
-  i->Dispose();
+V8MONKEY_TEST(Scope001, "Creating and destroying a single scope leaves main in its initial state") {
+  bool result;
+  CheckSingleScopeRestoresInitialState(&result);
+  V8MONKEY_CHECK(result, "main thread returned to initial isolate after scope destruction");
 }
+
+
+V8MONKEY_TEST(Scope002, "GetCurrent() reports correct isolate after Scope construction (within Scope lifetime)") {
+  bool result;
+  GetCurrentCorrectAfterScopeConstruction(&result);
+  V8MONKEY_CHECK(result, "GetCurrent() was correct");
+}
+
+
+V8MONKEY_TEST(Scope003, "Scopes stack correctly for main with explicitly entered Isolates") {
+  bool result;
+  CheckScopesStackAfterExplicitEntry(&result);
+  V8MONKEY_CHECK(result, "Scope stacked correctly");
+}
+
+
+V8MONKEY_TEST(Scope004, "Multiple Scopes stack correctly for main thread") {
+  bool result;
+  CheckScopesStack(&result);
+  V8MONKEY_CHECK(result, "Scopes stacked correctly");
+}
+
+
+/*
+ * Tests disabled until threading support reinstated
+ *
+ *
+
+using namespace v8::V8Platform;
+
+
+V8MONKEY_TEST(IsolateXXX, "Isolate::GetCurrent initially null (child thread)") {
+  Thread t {ReturnCurrentIsolate};
+  t.Run();
+  void* reportedCurrentIsolate {t.Join()};
+  V8MONKEY_CHECK(!reportedCurrentIsolate, "Isolate::GetCurrent returned nullptr");
+}
+
+
+V8MONKEY_TEST(IsolateXXX, "Each invocation of Isolate::New returns a new isolate (child thread)") {
+  bool result;
+  Thread t {NewReturnsFreshIsolates};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "Isolate::New returned distinct isolates");
+}
+
+
+V8MONKEY_TEST(IsolateXXX, "Isolate::GetCurrent reports correct value after entry (child thread)") {
+  bool result;
+  Thread t {GetCurrentCorrectAfterEntry};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "Isolate::GetCurrent returned correct isolate");
+}
+
+
+V8MONKEY_TEST(IsolateXXX, "Isolate::GetCurrent reports correct value after entry (child thread)") {
+  bool result;
+  Thread t {IsolateCorrectAfterSingleExit};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "Isolate::GetCurrent returned correct isolate");
+}
+
+
+V8MONKEY_TEST(IsolateXXX, "Isolate::GetCurrent reports correct value after multiple entries and exits (child thread)") {
+  bool result;
+  Thread t {MultipleIsolateEntriesHandled};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "Isolate::GetCurrent returned correct isolate at final exit");
+}
+
+
+V8MONKEY_TEST(IsolateXXX, "Isolate::GetCurrent reports correct value after asymmetric entries and exits (child thread)") {
+  bool result;
+  thread t {AsymmetricEntriesAndExitsHandled};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "Isolate::GetCurrent returned correct isolate at penultimate exit");
+}
+
+
+V8MONKEY_TEST(IsolateXXX, "Isolates stack correctly (child thread)") {
+  bool result;
+  thread t {CheckIsolateStacking};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "Isolates stack correctly");
+}
+
+
+V8MONKEY_TEST(IsolateXXX, "Calling Dispose whilst within an isolate triggers an error (main thread)") {
+  bool result;
+  thread t {CheckBadDisposeIsFatal};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "Dispose from within an isolate is fatal");
+}
+
+
+V8MONKEY_TEST(IsolateXXX, "Calling Dispose whilst within an isolate doesn't delete isolate (main thread)") {
+  bool result;
+  thread t {CheckFailedDisposeDoesntDelete};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "Isolate not deleted if dispose failed");
+}
+
+
+V8MONKEY_TEST(ScopeXXX, "Creating and destroying a single scope leaves main in its initial state (child thread)") {
+  bool result;
+  thread t {CheckSingleScopeRestoresInitialState};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "main thread returned to initial isolate after scope destruction");
+}
+
+
+V8MONKEY_TEST(ScopeXXX, "GetCurrent() reports correct isolate after Scope construction (within Scope lifetime: child thread") {
+  bool result;
+  thread t {GetCurrentCorrectAfterScopeConstruction};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "GetCurrent() was correct (child thread");
+}
+
+
+V8MONKEY_TEST(ScopeXXX, "Scopes stack correctly for main with explicitly entered Isolates (child thread") {
+  bool result;
+  thread t {CheckScopesStackAfterExplicitEntry};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "Scope stacked correctly (child thread");
+}
+
+
+V8MONKEY_TEST(ScopeXXX, "Multiple Scopes stack correctly for main thread (child thread") {
+  bool result;
+  thread t {CheckScopesStack};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "Scopes stacked correctly");
+}
+*/
+
+
+/*
+ * Project reset: 16 July
+ *
+ * Code below this line predates the reset
+ *
+ */
+
+/*
+
+// GetJSRuntimeForThread GetJSContextForThread
+#include "utils/SpiderMonkeyUtils.h"
+*/
+
+
+/*
 
 
 V8MONKEY_TEST(Isolate011, "Embedder data is initially null") {
@@ -400,26 +576,6 @@ V8MONKEY_TEST(Isolate015, "Slots don't overlap") {
   }
 
   i->Dispose();
-}
-
-
-V8MONKEY_TEST(Scope001, "Creating and destroying a single scope leaves main in its initial state") {
-  V8MONKEY_CHECK(CheckSingleScopeRestoresInitialState(), "main thread returned to initial isolate after scope destruction");
-}
-
-
-V8MONKEY_TEST(Scope002, "GetCurrent() reports correct isolate after Scope construction (within Scope lifetime)") {
-  V8MONKEY_CHECK(GetCurrentCorrectAfterScopeConstruction(), "GetCurrent() was correct");
-}
-
-
-V8MONKEY_TEST(Scope003, "Scopes stack correctly for main with explicitly entered Isolates") {
-  V8MONKEY_CHECK(CheckScopesStackAfterExplicitEntry(), "Scope stacked correctly");
-}
-
-
-V8MONKEY_TEST(Scope004, "Multiple Scopes stack correctly for main thread") {
-  V8MONKEY_CHECK(CheckScopesStack(), "Scopes stacked correctly");
 }
 
 
@@ -505,28 +661,6 @@ V8MONKEY_TEST(Scope004, "Multiple Scopes stack correctly for main thread") {
 //  *
 //
 //
-// V8MONKEY_TEST(Isolate002, "Non-main thread reports Isolate::GetCurrent null when API not used") {
-//   V8Platform::Thread child(ReturnCurrentIsolate);
-//   child.Run();
-//   Isolate* threadIsolate = static_cast<Isolate*>(child.Join());
-//   V8MONKEY_CHECK(threadIsolate == nullptr, "Thread Isolate::GetCurrent was null");
-// }
-//
-//
-// V8MONKEY_TEST(Isolate004, "Non-main thread remains in isolate if exited fewer times than entered") {
-//   V8Platform::Thread child(EnterTwiceReturnOnce);
-//   child.Run();
-//   V8MONKEY_CHECK(child.Join(), "Still in isolate after asymmetric exits");
-// }
-//
-//
-// V8MONKEY_TEST(Isolate006, "Non-main thread exits to null after sufficient exits from multiply-entered isolate") {
-//   V8Platform::Thread child(EnterThriceReturnThrice);
-//   child.Run();
-//   V8MONKEY_CHECK(child.Join(), "Returned to null after symmetric exits");
-// }
-//
-//
 // V8MONKEY_TEST(Isolate008, "Isolate entries stack for off-main thread") {
 //   V8Platform::Thread child(CheckIsolateStacking);
 //   child.Run();
@@ -566,18 +700,4 @@ V8MONKEY_TEST(Scope004, "Multiple Scopes stack correctly for main thread") {
 //   V8Platform::Thread child(CheckScopesStack);
 //   child.Run();
 //   V8MONKEY_CHECK(child.Join(), "Scopes stacked correctly");
-// }
-//
-//
-// V8MONKEY_TEST(Dispose002, "Attempt to dispose V8 when in non-default isolate (thread) triggers fatal error") {
-//   V8Platform::Thread child(CheckV8DisposeFromNonDefaultIsFatal);
-//   child.Run();
-//   V8MONKEY_CHECK(child.Join(), "Disposing V8 from a non-default isolate is fatal");
-// }
-//
-//
-// V8MONKEY_TEST(Dispose006, "Dispose without init works from thread if associated with default isolate") {
-//   V8Platform::Thread child(CheckV8DisposeWithoutInit);
-//   child.Run();
-//   V8MONKEY_CHECK(child.Join(), "Disposing V8 without init from thread works in right circumstances");
 // }

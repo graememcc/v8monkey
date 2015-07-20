@@ -1,22 +1,19 @@
-/*
 // internal::isolate definition
 #include "runtime/isolate.h"
 
 // Class definition
 #include "v8.h"
-*/
 
 
 /*
  * The implementation of the API Isolate class. In common with V8, it largely delegates to the internal isolate.
  * Indeed, API isolates are not constructable: the pointers are just reinterpreted internal isolate pointers
  * (The V8 team contains some smart people, so we can take it as a given that they've checked that the alignment
- * requirement of API isolates isn't stricter than their internal brethren. Note that API isolates don't contain any
+ * requirement of API isolates isn't stricter than their internal brethren. Of course, API isolates don't contain any
  * data, so it would be very very surprising if they were: they should be size 1).
  *
  */
 
-/*
 #define FORWARD_TO_INTERNAL(method) \
    do { \
      internal::Isolate* internal = reinterpret_cast<internal::Isolate*>(this); \
@@ -24,6 +21,39 @@
    } while (0);
 
 
+namespace v8 {
+  Isolate* Isolate::New() {
+    internal::Isolate* internal {new internal::Isolate()};
+    return reinterpret_cast<Isolate*>(internal);
+  }
+
+
+  void Isolate::Enter() {
+    FORWARD_TO_INTERNAL(Enter);
+  }
+
+
+  void Isolate::Exit() {
+    FORWARD_TO_INTERNAL(Exit);
+  }
+
+
+  void Isolate::Dispose() {
+    FORWARD_TO_INTERNAL(Dispose);
+  }
+
+
+  Isolate* Isolate::GetCurrent() {
+    return reinterpret_cast<Isolate*>(internal::Isolate::GetCurrent());
+  }
+}
+
+
+/*
+ * Project reset: 16 July. Code below precedes the reset.
+ *
+ */
+/*
 
 namespace v8 {
 //   int V8::GetCurrentThreadId() {
@@ -38,31 +68,6 @@ namespace v8 {
 //     return fetchOrAssignThreadID();
 //   }
 
-
-  Isolate* Isolate::New() {
-    internal::Isolate* internal {new internal::Isolate()};
-    return reinterpret_cast<Isolate*>(internal);
-  }
-
-
-  Isolate* Isolate::GetCurrent() {
-    return reinterpret_cast<Isolate*>(internal::Isolate::GetCurrent());
-  }
-
-
-  void Isolate::Dispose() {
-    FORWARD_TO_INTERNAL(Dispose);
-  }
-
-
-  void Isolate::Enter() {
-    FORWARD_TO_INTERNAL(Enter);
-  }
-
-
-  void Isolate::Exit() {
-    FORWARD_TO_INTERNAL(Exit);
-  }
 //
 //
 //   void* Isolate::GetData() {

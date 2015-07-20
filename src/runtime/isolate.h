@@ -1,6 +1,138 @@
 #ifndef V8MONKEY_ISOLATE_H
 #define V8MONKEY_ISOLATE_H
 
+
+// FatalErrorCallback, SetFatalErrorHandler
+#include "v8.h"
+
+
+// vector
+#include <vector>
+
+
+namespace v8 {
+  namespace internal {
+    class Isolate {
+      public:
+        Isolate() : previousIsolates {}, hasFatalError {false}, fatalErrorHandler {nullptr} {}
+        ~Isolate() = default;
+
+
+        /*
+         * Enter the given isolate.
+         *
+         */
+
+        void Enter();
+
+
+        /*
+         * Exit the given isolate.
+         *
+         */
+
+        void Exit();
+
+
+        /*
+         * Dispose any remaning resources held by this Isolate, and delete the isolate.
+         *
+         */
+
+        void Dispose(bool fromDestructor = false);
+
+
+        /*
+         * Returns a pointer to the currently entered isolate for the calling thread. May be null.
+         *
+         */
+
+        static Isolate* GetCurrent();
+
+
+        /*
+         * API Isolates are all air: this function casts to a pointer to the real underlying internal::Isolate.
+         *
+         */
+
+        static Isolate* FromAPIIsolate(::v8::Isolate* i) {
+          return reinterpret_cast<Isolate*>(i);
+        }
+
+
+
+        /*
+         * Allow various parts of V8Monkey to signal a problem has occurred in this isolate.
+         *
+         */
+
+        void SignalFatalError() { hasFatalError = true; }
+
+
+        /*
+         * V8 API: Set the client callback that will be invoked when problems occur in this isolate.
+         *
+         */
+
+        void SetFatalErrorHandler(FatalErrorCallback fn) { fatalErrorHandler = fn; }
+
+
+
+        // XXX Clarify the death conditions
+        /*
+         * Reports whether this isolate is dead (through a fatal error or other condition).
+         *
+         */
+
+        bool IsDead() const { return hasFatalError; }
+
+
+        /*
+         * Get a function pointer to the client callback for fatal errors in this isolate. Will be null if the
+         * client has not supplied a callback via the relevant API function.
+         *
+         */
+
+        // XXX Rather than have this public, can we make this private and declare v8::V8Monkey::TriggerFatalError as a
+        //     friend?
+        FatalErrorCallback GetFatalErrorHandler() const { return fatalErrorHandler; }
+
+        // XXX Do we want to allow moving/copying isolates? My gut feeling is that because of rooting etc, we don't want
+        // to copy
+
+      private:
+
+        /*
+         * It seems to be an (undocumented) V8 API requirement that threads leave an Isolate in LIFO order. Further,
+         * once a thread leaves a particular isolate, it should "return" to the isolate it was within at the time of
+         * entry. Thus, we maintain this vector of isolate pointers, with the invariant that previousIsolates.back() is
+         * the isolate that the most-recently entered thread came from. The invariant is maintained by calls to the two
+         * functions declared here.
+         *
+         */
+
+        std::vector<Isolate*> previousIsolates {};
+        void RecordThreadEntry(Isolate* i);
+        Isolate* RecordThreadExit();
+
+        /*
+         * Error handling
+         *
+         */
+
+        bool hasFatalError;
+        FatalErrorCallback fatalErrorHandler;
+    };
+  }
+}
+
+
+/*
+ * Project reset: 16 July. Code below precedes the reset.
+ *
+ */
+
+
 /*
 // int64_t
 #include <cinttypes>
@@ -25,9 +157,6 @@
 
 // FatalErrorCallback, Isolate, kNumIsolateDataSlots
 #include "v8.h"
-
-// vector
-#include <vector>
 
 
 class JSTracer;
@@ -89,42 +218,6 @@ namespace v8 {
 */
 
         /*
-         * Enter the given isolate.
-         *
-         */
-
-/*
-        void Enter();
-*/
-
-        /*
-         * Exit the given isolate.
-         *
-         */
-
-/*
-        void Exit();
-*/
-
-        /*
-         * Dispose any remaning resources held by this Isolate, and delete the isolate.
-         *
-         */
-
-/*
-        void Dispose(bool fromDestructor = false);
-*/
-
-        /*
-         * Returns a pointer to the currently entered isolate for the calling thread. May be null.
-         *
-         */
-
-/*
-        static Isolate* GetCurrent();
-*/
-
-        /*
          * Reports whether any threads have entered this isolate and not yet exited.
          *
          */
@@ -146,45 +239,6 @@ namespace v8 {
 
 /*
         static bool IsEntered(Isolate* i);
-*/
-
-        // XXX Clarify the death conditions
-        /*
-         * Reports whether this isolate is dead (through a fatal error or other condition).
-         *
-         */
-
-/*
-        bool IsDead() const { return hasFatalError; }
-*/
-
-        /*
-         * Allow various parts of V8Monkey to signal a problem has occurred in this isolate.
-         *
-         */
-/*
-        void SignalFatalError() { hasFatalError = true; }
-*/
-
-        // XXX I know SetFatalError... is V8 API but who uses Get? Can this be private with the
-        // relevant friends
-        /*
-         * V8 API: Set the client callback that will be invoked when problems occur in this isolate.
-         *
-         */
-
-/*
-        void SetFatalErrorHandler(FatalErrorCallback fn) { fatalErrorHandler = fn; }
-*/
-
-        /*
-         * Get a function pointer to the client callback for fatal errors in this isolate. Will be null if the
-         * client has not supplied a callback via the relevant API function.
-         *
-         */
-
-/*
-        FatalErrorCallback GetFatalErrorHandler() const { return fatalErrorHandler; }
 */
 
         // XXX Might want to make Lock/Unlock private, and friend Locker/Unlocker
@@ -405,17 +459,6 @@ namespace v8 {
 //        bool IsInitted() const { return isInitted; }
 //        void Init() { isInitted = true; }
 
-        /*
-         * API Isolates are all air: this function casts to a pointer to the real underlying internal::Isolate.
-         *
-         */
-
-/*
-        static Isolate* FromAPIIsolate(::v8::Isolate* i) {
-          return reinterpret_cast<Isolate*>(i);
-        }
-*/
-
 //
 //        // Initialize the default isolate and claim thread id 1
 //        static void EnsureDefaultIsolateForStaticInitializerThread();
@@ -459,10 +502,6 @@ namespace v8 {
         bool hasFatalError {false};
 
         // XXX Temporary?
-        // Record the previously entered isolates of all the threads that have entered this isolate.
-        std::vector<Isolate*> previousIsolates {};
-
-        // XXX Temporary?
         // Pointers to objects contained in API Local handles
         LocalHandles localHandleData {};
 
@@ -479,9 +518,6 @@ namespace v8 {
 
         // Have we told SpiderMonkey we're a rooter?
         bool isRegisteredForGC {false};
-
-        // Fatal error handler for this isolate
-        FatalErrorCallback fatalErrorHandler {nullptr};
 
 //        // Our linked list of data about active threads in this isolate
 //        ThreadData* threadData;
@@ -508,20 +544,6 @@ namespace v8 {
 //        // HandleScope data for Persistents
 //        HandleData persistentData;
 
-*/
-        // XXX Temporary?
-        /*
-         * This pair of functions should be called when a thread enters/exits the Isolate. They maintain the invariant
-         * previousIsolates.back() is the isolate that the most-recently entered thread came from. It seems to be an
-         * (undocumented) V8 API requirement that threads enter and exit isolates in a LIFO fashion.
-         * XXX Check that assertion.
-         *
-         */
-
-/*
-        void RecordThreadEntry(Isolate* i);
-        Isolate* RecordThreadExit();
-*/
 
         /*
          * Perform one-time initialization tasks, such as installing true, false, etc. in their expected locations

@@ -1,7 +1,3 @@
-/*
-// IsEntered
-#include "runtime/isolate.h"
-
 // TestUtils
 #include "utils/test.h"
 
@@ -36,6 +32,12 @@ namespace {
 
 using namespace v8;
 
+
+/*
+ * Note: we must manually trigger an error and check that the fatal error handler is called, as then tests checking
+ * error conditions can consider a called FatalErrorHandler as witness that an error was correctly signalled.
+ *
+ */
 
 V8MONKEY_TEST(FatalHandler001, "Specified fatal error handler called") {
   v8::TestUtils::AutoTestCleanup ac {};
@@ -87,4 +89,3 @@ V8MONKEY_TEST(FatalHandler003, "Specified fatal error handler is isolate specifi
   V8MONKEY_CHECK(!callback2Called, "Old handler not called");
   V8MONKEY_CHECK(callback1Called, "Handler called");
 }
-*/

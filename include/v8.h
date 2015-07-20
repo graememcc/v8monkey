@@ -89,7 +89,9 @@ class HeapProfiler;
 class ImplementationUtilities;
 class Int32;
 class Integer;
+*/
 class Isolate;
+/*
 class Number;
 class NumberObject;
 class Object;
@@ -4581,8 +4583,8 @@ bool V8_EXPORT SetResourceConstraints(Isolate* isolate,
 // --- Exceptions ---
 
 
-/*
 typedef void (*FatalErrorCallback)(const char* location, const char* message);
+/*
 
 
 typedef void (*MessageCallback)(Handle<Message> message, Handle<Value> error);
@@ -4740,15 +4742,12 @@ class RetainedObjectInfo;
  * threads.  An isolate can be entered by at most one thread at any
  * given time.  The Locker/Unlocker API must be used to synchronize.
  */
-/*
 class V8_EXPORT Isolate {
  public:
-*/
   /**
    * Stack-allocated class which sets the isolate for all operations
    * executed within a local scope.
    */
-/*
   class V8_EXPORT Scope {
    public:
     explicit Scope(Isolate* isolate) : isolate_(isolate) {
@@ -4764,7 +4763,6 @@ class V8_EXPORT Isolate {
     Scope(const Scope&);
     Scope& operator=(const Scope&);
   };
-*/
 
 
   /**
@@ -4864,17 +4862,13 @@ class V8_EXPORT Isolate {
    * When an isolate is no longer used its resources should be freed
    * by calling Dispose().  Using the delete operator is not allowed.
    */
-/*
   static Isolate* New();
-*/
 
   /**
    * Returns the entered isolate for the current thread or NULL in
    * case there is no current isolate.
    */
-/*
   static Isolate* GetCurrent();
-*/
 
   /**
    * Methods below this point require holding a lock (using Locker) in
@@ -4886,9 +4880,7 @@ class V8_EXPORT Isolate {
    * Saves the previously entered one (if any), so that it can be
    * restored when exiting.  Re-entering an isolate is allowed.
    */
-/*
   void Enter();
-*/
 
   /**
    * Exits this isolate by restoring the previously entered one in the
@@ -4897,17 +4889,13 @@ class V8_EXPORT Isolate {
    *
    * Requires: this == Isolate::GetCurrent().
    */
-/*
   void Exit();
-*/
 
   /**
    * Disposes the isolate.  The isolate must not be entered by any
    * thread to be disposable.
    */
-/*
   void Dispose();
-*/
 
   /**
    * Associate embedder-specific data with the isolate. |slot| has to be
@@ -5269,8 +5257,8 @@ class V8_EXPORT Isolate {
   void SetReferenceFromGroup(UniqueId id, internal::Object** object);
   void SetReference(internal::Object** parent, internal::Object** child);
   void CollectAllGarbage(const char* gc_reason);
-};
 */
+};
 
 /*
 class V8_EXPORT StartupData {
@@ -5481,9 +5469,7 @@ class V8_EXPORT PersistentHandleVisitor {  // NOLINT
 class V8_EXPORT V8 {
  public:
   /** Set the callback to invoke in case of fatal errors. */
-/*
   static void SetFatalErrorHandler(FatalErrorCallback that);
-*/
 
   /**
    * Set the callback to invoke to check if code generation from
@@ -5508,9 +5494,7 @@ class V8_EXPORT V8 {
    * Check if V8 is dead and therefore unusable.  This is the case after
    * fatal errors such as out-of-memory situations.
    */
-/*
   static bool IsDead();
-*/
 
   /**
    * The following 4 functions are to be used when V8 is built with

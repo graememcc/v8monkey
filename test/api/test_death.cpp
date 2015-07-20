@@ -1,4 +1,3 @@
-/*
 // Isolate V8
 #include "v8.h"
 
@@ -27,4 +26,3 @@ V8MONKEY_TEST(Death002, "V8::IsDead normally returns false (with init)") {
   i->Dispose();
   V8::Dispose();
 }
-*/

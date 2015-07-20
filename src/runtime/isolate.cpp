@@ -1,3 +1,188 @@
+// TLSKey
+#include "platform/platform.h"
+
+// Class definition
+#include "runtime/isolate.h"
+
+// TestUtils
+#include "utils/test.h"
+
+// V8MonkeyCommon class definition, TriggerFatalError, V8MONKEY_ASSERT
+#include "utils/V8MonkeyCommon.h"
+
+
+namespace {
+  using namespace v8::V8Platform;
+
+
+  /*
+   * Thread-local storage keys for isolate related thread data
+   *
+   */
+
+  // When a thread enters an isolate, we store that isolate in TLS to enable Isolate::GetCurrent to work
+  TLSKey<v8::internal::Isolate> currentIsolateKey {};
+}
+
+
+namespace v8 {
+
+
+  /*
+   * We implement this here as death is on a per-internal isolate basis
+   * NOTE: In 3.30.0, the API method moves from V8 to Isolate
+   *
+   */
+
+  bool V8::IsDead() {
+    internal::Isolate* i {internal::Isolate::GetCurrent()};
+    // Follow V8 and assert here
+    V8MONKEY_ASSERT(i, "Not in an isolate");
+    return i->IsDead();
+  }
+
+
+  /*
+   * We implement this here as error handlers are associated with internal isolates.
+   * NOTE: In 3.30.0, the API method moves from V8 to Isolate
+   *
+   */
+
+  void V8::SetFatalErrorHandler(FatalErrorCallback fn) {
+    internal::Isolate* i {internal::Isolate::GetCurrent()};
+    V8MONKEY_ASSERT(i, "Cannot set fatal error handler: not in an Isolate");
+    i->SetFatalErrorHandler(fn);
+  }
+
+
+  namespace internal {
+    void Isolate::Enter() {
+      using namespace ::v8;
+
+      // As isolate entries stack, and threads can unlock allowing other threads to enter an isolate, we must note
+      // which isolate the entering thread will exit to, and which thread will be considered the most-recently entered
+      // once this thread exits.
+
+      // To aid tracking, we assign each thread a unique ID
+      // XXX Either use threadID, remove it or don't assign. In any case get rid of V8_UNUSED
+      //int V8_UNUSED threadID {fetchOrAssignThreadID()};
+
+      // Likewise, it should have a JSRuntime and JSContext
+      //SpiderMonkey::EnsureRuntimeAndContext();
+
+      // Register this isolate with SpiderMonkey for GC
+      //{
+        // XXX Why does AutoGCMutex need the isolate? I thought nested classes could access members of the parent?
+        // XXX Do we even need to lock here? This shouldn't affect the ability of other JSRuntimes to trace us?
+        //AutoGCMutex {this};
+
+        //SpiderMonkey::TracerData* data {new SpiderMonkey::TracerData {SpiderMonkey::GetJSRuntimeForThread(), this}};
+        //SpiderMonkey::AddIsolateRooter(this, GCTracingFunction, data);
+        //isRegisteredForGC = true;
+      //}
+
+      // What isolate was the thread in previously?
+      Isolate* previousIsolate {currentIsolateKey.Get()};
+
+      // Note the thread entry
+      RecordThreadEntry(previousIsolate);
+//
+//       // Note a new entry for this thread
+//       ThreadData* data = FindOrCreateThreadData(threadID, previousIsolate);
+//       data->entryCount++;
+//
+      // Invariant: a thread's most recently entered isolate should be stored in TLS
+      currentIsolateKey.Set(this);
+    }
+
+
+    void Isolate::Exit() {
+      Isolate* i {RecordThreadExit()};
+      currentIsolateKey.Set(i);
+    }
+
+
+    void Isolate::Dispose(bool) {
+      if (!previousIsolates.empty()) {
+         V8Monkey::TriggerFatalError("Isolate::Dispose", "Cannot dispose of isolate which contains threads");
+         return;
+      }
+
+      delete this;
+    }
+
+
+    void Isolate::RecordThreadEntry(Isolate* i) {
+      previousIsolates.emplace_back(i);
+    }
+
+
+    Isolate* Isolate::RecordThreadExit() {
+      V8MONKEY_ASSERT(!previousIsolates.empty(), "Previous isolates empty when trying to exit?");
+      auto end = std::end(previousIsolates) - 1;
+      Isolate* i {*end};
+      previousIsolates.erase(end);
+      return i;
+    }
+
+
+    Isolate* Isolate::GetCurrent() {
+      return currentIsolateKey.Get();
+    }
+
+
+#ifdef V8MONKEY_INTERNAL_TEST
+  }
+
+
+  namespace TestUtils {
+    // XXX Can we fix these up to watch out for isolate construction?
+
+    AutoIsolateCleanup::~AutoIsolateCleanup() {
+      while (Isolate::GetCurrent()) {
+        // Isolates can be entered multiple times
+        Isolate* i {Isolate::GetCurrent()};
+
+        //internal::Isolate* ii {internal::Isolate::FromAPIIsolate(i)};
+        //V8MONKEY_ASSERT(!ii->IsLockedForThisThread(), "An isolate was still locked");
+
+        while (Isolate::GetCurrent() == i) {
+          i->Exit();
+        }
+
+        i->Dispose();
+      }
+    }
+
+
+    AutoTestCleanup::~AutoTestCleanup() {
+      while (Isolate::GetCurrent()) {
+        // Isolates can be entered multiple times
+        Isolate* i {Isolate::GetCurrent()};
+
+        //internal::Isolate* ii {internal::Isolate::FromAPIIsolate(i)};
+        //V8MONKEY_ASSERT(!ii->IsLockedForThisThread(), "An isolate was still locked");
+
+        while (Isolate::GetCurrent() == i) {
+          i->Exit();
+        }
+
+        i->Dispose();
+      }
+
+      V8::Dispose();
+    }
+
+#endif
+  }
+}
+
+
+/*
+ * Project reset: 16 July. Code below precedes the reset.
+ *
+ */
+
 /*
 // for_each
 #include <algorithm>
@@ -15,26 +200,14 @@
 // std::begin, std::end
 #include <iterator>
 
-// Class definition
-#include "runtime/isolate.h"
-
 // AddIsolateRooter, EnsureRuntimeAndContext, GetJSRuntimeForThread, RemoveRooter, RTCXData
 #include "utils/SpiderMonkeyUtils.h"
-
-// TLSKey
-#include "platform/platform.h"
-
-// TestUtils EXPORT_FOR_TESTING_ONLY
-#include "utils/test.h"
 
 // ObjectContainer
 #include "types/base_types.h"
 
 // SMBoolean
 #include "types/value_types.h"
-
-// V8MonkeyCommon class definition, TriggerFatalError, V8MONKEY_ASSERT
-#include "utils/V8MonkeyCommon.h"
 
 // kIsolateEmbedderDataOffset
 #include "v8.h"
@@ -83,14 +256,7 @@ struct JSRuntime;
 
 /*
 namespace {
-  using namespace v8::V8Platform;
 */
-
-
-  /*
-   * Thread-local storage keys for isolate related thread data
-   *
-   */
 
 /*
   // The thread's unique ID
@@ -246,46 +412,6 @@ namespace v8 {
 //   }
 */
 
-
-  /*
-   * We implement this here as death is on a per-internal isolate basis
-   * NOTE: In 3.30.0, the API method moves from V8 to Isolate
-   *
-   */
-
-/*
-  bool V8::IsDead() {
-    internal::Isolate* i {internal::Isolate::GetCurrent()};
-    // Follow V8 and assert here
-    V8MONKEY_ASSERT(i, "Not in an isolate");
-    return i->IsDead();
-  }
-*/
-
-
-  /*
-   * We implement this here as error handlers are associated with internal isolates.
-   * NOTE: In 3.30.0, the API method moves from V8 to Isolate
-   *
-   */
-
-/*
-  void V8::SetFatalErrorHandler(FatalErrorCallback fn) {
-    // V8 assumes that the caller is in an isolate (although it asserts in debug builds)
-    internal::Isolate* i {internal::Isolate::GetCurrent()};
-    i->SetFatalErrorHandler(fn);
-  }
-*/
-//
-//
-//   void Isolate::Enter() {
-//     FORWARD_TO_INTERNAL(Enter);
-//   }
-//
-//
-//   void Isolate::Exit() {
-//     FORWARD_TO_INTERNAL(Exit);
-//   }
 //
 //
 //   void* Isolate::GetData() {
@@ -339,22 +465,6 @@ namespace v8 {
 //         entryCount(0), threadID(id), previousIsolate(previous), prev(previousElement), next(nextElement) {}
 //     };
 
-/*
-    // XXX Temporary?
-    void Isolate::RecordThreadEntry(Isolate* i) {
-      previousIsolates.emplace_back(i);
-    }
-
-
-    // XXX Temporary?
-    Isolate* Isolate::RecordThreadExit() {
-      // XXX If we keep this, assert not empty
-      auto end = std::end(previousIsolates) - 1;
-      Isolate* i {*end};
-      previousIsolates.erase(end);
-      return i;
-    }
-*/
 
     /*
      * When an Isolate is entered, we will assign that thread a JSRuntime and a JSContext if the thread does not
@@ -372,47 +482,6 @@ namespace v8 {
      *
      */
 
-/*
-    void Isolate::Enter() {
-      using namespace ::v8;
-
-      // As isolate entries stack, and threads can unlock allowing other threads to enter an isolate, we must note
-      // which isolate the entering thread to exit to, and which thread will be considered the most-recently entered
-      // once this thread exits.
-
-      // To aid tracking, we assign each thread a unique ID
-      // XXX Either use threadID, remove it or don't assign. In any case get rid of V8_UNUSED
-      int V8_UNUSED threadID {fetchOrAssignThreadID()};
-
-      // Likewise, it should have a JSRuntime and JSContext
-      SpiderMonkey::EnsureRuntimeAndContext();
-
-      // Register this isolate with SpiderMonkey for GC
-      {
-        // XXX Why does AutoGCMutex need the isolate? I thought nested classes could access members of the parent?
-        // XXX Do we even need to lock here? This shouldn't affect the ability of other JSRuntimes to trace us?
-        AutoGCMutex {this};
-
-        SpiderMonkey::TracerData* data {new SpiderMonkey::TracerData {SpiderMonkey::GetJSRuntimeForThread(), this}};
-        SpiderMonkey::AddIsolateRooter(this, GCTracingFunction, data);
-        isRegisteredForGC = true;
-      }
-
-      // What isolate was the thread in previously?
-      Isolate* previousIsolate {currentIsolateKey.Get()};
-
-      // XXX Temporary
-      // Note the thread entry
-      RecordThreadEntry(previousIsolate);
-//
-//       // Note a new entry for this thread
-//       ThreadData* data = FindOrCreateThreadData(threadID, previousIsolate);
-//       data->entryCount++;
-//
-      // Invariant: a thread's most recently entered isolate should be stored in TLS
-      currentIsolateKey.Set(this);
-    }
-*/
 
 
     /*
@@ -465,16 +534,6 @@ namespace v8 {
 //         return;
 //       }
 //
-
-      // Time for this thread to say goodbye. We need to pop this thread's previous isolate from the container.
-      // XXX Temporary
-      Isolate* i {RecordThreadExit()};
-      currentIsolateKey.Set(i);
-
-        //SetCurrentIsolateInTLS(data->previousIsolate);
-//
-//       // Note: after this call, data will be a dangling pointer
-//       DeleteAndFreeThreadData(data);
     }
 */
 
@@ -812,52 +871,4 @@ namespace v8 {
       // Trace Persistent handles
       //ObjectBlock<V8MonkeyObject>::Iterate(persistentData.limit, persistentData.next, tracingIterationFunction, &td);
     }
-
-
-#ifdef V8MONKEY_INTERNAL_TEST
-  }
-
-
-  namespace TestUtils {
-    // XXX Can we fix these up to watch out for isolate construction?
-
-    AutoIsolateCleanup::~AutoIsolateCleanup() {
-      while (Isolate::GetCurrent()) {
-        // Isolates can be entered multiple times
-        Isolate* i {Isolate::GetCurrent()};
-
-        internal::Isolate* ii {internal::Isolate::FromAPIIsolate(i)};
-        V8MONKEY_ASSERT(!ii->IsLockedForThisThread(), "An isolate was still locked");
-
-        while (Isolate::GetCurrent() == i) {
-          i->Exit();
-        }
-
-        i->Dispose();
-      }
-    }
-
-
-    AutoTestCleanup::~AutoTestCleanup() {
-      while (Isolate::GetCurrent()) {
-        // Isolates can be entered multiple times
-        Isolate* i {Isolate::GetCurrent()};
-
-        internal::Isolate* ii {internal::Isolate::FromAPIIsolate(i)};
-        V8MONKEY_ASSERT(!ii->IsLockedForThisThread(), "An isolate was still locked");
-
-        while (Isolate::GetCurrent() == i) {
-          i->Exit();
-        }
-
-        i->Dispose();
-      }
-
-      V8::Dispose();
-    }
-
-#endif
-
-  }
-}
 */
