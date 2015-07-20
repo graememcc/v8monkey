@@ -4901,25 +4901,19 @@ class V8_EXPORT Isolate {
    * Associate embedder-specific data with the isolate. |slot| has to be
    * between 0 and GetNumberOfDataSlots() - 1.
    */
-/*
   V8_INLINE void SetData(uint32_t slot, void* data);
-*/
 
   /**
    * Retrieve embedder-specific data from the isolate.
    * Returns NULL if SetData has never been called for the given |slot|.
    */
-/*
   V8_INLINE void* GetData(uint32_t slot);
-*/
 
   /**
    * Returns the maximum number of available embedder data slots. Valid slots
    * are in the range of 0 - GetNumberOfDataSlots() - 1.
    */
-/*
   V8_INLINE static uint32_t GetNumberOfDataSlots();
-*/
 
   /**
    * Get statistics about the heap memory usage.
@@ -6410,10 +6404,10 @@ class V8_EXPORT Locker {
 // --- Implementation ---
 
 
-/*
 namespace internal {
 
 const int kApiPointerSize = sizeof(void*);  // NOLINT
+/*
 const int kApiIntSize = sizeof(int);  // NOLINT
 const int kApiInt64Size = sizeof(int64_t);  // NOLINT
 
@@ -6464,8 +6458,10 @@ template <> struct SmiTagging<4> {
     return static_cast<uintptr_t>(value + 0x40000000U) < 0x80000000U;
   }
 };
+*/
 
 // Smi constants for 64-bit systems.
+/*
 template <> struct SmiTagging<8> {
   static const int kSmiShiftSize = 31;
   static const int kSmiValueSize = 32;
@@ -6495,11 +6491,11 @@ V8_INLINE static bool SmiValuesAre32Bits() { return kSmiValueSize == 32; }
  * is necessary to implement inline functions in the v8 api.  Don't
  * depend on functions and constants defined here.
  */
-/*
 class Internals {
  public:
   // These values match non-compiler-dependent values defined within
   // the implementation of v8.
+/*
   static const int kHeapObjectMapOffset = 0;
   static const int kMapInstanceTypeAndBitFieldOffset =
       1 * kApiPointerSize + kApiIntSize;
@@ -6515,8 +6511,10 @@ class Internals {
   static const int kStringEncodingMask = 0x4;
   static const int kExternalTwoByteRepresentationTag = 0x02;
   static const int kExternalAsciiRepresentationTag = 0x06;
+*/
 
   static const int kIsolateEmbedderDataOffset = 0 * kApiPointerSize;
+/*
   static const int kAmountOfExternalAllocatedMemoryOffset =
       4 * kApiPointerSize;
   static const int kAmountOfExternalAllocatedMemoryAtLastGlobalGCOffset =
@@ -6551,8 +6549,10 @@ class Internals {
   static const int kUndefinedOddballKind = 5;
   static const int kNullOddballKind = 3;
 
+  */
   static const uint32_t kNumIsolateDataSlots = 4;
 
+/*
   V8_EXPORT static void CheckInitializedImpl(v8::Isolate* isolate);
   V8_INLINE static void CheckInitialized(v8::Isolate* isolate) {
 #ifdef V8_ENABLE_CHECKS
@@ -6617,6 +6617,7 @@ class Internals {
     uint8_t* addr = reinterpret_cast<uint8_t*>(obj) + kNodeFlagsOffset;
     *addr = static_cast<uint8_t>((*addr & ~kNodeStateMask) | value);
   }
+*/
 
   V8_INLINE static void SetEmbedderData(v8::Isolate* isolate,
                                         uint32_t slot,
@@ -6633,6 +6634,7 @@ class Internals {
     return *reinterpret_cast<void* const*>(addr);
   }
 
+/*
   V8_INLINE static internal::Object** GetRoot(v8::Isolate* isolate,
                                               int index) {
     uint8_t* addr = reinterpret_cast<uint8_t*>(isolate) + kIsolateRootsOffset;
@@ -6658,11 +6660,13 @@ class Internals {
         I::kFixedArrayHeaderSize + (internal::kApiPointerSize * index);
     return I::ReadField<T>(embedder_data, value_offset);
   }
+*/
 };
 
 }  // namespace internal
 
 
+/*
 template <class T>
 Local<T>::Local() : Handle<T>() { }
 
@@ -7543,6 +7547,7 @@ Handle<Boolean> False(Isolate* isolate) {
   S* slot = I::GetRoot(isolate, I::kFalseValueRootIndex);
   return Handle<Boolean>(reinterpret_cast<Boolean*>(slot));
 }
+*/
 
 
 void Isolate::SetData(uint32_t slot, void* data) {
@@ -7563,6 +7568,7 @@ uint32_t Isolate::GetNumberOfDataSlots() {
 }
 
 
+/*
 int64_t Isolate::AdjustAmountOfExternalAllocatedMemory(
     int64_t change_in_bytes) {
   typedef internal::Internals I;

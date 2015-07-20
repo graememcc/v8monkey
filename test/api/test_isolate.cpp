@@ -279,6 +279,23 @@ namespace {
     *ptr = firstOK && secondOK;
     return nullptr;
   }
+
+
+  // Stores a bool in the given location denoting whether scopes cope with existing entries correctly
+  extern "C"
+  void* CheckScopesCopeWithMultipleEntries(void* boolPtr) {
+    Isolate* i {Isolate::New()};
+    i->Enter();
+
+    {
+      Isolate::Scope scope(i);
+    }
+
+    bool* ptr {reinterpret_cast<bool*>(boolPtr)};
+    *ptr = Isolate::GetCurrent() == i;
+    i->Exit();
+    i->Dispose();
+  }
 }
 
 
@@ -343,6 +360,71 @@ V8MONKEY_TEST(Isolate009, "Calling Dispose whilst within an isolate doesn't dele
 }
 
 
+V8MONKEY_TEST(Isolate010, "Embedder data is initially null") {
+  Isolate* i {Isolate::New()};
+  void* result {i->GetData(0)};
+
+  V8MONKEY_CHECK(!result, "Data was null");
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(Isolate011, "Setting/getting data works as expected") {
+  Isolate* i {Isolate::New()};
+  i->SetData(0, i);
+
+  V8MONKEY_CHECK(i->GetData(0) == i, "Data was correct");
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(Isolate012, "Embedder data is slot specific") {
+  Isolate* i {Isolate::New()};
+  i->SetData(0, i);
+
+  V8MONKEY_CHECK(i->GetData(0) == i && !i->GetData(1), "Data was correct");
+
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(Isolate013, "Embedder data is isolate specific") {
+  Isolate* i {Isolate::New()};
+  i->SetData(0, i);
+  Isolate* j {Isolate::New()};
+
+  V8MONKEY_CHECK(i->GetData(0) == i && j->GetData(0) == nullptr, "Data was correct");
+
+  j->Dispose();
+  i->Dispose();
+}
+
+
+V8MONKEY_TEST(Isolate014, "Slots don't overlap") {
+  static_assert(sizeof(void*) == 4 || sizeof(void*) == 8, "Unexpected pointer size breaks test assumptions");
+
+  Isolate* i {Isolate::New()};
+
+  if (sizeof(void*) == 8) {
+    void* slot1 {reinterpret_cast<void*>(0x0f0f0f0f0f0f0f0fu)};
+    void* slot2 {reinterpret_cast<void*>(0xf0f0f0f0f0f0f0f0u)};
+    i->SetData(0, slot1);
+    i->SetData(1, slot2);
+
+    V8MONKEY_CHECK(i->GetData(0) == slot1 && i->GetData(1) == slot2, "Data was correct");
+  } else if (sizeof(void*) == 4) {
+    void* slot1 {reinterpret_cast<void*>(0x0f0f0f0fu)};
+    void* slot2 {reinterpret_cast<void*>(0xf0f0f0f0u)};
+    i->SetData(0, slot1);
+    i->SetData(1, slot2);
+
+    V8MONKEY_CHECK(i->GetData(0) == slot1 && i->GetData(1) == slot2, "Data was correct");
+  }
+
+  i->Dispose();
+}
+
+
 V8MONKEY_TEST(Scope001, "Creating and destroying a single scope leaves main in its initial state") {
   bool result;
   CheckSingleScopeRestoresInitialState(&result);
@@ -368,6 +450,13 @@ V8MONKEY_TEST(Scope004, "Multiple Scopes stack correctly for main thread") {
   bool result;
   CheckScopesStack(&result);
   V8MONKEY_CHECK(result, "Scopes stacked correctly");
+}
+
+
+V8MONKEY_TEST(Scope005, "Scopes exit copes with multiple entries (main thread)") {
+  bool result;
+  CheckScopesCopeWithMultipleEntries(&result);
+  V8MONKEY_CHECK(result, "Scopes cope with multiple entries correctly");
 }
 
 
@@ -493,211 +582,13 @@ V8MONKEY_TEST(ScopeXXX, "Multiple Scopes stack correctly for main thread (child 
   t.Join();
   V8MONKEY_CHECK(result, "Scopes stacked correctly");
 }
+
+
+V8MONKEY_TEST(ScopeXXX, "Scopes exit copes with multiple entries (child thread)") {
+  bool result;
+  thread t {CheckScopesCopeWithMultipleEntries};
+  t.Run(&result);
+  t.Join();
+  V8MONKEY_CHECK(result, "Scopes cope with multiple entries correctly");
+}
 */
-
-
-/*
- * Project reset: 16 July
- *
- * Code below this line predates the reset
- *
- */
-
-/*
-
-// GetJSRuntimeForThread GetJSContextForThread
-#include "utils/SpiderMonkeyUtils.h"
-*/
-
-
-/*
-
-
-V8MONKEY_TEST(Isolate011, "Embedder data is initially null") {
-  Isolate* i {Isolate::New()};
-  void* result = i->GetData(0);
-
-  V8MONKEY_CHECK(!result, "Data was null");
-  i->Dispose();
-}
-
-
-V8MONKEY_TEST(Isolate012, "Setting/getting data works as expected") {
-  Isolate* i {Isolate::New()};
-  i->SetData(0, i);
-  bool result = i->GetData(0) == i;
-
-  V8MONKEY_CHECK(result, "Data was correct");
-  i->Dispose();
-}
-
-
-V8MONKEY_TEST(Isolate013, "Embedder data is slot specific") {
-  Isolate* i {Isolate::New()};
-  i->SetData(0, i);
-
-  V8MONKEY_CHECK(i->GetData(0) == i && !i->GetData(1), "Data was correct");
-
-  i->Dispose();
-}
-
-
-V8MONKEY_TEST(Isolate014, "Embedder data is isolate specific") {
-  Isolate* i {Isolate::New()};
-  i->SetData(0, i);
-  Isolate* j {Isolate::New()};
-
-  V8MONKEY_CHECK(i->GetData(0) == i && j->GetData(0) == nullptr, "Data was correct");
-
-  j->Dispose();
-  i->Dispose();
-}
-
-
-V8MONKEY_TEST(Isolate015, "Slots don't overlap") {
-  static_assert(sizeof(void*) == 4 || sizeof(void*) == 8, "Unexpected pointer size breaks test");
-
-  Isolate* i {Isolate::New()};
-
-  if (sizeof(void*) == 8) {
-    void* slot1 {reinterpret_cast<void*>(0x0f0f0f0f0f0f0f0fu)};
-    void* slot2 {reinterpret_cast<void*>(0xf0f0f0f0f0f0f0f0u)};
-    i->SetData(0, slot1);
-    i->SetData(1, slot2);
-
-    V8MONKEY_CHECK(i->GetData(0) == slot1 && i->GetData(1) == slot2, "Data was correct");
-  } else if (sizeof(void*) == 4) {
-    void* slot1 {reinterpret_cast<void*>(0x0f0f0f0fu)};
-    void* slot2 {reinterpret_cast<void*>(0xf0f0f0f0u)};
-    i->SetData(0, slot1);
-    i->SetData(1, slot2);
-
-    V8MONKEY_CHECK(i->GetData(0) == slot1 && i->GetData(1) == slot2, "Data was correct");
-  }
-
-  i->Dispose();
-}
-
-
-//
-//
-// using namespace v8;
-//
-//
-*/
-// /*
-//  * TODO: As a relic of the attempt at multithreading, most tests delegate to a helper function for actual computation.
-//  *       If multithreading doesn't return, those intermediate functions can be dropped, and the code moved in to the
-//  *       main test.
-//  *
-//  */
-//
-//
-// namespace {
-//
-//
-//   XXX No longer relevant?
-//   // Returns a void* wrapped bool denoting whether attempts to dispose from a non-default isolate prove fatal
-//   V8MONKEY_TEST_HELPER(CheckV8DisposeFromNonDefaultIsFatal) {
-//     V8::Initialize();
-//     Isolate* i {Isolate::New()};
-//     i->Enter();
-//
-//     errorCaught = 0;
-//     V8::SetFatalErrorHandler(fatalErrorHandler);
-//     V8::Dispose();
-//     bool result = V8::IsDead() && errorCaught != 0;
-//
-//     i->Exit();
-//     i->Dispose();
-//     Isolate::GetCurrent()->Exit();
-//
-//     return reinterpret_cast<void*>(result);
-//   }
-//
-//
-//   // Returns a void* wrapped bool denoting whether attempts to dispose without init (when the executing thread is
-//   // associated with the default isolate) work
-//   V8MONKEY_TEST_HELPER(CheckV8DisposeWithoutInit) {
-//     // Reminder: in V8, any thread that calls a function that implicitly enters the default isolate will then be
-//     // permanently associated with the default isolate (by which I mean that Isolate::GetCurrent will report the
-//     // default isolate even when every possible isolate is exited). SetFatalErrorHandler is such a function.
-//     V8::SetFatalErrorHandler(dummyFatalErrorHandler);
-//     bool result = V8::Dispose();
-//     Isolate::GetCurrent()->Exit();
-//
-//     return reinterpret_cast<void*>(result);
-//   }
-// }
-//
-//
-// V8MONKEY_TEST(Isolate009, "Embedder data is initially null") {
-//   Isolate* i {Isolate::GetCurrent()};
-//   void* result = i->GetData();
-//   V8MONKEY_CHECK(!result, "Data was null");
-// }
-//
-//
-// V8MONKEY_TEST(Isolate010, "Setting/getting data works as expected") {
-//   Isolate* i {Isolate::GetCurrent()};
-//   i->SetData(i);
-//   bool result = i->GetData() == i;
-//   V8MONKEY_CHECK(result, "Data was correct");
-// }
-//
-//
-// V8MONKEY_TEST(Isolate011, "Embedder data is isolate specific") {
-//   Isolate* i {Isolate::GetCurrent()};
-//   i->SetData(i);
-//   Isolate* j {Isolate::New()};
-//   bool result = i->GetData() == i && j->GetData() == nullptr;
-//   V8MONKEY_CHECK(result, "Data was correct");
-//   j->Dispose();
-// }
-//
-//
-// /*
-//  * Tests disabled after threading support disabled
-//  *
-//
-//
-// V8MONKEY_TEST(Isolate008, "Isolate entries stack for off-main thread") {
-//   V8Platform::Thread child(CheckIsolateStacking);
-//   child.Run();
-//   V8MONKEY_CHECK(child.Join(), "Isolates returned to in correct sequence");
-// }
-//
-//
-// V8MONKEY_TEST(Isolate013, "Attempt to dispose in-use isolate causes fatal error for off-main thread") {
-//   V8Platform::Thread child(CheckBadDisposeIsFatal);
-//   child.Run();
-//   V8MONKEY_CHECK(child.Join(), "Disposing an in-use isolate is fatal");
-// }
-//
-//
-// V8MONKEY_TEST(Scope002, "Creating and destroying a single scope leaves thread in its initial state") {
-//   V8Platform::Thread child(CheckSingleScopeRestoresInitialState);
-//   child.Run();
-//   V8MONKEY_CHECK(child.Join(), "thread returned to initial isolate after scope destruction");
-// }
-//
-//
-// V8MONKEY_TEST(Scope004, "GetCurrent() reports correct isolate after Scope construction (within Scope lifetime)") {
-//   V8Platform::Thread child(GetCurrentCorrectAfterScopeConstruction);
-//   child.Run();
-//   V8MONKEY_CHECK(child.Join(), "GetCurrent() was correct");
-// }
-//
-//
-// V8MONKEY_TEST(Scope006, "Scopes stack correctly for thread with explicitly entered Isolates") {
-//   V8Platform::Thread child(CheckScopesStackAfterExplicitEntry);
-//   child.Run();
-//   V8MONKEY_CHECK(child.Join(), "Scope stacked correctly");
-// }
-//
-//
-// V8MONKEY_TEST(Scope008, "Multiple Scopes stack correctly for thread") {
-//   V8Platform::Thread child(CheckScopesStack);
-//   child.Run();
-//   V8MONKEY_CHECK(child.Join(), "Scopes stacked correctly");
-// }

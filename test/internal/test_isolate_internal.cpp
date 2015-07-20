@@ -1391,19 +1391,4 @@ V8MONKEY_TEST(IntIsolate067, "Refcount of affected objects dropped after slots d
 
   apiIsolate->Dispose();
 }
-
-
-V8MONKEY_TEST(IntScope001, "Scopes exit copes with multiple entries on main thread") {
-  TestUtils::AutoTestCleanup ac {};
-
-  Isolate* i {Isolate::New()};
-  i->Enter();
-
-  {
-    Isolate::Scope scope(i);
-  }
-
-  V8MONKEY_CHECK(internal::Isolate::IsEntered(internal::Isolate::FromAPIIsolate(i)),
-                 "Isolate::Scopes behave correctly in the face of multiple entries");
-}
 */

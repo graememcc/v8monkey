@@ -2,6 +2,12 @@
 #define V8MONKEY_ISOLATE_H
 
 
+// fill_n
+#include <algorithm>
+
+// begin
+#include <iterator>
+
 // FatalErrorCallback, SetFatalErrorHandler
 #include "v8.h"
 
@@ -14,7 +20,11 @@ namespace v8 {
   namespace internal {
     class Isolate {
       public:
-        Isolate() : previousIsolates {}, hasFatalError {false}, fatalErrorHandler {nullptr} {}
+        Isolate() : embedderData {}, previousIsolates {}, hasFatalError {false}, fatalErrorHandler {nullptr} {
+          std::fill_n(std::begin(embedderData), Internals::kNumIsolateDataSlots, nullptr);
+        }
+
+
         ~Isolate() = default;
 
 
@@ -101,6 +111,18 @@ namespace v8 {
         // to copy
 
       private:
+
+        /*
+         *                 ** V8 Binary compatability **
+         *
+         * The values below are positioned in order to maintain binary compatability with the V8 header. Ideally, I
+         * would static assert that they are in the correct position, however, we're not a POD type, so we cannot
+         * safely use offsetof.
+         *
+         */
+
+        void* embedderData[Internals::kNumIsolateDataSlots] {nullptr};
+
 
         /*
          * It seems to be an (undocumented) V8 API requirement that threads leave an Isolate in LIFO order. Further,
@@ -465,18 +487,6 @@ namespace v8 {
 
 /*
       private:
-*/
-        /*
-         *                 ** V8 Binary compatability **
-         *
-         * The values below are positioned in order to maintain binary compatability with the V8 header. Ideally, I
-         * would static assert that they are in the correct position, however, we're not a POD type, so we cannot
-         * safely use offsetof.
-         *
-         */
-
-/*
-        void* embedderData[Internals::kNumIsolateDataSlots] {nullptr};
 */
 
         // Padding for layout compatability
