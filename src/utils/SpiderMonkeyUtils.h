@@ -4,8 +4,65 @@
 #endif
 
 
+// JSContext, JSRuntime
+#include "jsapi.h"
+
+// EXPORT_FOR_TESTING_ONLY
+#include "utils/test.h"
+
+
 namespace v8 {
   namespace SpiderMonkey {
+
+    /*
+     * In this namespace, we wrap some common JSAPI calls, particularly where there is a need to perform additional
+     * internal book-keeping in relation to the particular operation.
+     *
+     */
+
+    struct SpiderMonkeyData {
+      JSRuntime* rt;
+      JSContext* cx;
+    };
+
+
+    /*
+     * Create a JSRuntime and JSContext for the given thread, and store those values in TLS.
+     *
+     * Aborts if creating either of those objects fails, as most of our assumptions will be hopelessly broken.
+     *
+     * // XXX Write a test for the below (if possible)
+     * Calling this function on a particular thread more than once has no effect: the JSRuntime and JSContext
+     * will be assigned by the first call, and will not be changed by later calls.
+     *
+     */
+
+    EXPORT_FOR_TESTING_ONLY void EnsureRuntimeAndContext();
+
+
+    /*
+     * Returns a SpiderMonkeyData struct containing the JSRuntime and JSContext for the current thread. Either entry in
+     * the struct may be null.
+     *
+     */
+
+    SpiderMonkeyData GetJSRuntimeAndJSContext();
+
+
+    /*
+     * Return the assigned JSRuntime for this thread. May be null if one has not yet been assigned.
+     *
+     */
+
+    EXPORT_FOR_TESTING_ONLY JSRuntime* GetJSRuntimeForThread();
+
+
+    /*
+     * Return the assigned JSContext for this thread. May be null if one has not yet been assigned.
+     *
+     */
+
+    EXPORT_FOR_TESTING_ONLY JSContext* GetJSContextForThread();
 
 
     /*
@@ -33,12 +90,6 @@ namespace v8 {
 
 /*
 
-// JSTraceDataOp
-#include "jsapi.h"
-
-// EXPORT_FOR_TESTING_ONLY
-#include "utils/test.h"
-
 
 namespace v8 {
 
@@ -50,68 +101,6 @@ namespace v8 {
   namespace SpiderMonkey {
     using RooterCallback = JSTraceDataOp;
 */
-
-    /*
-     * In this namespace, we wrap some common JSAPI calls, particularly where there is a need to perform additional
-     * internal book-keeping in relation to the particular operation.
-     *
-     */
-
-/*
-    struct SpiderMonkeyData {
-      JSRuntime* rt;
-      JSContext* cx;
-    };
-*/
-
-
-    /*
-     * Create a JSRuntime and JSContext for the given thread, and store those values in TLS.
-     *
-     * Aborts if creating either of those objects fails, as most of our assumptions will be hopelessly broken.
-     *
-     * // XXX Write a test for the below (if possible)
-     * Calling this function on a particular thread more than once has no effect: the JSRuntime and JSContext
-     * will be assigned by the first call, and will not be changed by later calls.
-     *
-     */
-
-/*
-    EXPORT_FOR_TESTING_ONLY void EnsureRuntimeAndContext();
-*/
-
-
-    /*
-     * Returns a SpiderMonkeyData struct containing the JSRuntime and JSContext for the current thread. Either entry in
-     * the struct may be null.
-     *
-     */
-
-/*
-    SpiderMonkeyData GetJSRuntimeAndJSContext();
-*/
-
-
-    /*
-     * Return the assigned JSRuntime for this thread. May be null if one has not yet been assigned.
-     *
-     */
-
-/*
-    EXPORT_FOR_TESTING_ONLY JSRuntime* GetJSRuntimeForThread();
-*/
-
-
-    /*
-     * Return the assigned JSContext for this thread. May be null if one has not yet been assigned.
-     *
-     */
-
-/*
-    EXPORT_FOR_TESTING_ONLY JSContext* GetJSContextForThread();
-*/
-
-
     /*
      * A POD type for communicating to a RooterCallback function which isolate and JSRuntime it has been invoked for.
      *
@@ -204,7 +193,6 @@ namespace v8 {
 //        static JSCompartment* GetPreviousCompartment();
 //
 //        // XXX Tests:
-//        //  - GetJSRuntimeAndJSContext returns a null rtcxdata initially
 //        //  - GetCurrentCompartment returns a null ptr initally
 //        //  - GetPreviousCompartment returns null ptr initally
 //        // NOTES:

@@ -1,10 +1,3 @@
-/*
-// intptr_t
-#include <cinttypes>
-
-// memcpy
-#include <cstring>
-
 // The class under test
 #include "utils/SpiderMonkeyUtils.h"
 
@@ -43,4 +36,3 @@ V8MONKEY_TEST(IntSMUtils004, "JSContext non-null after assignment") {
   cx = GetJSContextForThread();
   V8MONKEY_CHECK(cx, "Context not null");
 }
-*/
